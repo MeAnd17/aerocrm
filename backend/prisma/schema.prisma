@@ -1,0 +1,376 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── AUTH & RBAC ─────────────────────────────────────────────────────────────
+
+model User {
+  id                Int      @id @default(autoincrement())
+  email             String   @unique
+  password          String
+  firstName         String
+  lastName          String
+  dni               String?  @unique
+  isActive          Boolean  @default(true)
+  mustChangePassword Boolean @default(false)
+  userType          UserType @default(STAFF)
+  passengerId       Int?     @unique
+  lastLogin         DateTime?
+  pushToken         String?  // Expo Push Notification token
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  userRoles       UserRole[]
+  assignedTickets SupportTicket[] @relation("AssignedTo")
+  ticketMessages  TicketMessage[]
+  passenger       Passenger?      @relation(fields: [passengerId], references: [id])
+}
+
+enum UserType {
+  STAFF
+  CLIENT
+}
+
+model Role {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+}
+
+model Permission {
+  id     Int    @id @default(autoincrement())
+  module String
+  action String
+
+  rolePermissions RolePermission[]
+
+  @@unique([module, action])
+}
+
+model UserRole {
+  userId Int
+  roleId Int
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+model RolePermission {
+  roleId       Int
+  permissionId Int
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+// ─── PASSENGERS ──────────────────────────────────────────────────────────────
+
+model Passenger {
+  id                      Int           @id @default(autoincrement())
+  firstName               String
+  lastName                String
+  email                   String        @unique
+  phone                   String?
+  nationality             String
+  dateOfBirth             DateTime
+  passportNumber          String        @unique
+  passportExpiry          DateTime
+  frequentFlyerNumber     String?       @unique
+  tier                    PassengerTier @default(STANDARD)
+  totalMiles              Int           @default(0)  // acumulado total de millas
+  totalFlights            Int           @default(0)  // vuelos completados
+  lifetimeValue           Decimal       @default(0) @db.Decimal(10, 2) // gasto acumulado
+  preferenceWindow        Boolean       @default(false)
+  preferenceAisle         Boolean       @default(false)
+  preferenceMeal          String?
+  preferenceSpecialAssistance Boolean   @default(false)
+  notes                   String?       @db.Text
+  isActive                Boolean       @default(true)
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+
+  reservations   Reservation[]
+  supportTickets SupportTicket[]
+  flightHistory  FlightHistory[]
+  clientUser     User?
+}
+
+enum PassengerTier {
+  STANDARD
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+// ─── AIRPORTS & ROUTES ────────────────────────────────────────────────────────
+
+model Airport {
+  id       Int    @id @default(autoincrement())
+  iataCode String @unique
+  name     String
+  city     String
+  country  String
+  timezone String
+
+  departingRoutes Route[] @relation("DepartingRoutes")
+  arrivingRoutes  Route[] @relation("ArrivingRoutes")
+}
+
+model Route {
+  id            Int @id @default(autoincrement())
+  originId      Int
+  destinationId Int
+  distanceKm    Int
+
+  origin      Airport @relation("DepartingRoutes", fields: [originId], references: [id])
+  destination Airport @relation("ArrivingRoutes", fields: [destinationId], references: [id])
+  flights     Flight[]
+
+  @@unique([originId, destinationId])
+}
+
+model Gate {
+  id       Int    @id @default(autoincrement())
+  code     String @unique
+  terminal String
+
+  flights Flight[]
+}
+
+model Flight {
+  id                 Int          @id @default(autoincrement())
+  flightNumber       String       @unique
+  routeId            Int
+  gateId             Int?
+  scheduledDeparture DateTime
+  scheduledArrival   DateTime
+  actualDeparture    DateTime?
+  actualArrival      DateTime?
+  status             FlightStatus @default(ON_TIME)
+  aircraft           String
+  totalSeats         Int
+  economySeats       Int
+  businessSeats      Int
+  firstClassSeats    Int
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  route        Route         @relation(fields: [routeId], references: [id])
+  gate         Gate?         @relation(fields: [gateId], references: [id])
+  reservations Reservation[]
+  flightHistory FlightHistory[]
+}
+
+enum FlightStatus {
+  ON_TIME
+  DELAYED
+  CANCELLED
+  BOARDING
+  DEPARTED
+  LANDED
+  DIVERTED
+}
+
+// ─── RESERVATIONS & ANCILLARIES ──────────────────────────────────────────────
+
+model Reservation {
+  id               Int               @id @default(autoincrement())
+  bookingReference String            @unique
+  passengerId      Int
+  flightId         Int
+  fareClass        FareClass
+  seatNumber       String?
+  checkedIn        Boolean           @default(false)
+  boardingPassIssued Boolean         @default(false)
+  status           ReservationStatus @default(CONFIRMED)
+  totalPrice       Decimal           @db.Decimal(10, 2)
+  currency         String            @default("USD")
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  passenger   Passenger   @relation(fields: [passengerId], references: [id])
+  flight      Flight      @relation(fields: [flightId], references: [id])
+  ancillaries Ancillary[]
+}
+
+enum FareClass {
+  ECONOMY
+  PREMIUM_ECONOMY
+  BUSINESS
+  FIRST_CLASS
+}
+
+enum ReservationStatus {
+  CONFIRMED
+  PENDING
+  CANCELLED
+  CHECKED_IN
+  NO_SHOW
+}
+
+model Ancillary {
+  id            Int             @id @default(autoincrement())
+  reservationId Int
+  type          AncillaryType
+  description   String
+  quantity      Int
+  unitPrice     Decimal         @db.Decimal(10, 2)
+  totalPrice    Decimal         @db.Decimal(10, 2)
+  status        AncillaryStatus @default(ACTIVE)
+  createdAt     DateTime        @default(now())
+
+  reservation Reservation @relation(fields: [reservationId], references: [id])
+}
+
+enum AncillaryType {
+  EXTRA_BAGGAGE
+  PREFERRED_SEAT
+  LOUNGE_ACCESS
+  TRAVEL_INSURANCE
+  GOURMET_PACKAGE
+  PRIORITY_BOARDING
+  CAR_RENTAL
+  HOTEL_PACKAGE
+}
+
+enum AncillaryStatus {
+  ACTIVE
+  CANCELLED
+  USED
+}
+
+// ─── SUPPORT ─────────────────────────────────────────────────────────────────
+
+model SupportTicket {
+  id             Int            @id @default(autoincrement())
+  ticketNumber   String         @unique
+  passengerId    Int?
+  assignedToId   Int?
+  subject        String
+  channel        SupportChannel
+  status         TicketStatus   @default(OPEN)
+  priority       TicketPriority @default(MEDIUM)
+  sentimentScore Float?
+  sentimentLabel String?
+  resolvedAt     DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  passenger  Passenger?      @relation(fields: [passengerId], references: [id])
+  assignedTo User?           @relation("AssignedTo", fields: [assignedToId], references: [id])
+  messages   TicketMessage[]
+  aiAnalyses AIAnalysis[]
+}
+
+enum SupportChannel {
+  WEB
+  EMAIL
+  WHATSAPP
+  PHONE
+  TWITTER
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  RESOLVED
+  ESCALATED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model TicketMessage {
+  id         Int      @id @default(autoincrement())
+  ticketId   Int
+  userId     Int?
+  authorType String
+  authorName String
+  content    String   @db.Text
+  channel    String?
+  isInternal Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id])
+  user   User?         @relation(fields: [userId], references: [id])
+}
+
+// ─── AI ──────────────────────────────────────────────────────────────────────
+
+model AIAnalysis {
+  id                  Int      @id @default(autoincrement())
+  ticketId            Int
+  sentimentLabel      String
+  sentimentScore      Float
+  summary             String   @db.Text
+  suggestedReply      String   @db.Text
+  crossSellRecs       String   @db.Text
+  modelUsed           String   @default("llama3")
+  promptContext       String   @db.Text
+  createdAt           DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id])
+}
+
+// ─── FLIGHT HISTORY ──────────────────────────────────────────────────────────
+
+model FlightHistory {
+  id          Int       @id @default(autoincrement())
+  passengerId Int
+  flightId    Int
+  fareClass   FareClass
+  completedAt DateTime
+  milesEarned Int       @default(0)
+
+  passenger Passenger @relation(fields: [passengerId], references: [id])
+  flight    Flight    @relation(fields: [flightId], references: [id])
+}
+
+// ─── FESTIVITIES (curated cultural events per destination) ───────────────────
+
+model Festivity {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String   @db.Text
+  country     String   // ISO country code e.g. "CO", "MX", "BR"
+  city        String?  // Optional: specific city
+  iataCode    String?  // Nearest airport IATA code e.g. "BAQ", "GRU"
+  startMonth  Int      // 1-12
+  startDay    Int      // 1-31
+  endMonth    Int
+  endDay      Int
+  category    FestivityCategory @default(CULTURAL)
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum FestivityCategory {
+  CULTURAL
+  RELIGIOUS
+  GASTRONOMY
+  MUSIC
+  SPORTS
+  CARNIVAL
+  NATIONAL
+}

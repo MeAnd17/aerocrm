@@ -1,0 +1,90 @@
+services:
+
+  # ── MySQL 8 ──────────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: aerocrm-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: aerocrm_pass
+      MYSQL_DATABASE: aerocrm
+      MYSQL_USER: aerocrm_user
+      MYSQL_PASSWORD: aerocrm_pass
+    ports:
+      - "3308:3306"          # 3308 en el host (3306 ocupado por otro proyecto)
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-paerocrm_pass"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - aerocrm-net
+
+  # ── Ollama (Llama 3) ─────────────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: aerocrm-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - aerocrm-net
+
+  # ── NestJS Backend ───────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aerocrm-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    environment:
+      DATABASE_URL: "mysql://root:aerocrm_pass@mysql:3306/aerocrm"
+      JWT_SECRET: "aerocrm-jwt-secret-change-in-production-2026"
+      JWT_EXPIRES_IN: "24h"
+      OLLAMA_URL: "http://ollama:11434"
+      OLLAMA_MODEL: "llama3"
+      NODE_ENV: "production"
+      PORT: "3000"
+    ports:
+      - "3100:3000"          # 3100 en el host (3000 puede estar ocupado)
+    networks:
+      - aerocrm-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Angular Frontend (nginx) ──────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: aerocrm-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "8100:80"            # 8100 en el host (80 y 4200 ocupados por otro proyecto)
+    networks:
+      - aerocrm-net
+
+volumes:
+  mysql_data:
+  ollama_data:
+
+networks:
+  aerocrm-net:
+    driver: bridge
