@@ -1,148 +1,192 @@
-# AeroCRM — Airline Operations CRM
+# Plataforma web CRM de ventas y fidelización para agencia de viajes
 
-A premium, full-stack CRM system built for the aviation industry. Centralizes passenger management, real-time flight operations, reservations, omnichannel support, and local AI assistance — all in a single, elegant platform.
+Una plataforma web responsive que centraliza la planificación y compra simulada de viajes, construye el perfil del cliente a partir de su historial y lo fideliza mediante un programa de puntos y membresías.
+
+---
+
+## Idea general
+
+Cuando alguien quiere viajar, el proceso típico es caótico: busca vuelos en Google Flights, compara hoteles en Booking, busca tours en TripAdvisor, y al final no sabe si está pagando de más ni tiene todo organizado en un solo lugar. Además, cada vez que viaja empieza desde cero — ninguna plataforma lo recuerda ni le ofrece algo relevante basado en lo que ya hizo.
+
+Este proyecto resuelve exactamente eso: el cliente planea, compara y compra todo su viaje en un solo lugar, y con cada compra la agencia lo conoce mejor para ofrecerle algo más relevante la próxima vez.
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
+| Capa | Tecnología |
 |---|---|
-| Backend | NestJS 10 (TypeScript), REST API + WebSockets |
-| Frontend | Angular 17 (Standalone components, Signals) |
-| Database | MySQL 8 via Prisma ORM |
-| AI Engine | Ollama running Llama 3 (8B) — fully local |
-| Design | Tailwind CSS (navy + gold theme), Phosphor Icons |
-| Auth | JWT + Dynamic RBAC (roles/permissions in DB) |
-| Deployment | Docker Compose (single-command setup) |
+| Frontend | Angular 17 + Tailwind CSS (responsive) |
+| Backend | NestJS (TypeScript) |
+| Base de datos | PostgreSQL + Prisma ORM |
+| Autenticación | JWT |
+| IA | Ollama / Llama 3 (local) — evolutivo |
+| APIs externas | Calendarific (feriados), OpenWeatherMap (clima) |
+| Despliegue | Docker + Cloudflare |
 
 ---
 
 ## Quick Start
 
-**Prerequisites:** Docker Desktop installed and running.
+**Prerequisitos:** Docker Desktop instalado y corriendo.
 
 ```bash
 git clone <repo-url>
 cd aerocrm
-./setup.sh
+docker compose up -d
 ```
 
-Open **http://localhost** in your browser.
-
-> First run downloads ~4GB for the Llama 3 model. AI features are optional — the rest of the system works immediately.
+Abrir **http://localhost** en el navegador.
 
 ---
 
-## Demo Credentials
+## Credenciales demo
 
-| Role | Email | Password |
+| Rol | Email | Contraseña |
 |---|---|---|
-| **Administrator** | admin@aerocrm.com | Admin1234! |
-| **Flight Agent** | agent1@aerocrm.com | Agent1234! |
-| **Support Operator** | support1@aerocrm.com | Support1234! |
+| **Administrador** | admin@viajes.com | Admin1234! |
+| **Cliente** | cliente@demo.com | Cliente1234! |
 
 ---
 
-## Modules
+## Cómo se aplica el CRM
 
-### Dashboard
-Real-time KPI cards (flights today, active passengers, open tickets, ancillary revenue), upcoming flights panel with live status, and a live activity feed updated via WebSocket.
+**Conocer al cliente** — El perfil se construye de dos formas: con las preguntas opcionales al momento del registro (máximo 3, con botón de omitir) y con cada compra que realiza. El sistema infiere destinos visitados, presupuesto habitual y tipo de viaje sin pedirle nada explícitamente.
 
-### Passengers — Profile 360°
-Full CRUD with strict validations: passport format, date of birth bounds, expiry minimum 6 months ahead. Profile view with 5 tabs: personal info, documents (validity status), flight history, reservations, and support tickets.
+**Vender en el momento correcto** — Para clientes nuevos sin historial, las recomendaciones se basan en lo que busca durante la sesión. Para clientes con historial, el sistema personaliza según sus compras anteriores y la época del año en que suele viajar.
 
-### Flights & Operations
-Flight management with real-time status updates via WebSocket — change a status in one browser tab and it reflects instantly in all others. Status transitions are validated (cannot revert a landed flight, etc.). Includes a full-screen departure board in monospace style.
-
-### Reservations & Ancillaries
-3-step wizard: select flight (only bookable flights shown) → select passenger + seat → add ancillary services with quantity steppers. Live price total. Detail view shows a boarding pass design. Check-in button activates only within 24h of departure.
-
-### Support Omnichannel
-Two-panel inbox with tickets from Web, Email, WhatsApp, Phone, and Twitter channels. Reply composer with internal note toggle. "Simulate" button injects realistic demo tickets with slide-in animation.
-
-### AI Assistant (Human-in-the-Loop)
-Clicking "Analyze with AI" sends the ticket + full passenger/flight context to Ollama. Returns sentiment label/score, a 2–3 sentence summary, a suggested reply (editable before sending), and contextual ancillary cross-sell recommendations. The operator always makes the final decision.
-
-### Administration
-Users tab (create/edit users with password rules, assign roles). Roles tab (CRUD, protected deletion if users assigned). Permission Matrix — a checkbox grid of module × action (create/read/update/delete) that toggles permissions instantly.
+**Fidelizar con cada viaje** — Cada compra suma puntos. El nivel de membresía sube según la cantidad de viajes completados. El cliente tiene una razón concreta para volver a la agencia.
 
 ---
 
-## Architecture
+## Módulos
+
+### Modo explorador (sin cuenta)
+Cualquier persona entra sin registrarse. Ve recomendaciones generales de destinos populares y ofertas de temporada. Puede buscar, armar un paquete completo y ver el precio total. Solo se pide cuenta al momento de pagar — lo que armó no se pierde.
+
+### Registro
+Formulario con datos básicos y 2-3 preguntas opcionales con botones visuales (¿cómo sueles viajar?, ¿qué tipo de destino prefieres?). Con botón de omitir. Esas respuestas afinan las recomendaciones desde el primer día.
+
+### Inicio (cliente logueado)
+- Resumen del próximo viaje: vuelo, hotel, actividades, clima esperado y festividades que coinciden
+- Puntos acumulados con progreso hacia el siguiente nivel
+- Temporadas próximas con festividades y precios desde
+- Ofertas basadas en historial de compras
+
+### Buscador y armador de paquetes
+El corazón de la plataforma. Flujo de 6 pasos:
+
+1. **Vuelos** — resultados desde base de datos propia, filtros por precio, duración y aerolínea
+2. **Contexto del destino** — feriados nacionales (Calendarific API) + festividades culturales curadas (Carnaval de Barranquilla, Feria de las Flores, Día de Muertos, Carnaval de Río, Feria de Abril, etc.) + clima (OpenWeatherMap)
+3. **Hotel** — hoteles desde base de datos propia, filtros por categoría, zona y precio
+4. **Actividades** — tours y experiencias desde base de datos propia, filtros por tipo
+5. **Extras** — traslados aeropuerto-hotel, seguro de viaje
+6. **Resumen** — precio total con desglose, descuento por puntos (mínimo 500 para canjear), confirmación con documentos
+
+### Mis viajes
+- Paquetes con estados: Pendiente, Confirmado, En curso, Completado, Cancelado
+- Detalle de cada viaje con vuelo, hotel y actividades
+- Voucher PDF descargable con número de confirmación, datos del viajero y monto
+
+### Destinos y ofertas
+- Explorador por temporada: Semana Santa, vacaciones de mitad de año, Navidad, puentes festivos
+- Filtros por presupuesto, duración y tipo de viaje (playa, ciudad, aventura, cultura)
+- Destinos favoritos guardados
+
+### Programa de fidelización
+
+**Acumulación de puntos:**
+| Servicio | Puntos |
+|---|---|
+| Vuelo | 1 punto por cada S/.100 gastados |
+| Hotel | 1 punto por cada S/.100 gastados |
+| Actividad | 1 punto por cada S/.100 gastados |
+| Extras | 1 punto por cada S/.100 gastados |
+
+**Niveles por viajes completados:**
+| Nivel | Viajes completados | Descuento al canjear |
+|---|---|---|
+| Explorador | 0 - 2 | Sin descuento adicional |
+| Viajero | 3 - 7 | 5% adicional |
+| Frecuente | 8 - 14 | 10% adicional |
+| Elite | 15 o más | 15% adicional |
+
+**Canje:** mínimo 500 puntos = S/.50 de descuento aplicable en la próxima compra.
+
+### Contacto
+Formulario simple donde el cliente escribe su consulta y se envía directo al correo de la agencia. Sin gestión de tickets ni sistema complejo.
+
+### Perfil
+- Datos personales y documentos de viaje
+- Preferencias editables
+- Viajeros frecuentes guardados (pareja, hijos) para no reingresar datos
+- Historial de compras y puntos
+
+---
+
+## Fuentes de datos
+
+| Información | Fuente |
+|---|---|
+| Vuelos, hoteles y actividades | Base de datos propia (datos simulados) |
+| Feriados nacionales | Calendarific API (gratuita) |
+| Festividades culturales | Base de datos curada manualmente |
+| Clima | OpenWeatherMap API (gratuita) |
+| Pagos | Flujo simulado — el sistema refleja la compra sin procesarla |
+
+---
+
+## Alcance del proyecto
+
+**MVP (10 semanas):**
+- Registro con preferencias opcionales
+- Modo explorador con recomendaciones generales
+- Búsqueda y armado de paquetes con datos en BD
+- Sistema de puntos simple por compra
+- Niveles de membresía por viajes completados
+- Mis viajes con vouchers PDF
+- Feriados y clima en vivo via APIs
+- Formulario de contacto
+
+**Evolutivos (si hay tiempo):**
+1. Recomendaciones de destino con tips y consideraciones del lugar (zona horaria, qué llevar, mejor época)
+2. Asistente con IA (Ollama/Llama 3) para ayuda dentro de la plataforma: cómo subo de nivel, cómo canjeo puntos, qué incluye mi paquete
+
+---
+
+## Arquitectura
 
 ```
 aerocrm/
-├── backend/              # NestJS API
+├── backend/                  # NestJS API
 │   ├── src/
-│   │   ├── auth/         # JWT + RBAC guards
-│   │   ├── passengers/
-│   │   ├── flights/      # + WebSocket Gateway
-│   │   ├── reservations/
-│   │   ├── support/
-│   │   ├── ai/           # Ollama client + prompt builder
-│   │   ├── admin/
-│   │   └── dashboard/
+│   │   ├── auth/             # JWT guards
+│   │   ├── clients/          # Perfil, historial, preferencias
+│   │   ├── packages/         # Armador de paquetes
+│   │   ├── destinations/     # Destinos, festividades, clima
+│   │   ├── loyalty/          # Puntos, niveles, canjes
+│   │   ├── bookings/         # Reservas y estados
+│   │   └── contact/          # Formulario de contacto
 │   └── prisma/
-│       ├── schema.prisma
-│       └── seed.ts       # 20 passengers, 15 flights, 30 reservations, 20 tickets
-├── frontend/             # Angular 17
-│   ├── src/app/
-│   │   ├── core/         # Guards, interceptors, socket service, shell layout
-│   │   ├── shared/       # Toast, pipes, permission directive
-│   │   └── features/     # One folder per module
-│   └── nginx.conf
+│       └── schema.prisma
+├── frontend/                 # Angular 17
+│   └── src/app/
+│       ├── core/             # Guards, interceptors, servicios
+│       ├── shared/           # Componentes UI reutilizables
+│       └── features/         # Una carpeta por módulo
 ├── docker-compose.yml
 └── setup.sh
 ```
 
 ---
 
-## Useful Commands
+## Variables de entorno
 
-```bash
-# Stop all services
-docker compose down
-
-# View logs
-docker compose logs -f backend
-docker compose logs -f frontend
-
-# Access MySQL
-docker compose exec mysql mysql -u root -paerocrm_pass aerocrm
-
-# Re-run seed
-docker compose exec backend npx prisma db seed
-
-# Pull AI model manually
-docker compose exec ollama ollama pull llama3
-
-# Rebuild after code changes
-docker compose build --parallel && docker compose up -d
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/viajes_crm"
+JWT_SECRET="your-secret-key"
+JWT_EXPIRES_IN="24h"
+CALENDARIFIC_API_KEY="your-calendarific-key"
+OPENWEATHER_API_KEY="your-openweather-key"
+PORT=3000
 ```
-
----
-
-## Validation Rules (key examples)
-
-| Field | Rule |
-|---|---|
-| Date of Birth | Must be past, max 120 years ago |
-| Passport Expiry | At least 6 months in the future |
-| Passport Number | 6–9 uppercase alphanumeric characters |
-| Flight Number | Format: XX-1234 (e.g. AE-1001) |
-| Arrival Time | Must be after Departure Time |
-| Seat Count | Economy + Business + First ≤ Total; Economy ≥ 1; others ≥ 0 |
-| Reservation Price | Must be positive (> 0) |
-| Ancillary Quantity | 1 to type-specific maximum (1–7 units) |
-| Password | Min 8 chars, 1 uppercase, 1 number |
-| Support Message | 1–2000 characters |
-
----
-
-## AI Design Principles
-
-- **Human-in-the-Loop**: the AI panel generates suggestions only. The "Send Reply" button is the operator's explicit action.
-- **Context injection**: before calling Ollama, the backend queries MySQL for the passenger's tier, flight status, and existing ancillaries. No hallucinated context.
-- **Graceful degradation**: if Ollama is offline, an informative error is shown and the rest of the system continues working normally.
-- **Rate limiting**: maximum one AI analysis per ticket every 30 seconds.

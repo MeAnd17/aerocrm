@@ -9,24 +9,23 @@ export interface AuthUser {
   email: string;
   firstName: string;
   lastName: string;
-  userType: 'STAFF' | 'CLIENT';
-  mustChangePassword: boolean;
-  passengerId?: number;
-  roles: string[];
-  permissions: string[];
+  clientId: number | null;
+  membershipLevel: string | null;
+  availablePoints: number;
+  completedTrips: number;
 }
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly TOKEN_KEY = 'aerocrm_token';
-  private readonly USER_KEY  = 'aerocrm_user';
+  private readonly TOKEN_KEY = 'viajes_token';
+  private readonly USER_KEY  = 'viajes_user';
 
   currentUser = signal<AuthUser | null>(this.loadUser());
 
   constructor(private http: HttpClient, private router: Router) {}
 
   login(email: string, password: string) {
-    return this.http.post<{ access_token: string; user: AuthUser; mustChangePassword: boolean; userType: string }>(
+    return this.http.post<{ access_token: string; user: AuthUser }>(
       `${environment.apiUrl}/auth/login`, { email, password }
     ).pipe(tap(res => {
       localStorage.setItem(this.TOKEN_KEY, res.access_token);
@@ -35,19 +34,9 @@ export class AuthService {
     }));
   }
 
-  registerClient(data: any) {
+  register(data: any) {
     return this.http.post<{ access_token: string; user: AuthUser }>(
       `${environment.apiUrl}/auth/register`, data
-    ).pipe(tap(res => {
-      localStorage.setItem(this.TOKEN_KEY, res.access_token);
-      localStorage.setItem(this.USER_KEY, JSON.stringify(res.user));
-      this.currentUser.set(res.user);
-    }));
-  }
-
-  changePassword(currentPassword: string, newPassword: string) {
-    return this.http.patch<{ access_token: string; user: AuthUser }>(
-      `${environment.apiUrl}/auth/change-password`, { currentPassword, newPassword }
     ).pipe(tap(res => {
       localStorage.setItem(this.TOKEN_KEY, res.access_token);
       localStorage.setItem(this.USER_KEY, JSON.stringify(res.user));
@@ -59,7 +48,7 @@ export class AuthService {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
     this.currentUser.set(null);
-    this.router.navigate(['/']);
+    this.router.navigate(['/login']);
   }
 
   getToken(): string | null { return localStorage.getItem(this.TOKEN_KEY); }
@@ -73,19 +62,12 @@ export class AuthService {
     } catch { return false; }
   }
 
-  isClient(): boolean { return this.currentUser()?.userType === 'CLIENT'; }
-  isStaff(): boolean  { return this.currentUser()?.userType === 'STAFF'; }
-  mustChangePassword(): boolean { return this.currentUser()?.mustChangePassword === true; }
-
-  hasPermission(permission: string): boolean {
-    const user = this.currentUser();
-    if (!user) return false;
-    if (user.roles?.includes('Admin')) return true;
-    return user.permissions?.includes(permission) ?? false;
-  }
-
-  hasAnyPermission(...permissions: string[]): boolean {
-    return permissions.some(p => this.hasPermission(p));
+  refreshMe() {
+    return this.http.get<AuthUser>(`${environment.apiUrl}/auth/me`)
+      .pipe(tap(user => {
+        localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+        this.currentUser.set(user);
+      }));
   }
 
   private loadUser(): AuthUser | null {
@@ -93,13 +75,5 @@ export class AuthService {
       const raw = localStorage.getItem(this.USER_KEY);
       return raw ? JSON.parse(raw) : null;
     } catch { return null; }
-  }
-
-  refreshMe() {
-    return this.http.get<AuthUser>(`${environment.apiUrl}/auth/me`)
-      .pipe(tap(user => {
-        localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-        this.currentUser.set(user);
-      }));
   }
 }

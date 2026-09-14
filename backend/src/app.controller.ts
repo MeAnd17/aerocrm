@@ -4,6 +4,6 @@ import { Controller, Get } from '@nestjs/common';
 export class AppController {
   @Get('health')
   health() {
-    return { status: 'ok', timestamp: new Date().toISOString(), service: 'AeroCRM Backend' };
+    return { status: 'ok', app: 'Viajes CRM API', timestamp: new Date().toISOString() };
   }
 }

@@ -1,0 +1,184 @@
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateBookingDto } from './dto/create-booking.dto';
+
+// Points: 1 point per 100 soles spent
+const POINTS_RATIO = 100;
+const MIN_REDEEM_POINTS = 500;
+const POINTS_VALUE = 0.1; // 1 point = S/.0.10 → 500 points = S/.50
+
+// Membership discounts when redeeming
+const MEMBERSHIP_BONUS: Record<string, number> = {
+  EXPLORADOR: 0,
+  VIAJERO: 0.05,
+  FRECUENTE: 0.10,
+  ELITE: 0.15,
+};
+
+function generateConfirmationCode(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = 'VJ-';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+@Injectable()
+export class BookingsService {
+  constructor(private prisma: PrismaService) {}
+
+  async findAll(userId: number, query: any) {
+    const { status, page = 1, limit = 10 } = query;
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, include: { client: true } });
+    if (!user?.client) throw new NotFoundException('Cliente no encontrado');
+
+    const where: any = { clientId: user.client.id };
+    if (status) where.status = status;
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const [data, total] = await Promise.all([
+      this.prisma.booking.findMany({
+        where, skip, take: Number(limit),
+        orderBy: { createdAt: 'desc' },
+        include: {
+          bookingFlights: { include: { flight: { include: { origin: true, destination: true } } } },
+          bookingHotels: { include: { hotel: { include: { destination: true } } } },
+          bookingActivities: { include: { activity: true } },
+          bookingExtras: true,
+        },
+      }),
+      this.prisma.booking.count({ where }),
+    ]);
+
+    return { data, total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) };
+  }
+
+  async findOne(userId: number, bookingId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, include: { client: true } });
+    if (!user?.client) throw new NotFoundException('Cliente no encontrado');
+
+    const booking = await this.prisma.booking.findFirst({
+      where: { id: bookingId, clientId: user.client.id },
+      include: {
+        bookingFlights: { include: { flight: { include: { origin: true, destination: true } } } },
+        bookingHotels: { include: { hotel: { include: { destination: true } } } },
+        bookingActivities: { include: { activity: true } },
+        bookingExtras: true,
+      },
+    });
+    if (!booking) throw new NotFoundException('Reserva no encontrada');
+    return booking;
+  }
+
+  async create(userId: number, dto: CreateBookingDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, include: { client: true } });
+    if (!user?.client) throw new NotFoundException('Cliente no encontrado');
+    const client = user.client;
+
+    // Calculate total price
+    const flightsTotal = dto.flights.reduce((s, f) => s + f.priceSnapshot * dto.passengers, 0);
+    const hotelsTotal = (dto.hotels ?? []).reduce((s, h) => s + h.priceSnapshot, 0);
+    const activitiesTotal = (dto.activities ?? []).reduce((s, a) => s + a.priceSnapshot * a.quantity, 0);
+    const extrasTotal = (dto.extras ?? []).reduce((s, e) => s + e.price, 0);
+    let totalPrice = flightsTotal + hotelsTotal + activitiesTotal + extrasTotal;
+
+    // Apply points redemption
+    let pointsUsed = 0;
+    let discountAmount = 0;
+    if (dto.pointsToRedeem && dto.pointsToRedeem >= MIN_REDEEM_POINTS) {
+      if (dto.pointsToRedeem > client.availablePoints) {
+        throw new BadRequestException('No tienes suficientes puntos disponibles');
+      }
+      pointsUsed = dto.pointsToRedeem;
+      const baseDiscount = dto.pointsToRedeem * POINTS_VALUE;
+      const bonus = MEMBERSHIP_BONUS[client.membershipLevel] ?? 0;
+      discountAmount = baseDiscount * (1 + bonus);
+      totalPrice = Math.max(0, totalPrice - discountAmount);
+    }
+
+    // Calculate points earned (1 per 100 soles)
+    const pointsEarned = Math.floor(totalPrice / POINTS_RATIO);
+
+    // Generate unique confirmation code
+    let confirmationCode = generateConfirmationCode();
+    let exists = await this.prisma.booking.findFirst({ where: { confirmationCode } });
+    while (exists) {
+      confirmationCode = generateConfirmationCode();
+      exists = await this.prisma.booking.findFirst({ where: { confirmationCode } });
+    }
+
+    // Create booking in transaction
+    const booking = await this.prisma.$transaction(async (tx) => {
+      const newBooking = await tx.booking.create({
+        data: {
+          confirmationCode,
+          userId,
+          clientId: client.id,
+          totalPrice,
+          pointsEarned,
+          pointsUsed,
+          discountAmount,
+          passengers: dto.passengers,
+          notes: dto.notes,
+          status: 'CONFIRMADO',
+          bookingFlights: {
+            create: dto.flights.map(f => ({ flightId: f.flightId, priceSnapshot: f.priceSnapshot * dto.passengers })),
+          },
+          bookingHotels: {
+            create: (dto.hotels ?? []).map(h => ({
+              hotelId: h.hotelId, checkIn: new Date(h.checkIn),
+              checkOut: new Date(h.checkOut), nights: h.nights, priceSnapshot: h.priceSnapshot,
+            })),
+          },
+          bookingActivities: {
+            create: (dto.activities ?? []).map(a => ({ activityId: a.activityId, quantity: a.quantity, priceSnapshot: a.priceSnapshot })),
+          },
+          bookingExtras: {
+            create: (dto.extras ?? []).map(e => ({ type: e.type, price: e.price, details: e.details })),
+          },
+        },
+        include: {
+          bookingFlights: { include: { flight: { include: { origin: true, destination: true } } } },
+          bookingHotels: { include: { hotel: true } },
+          bookingActivities: { include: { activity: true } },
+          bookingExtras: true,
+        },
+      });
+
+      // Update client points and trips
+      await tx.client.update({
+        where: { id: client.id },
+        data: {
+          totalPoints: { increment: pointsEarned },
+          availablePoints: { increment: pointsEarned - pointsUsed },
+        },
+      });
+
+      // Record points history
+      if (pointsEarned > 0) {
+        await tx.pointsHistory.create({
+          data: { clientId: client.id, type: 'EARNED', points: pointsEarned, description: `Compra de paquete ${confirmationCode}`, bookingId: newBooking.id },
+        });
+      }
+      if (pointsUsed > 0) {
+        await tx.pointsHistory.create({
+          data: { clientId: client.id, type: 'REDEEMED', points: -pointsUsed, description: `Canje en paquete ${confirmationCode}`, bookingId: newBooking.id },
+        });
+      }
+
+      return newBooking;
+    });
+
+    return booking;
+  }
+
+  async cancel(userId: number, bookingId: string) {
+    const booking = await this.findOne(userId, bookingId);
+    if (booking.status === 'CANCELADO') throw new BadRequestException('Esta reserva ya está cancelada');
+    if (booking.status === 'COMPLETADO') throw new BadRequestException('No se puede cancelar una reserva completada');
+
+    return this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { status: 'CANCELADO' },
+    });
+  }
+}
