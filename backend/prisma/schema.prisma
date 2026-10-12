@@ -113,6 +113,7 @@ model Destination {
   activities        Activity[]
   festivities       Festivity[]
   savedBy           SavedDestination[]
+  climate           DestinationClimate[]
 }
 
 // ─── FLIGHTS ──────────────────────────────────────────────────────────────────
@@ -350,3 +351,68 @@ model ContactMessage {
   message   String   @db.Text
   createdAt DateTime @default(now())
 }
+
+// ─── CATÁLOGO DE EXTRAS (TS-014) ──────────────────────────────────────────────
+// Precio de cada extra, para que el paso de extras se calcule en el servidor (AGENTS.md B6).
+
+enum ExtraPricing {
+  POR_RESERVA   // un solo cobro por reserva
+  POR_PASAJERO  // se multiplica por la cantidad de pasajeros
+}
+
+model ExtraOption {
+  id          Int          @id @default(autoincrement())
+  type        ExtraType    @unique
+  name        String
+  description String?
+  price       Decimal      @db.Decimal(10, 2)
+  pricing     ExtraPricing
+  currency    String       @default("PEN")
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+// ─── DATOS DE LA AGENCIA (TS-014) ─────────────────────────────────────────────
+// Un solo registro (id = 1). Se usa en la confirmación de compra, el detalle imprimible y el pie.
+
+model AgencyInfo {
+  id        Int      @id @default(1)
+  legalName String
+  tradeName String
+  ruc       String
+  address   String
+  phone     String
+  email     String
+  logoUrl   String?
+  updatedAt DateTime @updatedAt
+}
+
+// ─── DATOS DE RESPALDO DE APIS EXTERNAS (TS-014) ──────────────────────────────
+// Se usan cuando OpenWeatherMap o Calendarific no responden: ninguna pantalla queda en blanco.
+
+model DestinationClimate {
+  id            Int         @id @default(autoincrement())
+  destinationId Int
+  month         Int         // 1-12
+  avgTempC      Decimal     @db.Decimal(4, 1)
+  minTempC      Decimal     @db.Decimal(4, 1)
+  maxTempC      Decimal     @db.Decimal(4, 1)
+  rainyDays     Int
+  summary       String      // texto corto para la interfaz
+
+  destination   Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@unique([destinationId, month])
+}
+
+model Holiday {
+  id          Int    @id @default(autoincrement())
+  countryCode String // ISO: PE, MX, CO...
+  month       Int    // 1-12
+  day         Int    // 1-31
+  name        String
+
+  @@unique([countryCode, month, day])
+}
+

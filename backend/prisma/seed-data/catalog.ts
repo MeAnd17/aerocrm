@@ -38,6 +38,24 @@ export const HOTELS: HotelSeed[] = [
   { iata: 'SVQ', name: 'Hotel Meliá Sevilla', stars: 4, zone: 'Centro', description: 'Moderno hotel con piscina en azotea.', pricePerNight: 550 },
   { iata: 'GRU', name: 'Hotel Fasano São Paulo', stars: 5, zone: 'Jardins', description: 'El hotel más icónico de Brasil.', pricePerNight: 1200 },
   { iata: 'GRU', name: 'Hotel Unique', stars: 5, zone: 'Jardim Paulista', description: 'Arquitectura revolucionaria y lujo contemporáneo.', pricePerNight: 980 },
+  // ── Ampliación TS-014: cada destino con hoteles de 3, 4 y 5 estrellas en distintas zonas ──
+  { iata: 'CUN', name: 'Hotel Playa Tortugas Suites', stars: 4, zone: 'Zona Hotelera', description: 'Suites con cocineta a pasos de Playa Tortugas, ideal para familias.', pricePerNight: 520 },
+  { iata: 'GRU', name: 'Hotel Avenida Paulista Business', stars: 4, zone: 'Avenida Paulista', description: 'Hotel ejecutivo junto al MASP y la estación de metro.', pricePerNight: 430 },
+  { iata: 'GRU', name: 'Pousada Vila Madalena', stars: 3, zone: 'Vila Madalena', description: 'Posada colorida en el barrio del arte callejero y la vida nocturna.', pricePerNight: 240 },
+  { iata: 'MAD', name: 'Hostal Plaza Mayor', stars: 2, zone: 'Centro', description: 'Habitaciones sencillas a una cuadra de la Plaza Mayor.', pricePerNight: 190 },
+  { iata: 'BAQ', name: 'Hotel Malecón del Río', stars: 3, zone: 'Malecón', description: 'Hotel práctico frente al Gran Malecón, cerca del recorrido del Carnaval.', pricePerNight: 210 },
+  { iata: 'MDE', name: 'Hotel Laureles Plaza', stars: 3, zone: 'Laureles', description: 'Opción tranquila y bien conectada en el barrio de Laureles.', pricePerNight: 190 },
+  { iata: 'OAX', name: 'Posada Jalatlaco', stars: 3, zone: 'Barrio de Jalatlaco', description: 'Posada familiar en el barrio más fotogénico de Oaxaca.', pricePerNight: 170 },
+  { iata: 'SVQ', name: 'Hotel Triana Ribera', stars: 3, zone: 'Triana', description: 'Junto al río y al puente de Triana, a pie del centro.', pricePerNight: 260 },
+  { iata: 'BOG', name: 'Hotel Usaquén Colonial', stars: 5, zone: 'Usaquén', description: 'Casona colonial restaurada con spa y restaurante de autor.', pricePerNight: 690 },
+  { iata: 'BOG', name: 'Hotel Zona T Express', stars: 4, zone: 'Zona Rosa', description: 'Moderno, en el corazón de la zona de restaurantes y compras.', pricePerNight: 360 },
+  { iata: 'BOG', name: 'Hostal La Candelaria', stars: 3, zone: 'La Candelaria', description: 'En el centro histórico, a pasos del Museo del Oro.', pricePerNight: 150 },
+  { iata: 'PTY', name: 'Hotel Bahía de Panamá', stars: 5, zone: 'Punta Paitilla', description: 'Torre frente a la bahía con piscina infinita y vista al skyline.', pricePerNight: 720 },
+  { iata: 'PTY', name: 'Hotel Casco Antiguo Boutique', stars: 4, zone: 'Casco Antiguo', description: 'Edificio restaurado en el barrio patrimonio de la humanidad.', pricePerNight: 480 },
+  { iata: 'PTY', name: 'Hotel El Cangrejo Inn', stars: 3, zone: 'El Cangrejo', description: 'Céntrico y económico, cerca de restaurantes y transporte.', pricePerNight: 210 },
+  { iata: 'GIG', name: 'Hotel Atlântica Copacabana', stars: 5, zone: 'Copacabana', description: 'Frente a la playa de Copacabana con terraza y piscina en la azotea.', pricePerNight: 980 },
+  { iata: 'GIG', name: 'Hotel Ipanema Garden', stars: 4, zone: 'Ipanema', description: 'A dos cuadras de la playa de Ipanema, rodeado de cafés.', pricePerNight: 560 },
+  { iata: 'GIG', name: 'Pousada Santa Teresa', stars: 3, zone: 'Santa Teresa', description: 'Posada bohemia en las colinas, con vista a la bahía.', pricePerNight: 260 },
 ];
 
 export const ACTIVITIES: ActivitySeed[] = [
@@ -62,6 +80,32 @@ export const ACTIVITIES: ActivitySeed[] = [
   { iata: 'SVQ', name: 'Crucero por el Río Guadalquivir', type: 'RELAX', durationHours: 1, price: 110, description: 'Panorámicas únicas de Sevilla desde el agua.' },
   { iata: 'GIG', name: 'Tour Sambódromo y Carnaval', type: 'CULTURAL', durationHours: 5, price: 380, description: 'Vive el Carnaval de Río en el Sambódromo con asiento garantizado.' },
   { iata: 'GRU', name: 'Tour Gastronómico Liberdade (Barrio Japonés)', type: 'GASTRONOMICO', durationHours: 3, price: 160, description: 'El barrio japonés más grande fuera de Japón.' },
+  // ── Ampliación TS-014: cada destino con actividades de los cuatro tipos del armador ──
+  { iata: 'CUN', name: 'Ruta de Tacos y Cochinita Pibil', type: 'GASTRONOMICO', durationHours: 3, price: 140, description: 'Recorrido por taquerías y cocinas yucatecas del centro de Cancún.' },
+  { iata: 'MAD', name: 'Ruta en Bicicleta por Madrid Río', type: 'AVENTURA', durationHours: 3, price: 130, description: 'Pedalea junto al Manzanares hasta la Casa de Campo.' },
+  { iata: 'MAD', name: 'Parque Warner Madrid', type: 'FAMILIAR', durationHours: 8, price: 290, description: 'Parque temático con atracciones para todas las edades.' },
+  { iata: 'BAQ', name: 'Museo del Carnaval y Casa del Carnaval', type: 'FAMILIAR', durationHours: 2, price: 70, description: 'Disfraces, máscaras y la historia del carnaval para toda la familia.' },
+  { iata: 'MDE', name: 'Tour de Café en Fincas de Antioquia', type: 'GASTRONOMICO', durationHours: 6, price: 210, description: 'Del grano a la taza en una finca cafetera con almuerzo típico.' },
+  { iata: 'MDE', name: 'Parque Explora y Acuario', type: 'FAMILIAR', durationHours: 4, price: 90, description: 'Museo interactivo de ciencia con el acuario de agua dulce más grande de Sudamérica.' },
+  { iata: 'OAX', name: 'Caminata a Hierve el Agua', type: 'AVENTURA', durationHours: 7, price: 190, description: 'Cascadas petrificadas y pozas naturales en la sierra oaxaqueña.' },
+  { iata: 'OAX', name: 'Taller de Alebrijes en San Martín Tilcajete', type: 'FAMILIAR', durationHours: 4, price: 150, description: 'Pinta tu propio alebrije con artesanos de la comunidad.' },
+  { iata: 'SVQ', name: 'Ruta de Tapas por Triana', type: 'GASTRONOMICO', durationHours: 3, price: 170, description: 'Cinco paradas en bares tradicionales con guía local.' },
+  { iata: 'SVQ', name: 'Kayak por el Guadalquivir', type: 'AVENTURA', durationHours: 2, price: 120, description: 'Rema bajo los puentes históricos al atardecer.' },
+  { iata: 'SVQ', name: 'Isla Mágica', type: 'FAMILIAR', durationHours: 6, price: 210, description: 'Parque temático ambientado en la época de los descubrimientos.' },
+  { iata: 'GRU', name: 'Museo de Arte de São Paulo (MASP)', type: 'CULTURAL', durationHours: 3, price: 90, description: 'La colección de arte europeo más importante del hemisferio sur.' },
+  { iata: 'GRU', name: 'Escalada en la Pedra Grande de Atibaia', type: 'AVENTURA', durationHours: 8, price: 260, description: 'Excursión de un día con caminata y vista panorámica.' },
+  { iata: 'GRU', name: 'Acuario de São Paulo', type: 'FAMILIAR', durationHours: 3, price: 110, description: 'El mayor acuario temático de Sudamérica.' },
+  { iata: 'GIG', name: 'Caminata al Morro Dois Irmãos', type: 'AVENTURA', durationHours: 4, price: 150, description: 'Subida corta con la mejor vista de Ipanema y Leblon.' },
+  { iata: 'GIG', name: 'Churrascaría y Caipiriña en Botafogo', type: 'GASTRONOMICO', durationHours: 3, price: 230, description: 'Rodizio tradicional con clase de caipiriña.' },
+  { iata: 'GIG', name: 'Pan de Azúcar en Teleférico', type: 'FAMILIAR', durationHours: 3, price: 180, description: 'Teleférico de dos tramos con vista a toda la bahía de Guanabara.' },
+  { iata: 'BOG', name: 'Museo del Oro y Centro Histórico', type: 'CULTURAL', durationHours: 4, price: 110, description: 'La mayor colección de orfebrería prehispánica del mundo.' },
+  { iata: 'BOG', name: 'Ciclovía y Cerro de Monserrate', type: 'AVENTURA', durationHours: 5, price: 130, description: 'Recorrido en bicicleta y subida a pie al cerro de Monserrate.' },
+  { iata: 'BOG', name: 'Mercado de Paloquemao y Ajiaco', type: 'GASTRONOMICO', durationHours: 3, price: 120, description: 'Frutas exóticas, flores y un ajiaco santafereño en el mercado.' },
+  { iata: 'BOG', name: 'Catedral de Sal de Zipaquirá', type: 'FAMILIAR', durationHours: 6, price: 180, description: 'Catedral subterránea tallada en una mina de sal, a una hora de la ciudad.' },
+  { iata: 'PTY', name: 'Esclusas de Miraflores del Canal', type: 'CULTURAL', durationHours: 3, price: 120, description: 'Observa el paso de los barcos por el Canal de Panamá.' },
+  { iata: 'PTY', name: 'Tirolesa en el Parque Natural Metropolitano', type: 'AVENTURA', durationHours: 3, price: 140, description: 'Selva tropical dentro de la ciudad con circuito de canopy.' },
+  { iata: 'PTY', name: 'Ceviche en el Mercado de Mariscos', type: 'GASTRONOMICO', durationHours: 2, price: 80, description: 'Degustación de ceviches panameños frente a la bahía.' },
+  { iata: 'PTY', name: 'Biomuseo de Panamá', type: 'FAMILIAR', durationHours: 3, price: 90, description: 'Museo de biodiversidad diseñado por Frank Gehry en la Calzada de Amador.' },
 ];
 
 export const FESTIVITIES: FestivitySeed[] = [
@@ -73,4 +117,8 @@ export const FESTIVITIES: FestivitySeed[] = [
   { iata: 'CUN', name: 'Día de Muertos en México', description: 'Festividad declarada Patrimonio Cultural Inmaterial por la UNESCO. Altares, calaveras y ofrendas en todo el país.', startMonth: 10, startDay: 31, endMonth: 11, endDay: 2, category: 'CULTURAL' },
   { iata: 'MAD', name: 'Fiestas de San Isidro', description: 'Las fiestas patronales de Madrid con verbenas, procesiones, corridas de toros y conciertos durante una semana.', startMonth: 5, startDay: 10, endMonth: 5, endDay: 18, category: 'NACIONAL' },
   { iata: 'MAD', name: 'Navidad en Madrid', description: 'Luces navideñas en Gran Vía, mercados de Navidad en la Plaza Mayor y el tradicional sorteo de El Gordo.', startMonth: 12, startDay: 1, endMonth: 1, endDay: 6, category: 'NACIONAL' },
+  // ── Ampliación TS-014 ──
+  { iata: 'GRU', name: 'Carnaval de São Paulo', description: 'Desfile de las escuelas de samba paulistas en el Sambódromo del Anhembi.', startMonth: 2, startDay: 13, endMonth: 2, endDay: 17, category: 'CARNAVAL' },
+  { iata: 'PTY', name: 'Carnaval de Panamá', description: 'Cuatro días de culecos, comparsas y reinas de carnaval en la ciudad y el interior.', startMonth: 2, startDay: 14, endMonth: 2, endDay: 17, category: 'CARNAVAL' },
+  { iata: 'BOG', name: 'Festival de Verano de Bogotá', description: 'Conciertos, deportes y actividades al aire libre en el Parque Simón Bolívar.', startMonth: 8, startDay: 1, endMonth: 8, endDay: 15, category: 'MUSICAL' },
 ];

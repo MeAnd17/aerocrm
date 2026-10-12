@@ -1,6 +1,8 @@
-// Vuelos de la carga de arranque. Las fechas se calculan desde la fecha de referencia
-// (SEED_REFERENCE_DATE o el día de ejecución) para que siempre existan vuelos futuros.
+// Vuelos de la carga de arranque (TS-005, TS-014).
+// Las fechas se calculan desde la fecha de referencia (SEED_REFERENCE_DATE o el día de ejecución)
+// para que siempre existan vuelos futuros, incluido el día de la sustentación.
 // Cada vuelo sembrado tiene un número de vuelo único: es su clave para que la carga sea idempotente.
+// La generación es determinística: misma fecha de referencia, mismos vuelos.
 import { FlightClass } from '@prisma/client';
 
 export interface FlightSeed {
@@ -13,21 +15,108 @@ export interface FlightSeed {
   durationMinutes: number;
   stops: number;
   classType: FlightClass;
-  pricePerPerson: number; // soles
+  pricePerPerson: number; // soles, ida, por persona
   seatsAvailable: number;
 }
 
+interface Carrier {
+  code: string;
+  name: string;
+  stops: number;
+}
+
+interface Route {
+  to: string;
+  carriers: Carrier[];
+  basePrice: number; // económica, sin escalas o con la escala habitual de la ruta
+  directMinutes: number; // duración sin escalas (o con la escala habitual si no hay directo)
+}
+
+const LATAM = 'LATAM';
+const AVIANCA = 'Avianca';
+const COPA = 'Copa Airlines';
+
+/** Rutas desde Lima. Duraciones y precios son referenciales para la demostración. */
+export const ROUTES: Route[] = [
+  { to: 'CUN', basePrice: 850, directMinutes: 330, carriers: [{ code: 'CM', name: COPA, stops: 1 }, { code: 'LA', name: LATAM, stops: 1 }, { code: 'AM', name: 'Aeroméxico', stops: 1 }] },
+  { to: 'GRU', basePrice: 1100, directMinutes: 300, carriers: [{ code: 'LA', name: LATAM, stops: 0 }, { code: 'AV', name: AVIANCA, stops: 1 }] },
+  { to: 'GIG', basePrice: 1250, directMinutes: 330, carriers: [{ code: 'LA', name: LATAM, stops: 0 }, { code: 'CM', name: COPA, stops: 1 }] },
+  { to: 'MAD', basePrice: 2950, directMinutes: 750, carriers: [{ code: 'IB', name: 'Iberia', stops: 0 }, { code: 'UX', name: 'Air Europa', stops: 0 }, { code: 'LA', name: LATAM, stops: 1 }] },
+  { to: 'SVQ', basePrice: 3400, directMinutes: 870, carriers: [{ code: 'IB', name: 'Iberia', stops: 1 }, { code: 'UX', name: 'Air Europa', stops: 1 }] },
+  { to: 'BAQ', basePrice: 680, directMinutes: 270, carriers: [{ code: 'AV', name: AVIANCA, stops: 1 }, { code: 'LA', name: LATAM, stops: 1 }] },
+  { to: 'MDE', basePrice: 620, directMinutes: 230, carriers: [{ code: 'AV', name: AVIANCA, stops: 0 }, { code: 'LA', name: LATAM, stops: 0 }, { code: 'CM', name: COPA, stops: 1 }] },
+  { to: 'BOG', basePrice: 560, directMinutes: 210, carriers: [{ code: 'AV', name: AVIANCA, stops: 0 }, { code: 'LA', name: LATAM, stops: 0 }, { code: 'CM', name: COPA, stops: 1 }] },
+  { to: 'PTY', basePrice: 600, directMinutes: 220, carriers: [{ code: 'CM', name: COPA, stops: 0 }, { code: 'AV', name: AVIANCA, stops: 1 }] },
+  { to: 'OAX', basePrice: 920, directMinutes: 480, carriers: [{ code: 'AM', name: 'Aeroméxico', stops: 1 }, { code: 'CM', name: COPA, stops: 1 }] },
+];
+
+export const CLASS_FACTOR: Record<FlightClass, number> = {
+  ECONOMY: 1,
+  PREMIUM_ECONOMY: 1.6,
+  BUSINESS: 2.6,
+  FIRST_CLASS: 4,
+};
+
+/** Fechas de salida: cada 10 días durante los cuatro meses siguientes a la referencia. */
+export const OUTBOUND_OFFSETS = [3, 13, 23, 33, 43, 53, 63, 73, 83, 93, 103, 113];
+/** El regreso sale 7 días después de la ida. */
+export const RETURN_AFTER_DAYS = 7;
+const DEPARTURE_TIMES = ['06:15', '09:40', '13:05', '17:30', '21:50', '23:55'];
+
+function round10(n: number): number {
+  return Math.round(n / 10) * 10;
+}
+
+/** Variación determinística de precio (±10 %) para que haya rangos que filtrar. */
+function priceVariation(seed: number): number {
+  return 1 + (((seed * 37) % 21) - 10) / 100;
+}
+
+function nextNumber(counters: Map<string, number>, code: string): string {
+  const n = (counters.get(code) ?? 2000) + 1;
+  counters.set(code, n);
+  return `${code}${n}`;
+}
+
 export function buildFlights(): FlightSeed[] {
-  return [
-    { flightNumber: 'LA2041', from: 'LIM', to: 'CUN', airline: 'LATAM', dayOffset: 75, departureUtc: '06:00', durationMinutes: 510, stops: 1, classType: 'ECONOMY', pricePerPerson: 850, seatsAvailable: 120 },
-    { flightNumber: 'CM441', from: 'LIM', to: 'CUN', airline: 'Copa Airlines', dayOffset: 75, departureUtc: '08:00', durationMinutes: 540, stops: 1, classType: 'ECONOMY', pricePerPerson: 790, seatsAvailable: 80 },
-    { flightNumber: 'LA2043', from: 'LIM', to: 'CUN', airline: 'LATAM', dayOffset: 75, departureUtc: '22:00', durationMinutes: 540, stops: 1, classType: 'BUSINESS', pricePerPerson: 2100, seatsAvailable: 20 },
-    { flightNumber: 'IB6840', from: 'LIM', to: 'MAD', airline: 'Iberia', dayOffset: 40, departureUtc: '23:59', durationMinutes: 780, stops: 0, classType: 'ECONOMY', pricePerPerson: 3200, seatsAvailable: 60 },
-    { flightNumber: 'UX71', from: 'LIM', to: 'MAD', airline: 'Air Europa', dayOffset: 40, departureUtc: '20:00', durationMinutes: 810, stops: 0, classType: 'ECONOMY', pricePerPerson: 2950, seatsAvailable: 45 },
-    { flightNumber: 'AV9042', from: 'LIM', to: 'BAQ', airline: 'Avianca', dayOffset: 100, departureUtc: '07:00', durationMinutes: 270, stops: 0, classType: 'ECONOMY', pricePerPerson: 680, seatsAvailable: 95 },
-    { flightNumber: 'AV9031', from: 'LIM', to: 'MDE', airline: 'Avianca', dayOffset: 60, departureUtc: '09:00', durationMinutes: 240, stops: 0, classType: 'ECONOMY', pricePerPerson: 620, seatsAvailable: 110 },
-    { flightNumber: 'AM781', from: 'LIM', to: 'OAX', airline: 'Aeroméxico', dayOffset: 24, departureUtc: '05:00', durationMinutes: 540, stops: 1, classType: 'ECONOMY', pricePerPerson: 920, seatsAvailable: 70 },
-    { flightNumber: 'IB6842', from: 'LIM', to: 'SVQ', airline: 'Iberia', dayOffset: 110, departureUtc: '23:00', durationMinutes: 840, stops: 1, classType: 'ECONOMY', pricePerPerson: 3400, seatsAvailable: 55 },
-    { flightNumber: 'LA8050', from: 'LIM', to: 'GRU', airline: 'LATAM', dayOffset: 90, departureUtc: '21:00', durationMinutes: 390, stops: 0, classType: 'ECONOMY', pricePerPerson: 1100, seatsAvailable: 88 },
-  ];
+  const flights: FlightSeed[] = [];
+  const counters = new Map<string, number>();
+
+  ROUTES.forEach((route, r) => {
+    OUTBOUND_OFFSETS.forEach((offset, i) => {
+      // Dos aerolíneas por fecha (rotando), y clase ejecutiva y premium en fechas alternas.
+      const carriers = [route.carriers[i % route.carriers.length], route.carriers[(i + 1) % route.carriers.length]];
+      const unique = carriers.filter((c, k) => carriers.findIndex((x) => x.code === c.code) === k);
+      const classes: FlightClass[] = ['ECONOMY'];
+      if (i % 3 === 0) classes.push('BUSINESS');
+      if (i % 3 === 1) classes.push('PREMIUM_ECONOMY');
+
+      unique.forEach((carrier, c) => {
+        classes.forEach((classType, k) => {
+          if (c > 0 && classType !== 'ECONOMY') return; // la segunda aerolínea solo ofrece económica
+          const stopsExtra = carrier.stops > 0 && route.carriers.some((x) => x.stops === 0) ? 150 : 0;
+          const duration = route.directMinutes + stopsExtra;
+          const stopDiscount = stopsExtra > 0 ? 0.85 : 1;
+          const seed = r * 101 + i * 7 + c * 3 + k;
+          const price = round10(route.basePrice * CLASS_FACTOR[classType] * stopDiscount * priceVariation(seed));
+          const seats = classType === 'ECONOMY' ? 60 + ((seed * 13) % 90) : 8 + ((seed * 5) % 16);
+          const time = DEPARTURE_TIMES[(r + i + c) % DEPARTURE_TIMES.length];
+
+          flights.push({
+            flightNumber: nextNumber(counters, carrier.code),
+            from: 'LIM', to: route.to, airline: carrier.name, dayOffset: offset, departureUtc: time,
+            durationMinutes: duration, stops: carrier.stops, classType, pricePerPerson: price, seatsAvailable: seats,
+          });
+          flights.push({
+            flightNumber: nextNumber(counters, carrier.code),
+            from: route.to, to: 'LIM', airline: carrier.name, dayOffset: offset + RETURN_AFTER_DAYS,
+            departureUtc: DEPARTURE_TIMES[(r + i + c + 3) % DEPARTURE_TIMES.length],
+            durationMinutes: duration, stops: carrier.stops, classType, pricePerPerson: price, seatsAvailable: seats,
+          });
+        });
+      });
+    });
+  });
+
+  return flights;
 }
