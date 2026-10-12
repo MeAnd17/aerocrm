@@ -10,7 +10,7 @@
 
 Si hay un paquete a medio armar, aparece además **Continuar paquete** (ver `docs/armador.md`).
 
-En pantallas de menos de 768 px los enlaces pasan a un menú que se abre con el botón ☰ y se cierra al navegar.
+En pantallas de menos de 1024 px los enlaces pasan a un menú que se abre con el botón ☰ y se cierra al navegar.
 
 Para agregar un enlace se edita `VISITOR_LINKS` o `CLIENT_LINKS` en el mismo archivo.
 

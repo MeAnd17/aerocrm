@@ -40,14 +40,14 @@ const CLIENT_LINKS: NavLink[] = [
         </a>
 
         <!-- Escritorio -->
-        <div class="hidden md:flex items-center gap-1">
+        <div class="hidden lg:flex items-center gap-1">
           @for (link of links(); track link.path) {
             <a [routerLink]="link.path" routerLinkActive="bg-primary-50 text-primary-700"
               class="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900">{{ link.label }}</a>
           }
         </div>
 
-        <div class="hidden md:flex items-center gap-3">
+        <div class="hidden lg:flex items-center gap-3">
           @if (draft.hasDraft()) {
             <a routerLink="/packages/new"
               class="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-100">Continuar paquete</a>
@@ -67,14 +67,14 @@ const CLIENT_LINKS: NavLink[] = [
         </div>
 
         <!-- Teléfono -->
-        <button type="button" class="md:hidden rounded-lg p-2 text-slate-700 hover:bg-slate-100"
+        <button type="button" class="lg:hidden rounded-lg p-2 text-slate-700 hover:bg-slate-100"
           (click)="open.set(!open())" [attr.aria-expanded]="open()" aria-controls="menu-movil" aria-label="Abrir menú">
           <span class="block text-xl leading-none">{{ open() ? '✕' : '☰' }}</span>
         </button>
       </nav>
 
       @if (open()) {
-        <div id="menu-movil" class="md:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-1">
+        <div id="menu-movil" class="lg:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-1">
           @if (user(); as u) {
             <p class="px-3 pb-2 text-sm text-slate-500">
               {{ u.firstName }} {{ u.lastName }}
