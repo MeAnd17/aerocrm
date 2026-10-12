@@ -1,4 +1,4 @@
-# Respaldo de la base compartida (TS-025).
+﻿# Respaldo de la base compartida (TS-025).
 # Uso (desde la raíz del repositorio):  powershell -ExecutionPolicy Bypass -File scripts/db-backup.ps1
 # Requiere Docker Desktop. Lee DIRECT_URL de backend/.env.compartida (o de backend/.env si no existe)
 # y guarda el respaldo en backups/ (no se versiona).

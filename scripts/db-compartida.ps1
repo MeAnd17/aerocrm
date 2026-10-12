@@ -1,4 +1,4 @@
-# Migraciones y carga de arranque contra la base compartida (TS-025).
+﻿# Migraciones y carga de arranque contra la base compartida (TS-025).
 # Solo para los responsables de integración (AGENTS.md G4).
 #
 # Uso (desde la raíz del repositorio):
@@ -23,8 +23,13 @@ foreach ($line in Get-Content $file) {
     Set-Item "env:$($matches[1])" ($matches[2].Trim('"', "'"))
   }
 }
-if (-not $env:DATABASE_URL -or -not $env:DIRECT_URL -or "$env:DATABASE_URL$env:DIRECT_URL" -match '<') {
-  throw "Completa la contraseña en DATABASE_URL y DIRECT_URL de backend/.env.compartida."
+if (-not $env:DATABASE_URL -or -not $env:DIRECT_URL -or "$env:DATABASE_URL$env:DIRECT_URL" -match '<|>') {
+  throw "Completa la contraseña en DATABASE_URL y DIRECT_URL de backend/.env.compartida, sin los signos < >."
+}
+foreach ($url in @($env:DATABASE_URL, $env:DIRECT_URL)) {
+  if ($url -match '^postgresql://[^:]+:(.*)@[^@]+$' -and $matches[1] -match '[^A-Za-z0-9%._~-]') {
+    throw "La contraseña tiene símbolos sin codificar. Cada símbolo va como %XX (por ejemplo * es %2A, @ es %40, # es %23); ver docs/BASE-DE-DATOS.md."
+  }
 }
 
 # Las variables ya definidas tienen prioridad sobre backend/.env, así que Prisma usa estas.
@@ -35,6 +40,7 @@ try {
     'migrar' { npx prisma migrate deploy }
     'cargar' { npx prisma db seed }
   }
-  if ($LASTEXITCODE -ne 0) { throw "El comando terminó con error." }
+  # migrate status termina con código 1 cuando hay migraciones pendientes: no es un error.
+  if ($LASTEXITCODE -ne 0 -and $accion -ne 'estado') { throw "El comando terminó con error." }
 }
 finally { Pop-Location }

@@ -31,12 +31,12 @@ Se usa el pooler de sesión y no la conexión directa (`db.<ref>.supabase.co`) p
 
 Se hace una sola vez, al crear el proyecto de Supabase. La hace un responsable de integración.
 
-1. En Supabase → Project Settings → Database, fija la contraseña de `postgres`.
+1. En Supabase → Project Settings → Database → Reset database password, genera la contraseña de `postgres` con el botón "Generate a password" (el formulario exige una contraseña fuerte).
 2. En Supabase → SQL Editor, corre `scripts/supabase-usuarios.sql`. Después ponle contraseña al usuario del equipo, usando solo letras y números:
 
         alter role aerocrm_equipo password '<contraseña>';
 
-3. Copia `backend/.env.compartida.example` a `backend/.env.compartida` (no se versiona), reemplaza `<CONTRASEÑA>` en las dos cadenas por la contraseña de `postgres`, y crea las tablas con los datos:
+3. Copia `backend/.env.compartida.example` a `backend/.env.compartida` (no se versiona), reemplaza `<CONTRASEÑA>` (incluidos los signos `< >`) en las dos cadenas por la contraseña de `postgres`, y crea las tablas con los datos. Si la contraseña tiene símbolos, cada uno se escribe codificado: `*` es `%2A`, `@` es `%40`, `#` es `%23`, `!` es `%21`, `$` es `%24`, `&` es `%26`. Lo mismo vale para las cadenas de `aerocrm_equipo` en la página de Accesos.
 
         powershell -ExecutionPolicy Bypass -File scripts/db-compartida.ps1 migrar
         powershell -ExecutionPolicy Bypass -File scripts/db-compartida.ps1 cargar
