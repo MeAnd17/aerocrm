@@ -3,8 +3,11 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // Conexión de trabajo (pooler de Supabase, con connection_limit). AGENTS.md D3.
+  url       = env("DATABASE_URL")
+  // Conexión directa, solo para aplicar migraciones. AGENTS.md D2 y D3.
+  directUrl = env("DIRECT_URL")
 }
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────

@@ -1,0 +1,5 @@
+# Saltos de línea fijos para archivos que leen herramientas sensibles al formato.
+# Las migraciones de Prisma se validan por checksum: deben ser idénticas en Windows, Linux y Docker.
+*.sql text eol=lf
+*.sh  text eol=lf
+*.toml text eol=lf
