@@ -113,7 +113,7 @@ Los mismos pasos corren automáticamente en cada PR (`.github/workflows/ci.yml`)
       HEREDADO.md             estado del código heredado: qué se conserva, rehace o retira
       BASE-DE-DATOS.md        conexión, migraciones, respaldo y aviso de caída
       ACCESOS.md              accesos del equipo, sin valores secretos
-      tareas/                 ficha de cierre de cada tarea, por sprint
+      tareas/                 historias y fichas de cierre, por sprint
     scripts/               respaldo de la base y usuarios de Supabase
 
 ## Documentación
@@ -128,7 +128,7 @@ Los mismos pasos corren automáticamente en cada PR (`.github/workflows/ci.yml`)
 | [docs/datos-de-arranque.md](docs/datos-de-arranque.md) | Qué carga el seed y cómo agregar datos |
 | [docs/BASE-DE-DATOS.md](docs/BASE-DE-DATOS.md) | Conexión, migraciones, respaldo y caídas |
 | [docs/ACCESOS.md](docs/ACCESOS.md) | Qué accesos hay, quién los tiene y cómo se piden |
-| [docs/tareas/](docs/tareas/README.md) | Ficha de cierre de cada tarea terminada, por sprint |
+| [docs/tareas/](docs/tareas/README.md) | Historias de cada sprint y ficha de cierre de cada tarea terminada |
 | [docs/HEREDADO.md](docs/HEREDADO.md) | Estado del código que venía de antes |
 | [docs/encargos/PLANTILLA.md](docs/encargos/PLANTILLA.md) | Cómo pedirle una tarea a una herramienta de IA |
 

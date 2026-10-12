@@ -1,6 +1,6 @@
 # Plantilla de encargo
 
-Copia el bloque, llénalo completo y pégalo en tu herramienta (Claude Code, Kiro u OpenCode) en modo plan. Si un campo no lo puedes llenar, la historia no está lista: pregunta a un responsable de integración antes de empezar.
+Copia el bloque, llénalo completo y pégalo en tu herramienta (Claude Code, Kiro u OpenCode) en modo plan. La historia y lo que se espera que pase se copian de `docs/tareas/sprint-N.md`. Si un campo no lo puedes llenar, la historia no está lista: pregunta a un responsable de integración antes de empezar.
 
 ```
 Encargo AeroCRM · [ID] · [Título de la historia]

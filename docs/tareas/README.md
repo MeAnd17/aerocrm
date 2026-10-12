@@ -1,16 +1,23 @@
-# Fichas de cierre
+# Tareas por sprint
+
+Hay un archivo por sprint (`sprint-0.md` a `sprint-4.md`) con dos partes:
+
+- **Historias:** lo que se va a hacer en el sprint, cada una con su prioridad, sus dependencias, su estado al planificarla y lo que se espera que pase, con los mensajes exactos. Es lo que se copia en el encargo (`docs/encargos/PLANTILLA.md`). Si una historia cambia, se corrige aquí en el mismo PR que la implementa.
+- **Fichas de cierre:** lo que realmente se hizo, una por tarea terminada, en el orden en que entró a `main`.
+
+Estados de una historia: `FALTA` (no existe), `PARCIAL` o `EXISTE con ajustes` (algo hay y se completa), `ROTO` (existe pero falla), `HECHO` y `HECHO EN PARTE` (con lo que falta).
+
+## Fichas de cierre
 
 Cada tarea terminada deja una ficha que dice qué se hizo, con qué commit y en qué archivos. Sirve para tres cosas: saber dónde está cada cosa sin leer el historial de git, revisar un PR sabiendo qué se quiso hacer, y armar el informe de cada sprint.
 
-Hay un archivo por sprint: `sprint-0.md`, `sprint-1.md`, etc. Las fichas van una debajo de otra, en el orden en que entraron a `main`.
-
-## Cuándo se escribe
+### Cuándo se escribe
 
 La ficha va **en el mismo PR que la tarea** (AGENTS.md §10). Un PR sin su ficha no se revisa. Si un PR trae dos tareas, lleva dos fichas.
 
 La puede redactar la herramienta de IA con la que hiciste la tarea, pero la revisas tú: tiene que decir lo que realmente quedó en el código, no lo que se conversó ni lo que se intentó y se descartó. Si algo quedó pendiente, se dice tal cual.
 
-## Formato
+### Formato
 
 ```
 ### [ID]: [Título de la tarea]
@@ -34,7 +41,7 @@ PR: #[número]
 - **Base de datos**: se omite si no aplica.
 - Sin nombres de personas: el autor ya queda en el commit y en el PR.
 
-## Ejemplo
+### Ejemplo
 
 ```
 ### US-012: Paso de hotel del armador

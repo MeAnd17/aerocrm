@@ -18,7 +18,7 @@ Backend NestJS 10 + Prisma 5 en `backend/` (prefijo global `/api`). Base Postgre
     frontend/src/app/core/         guards · interceptors · layout · services (singleton, providedIn: 'root')
     frontend/src/app/shared/       componentes, pipes y directivas reutilizables
     frontend/src/app/features/<feature>/   un componente standalone por pantalla
-    docs/                          encargos, inventario del código heredado, accesos, fichas de cierre por sprint
+    docs/                          encargos, inventario del código heredado, accesos, historias y fichas de cierre por sprint
 
 ## 3. Comandos
 

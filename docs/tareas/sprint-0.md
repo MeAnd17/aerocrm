@@ -1,8 +1,407 @@
 # Sprint 0 · Preparación
 
-Base técnica, datos y reglas de trabajo antes de construir funcionalidades. Todas las tareas entraron a `main` en el PR del Sprint 0. Las que dicen `QA-S0` salieron de recorrer el sistema completo en el navegador antes de cerrar el sprint.
+Semana 8 · 5 al 11 de octubre de 2026.
+
+> Base técnica, datos y preparación de las herramientas de IA. Ninguna funcionalidad de usuario.
+> Stack: Angular 17 + Tailwind · NestJS + Prisma · PostgreSQL en Supabase · Docker · Expertia Travel S.A.C.
+
+El Sprint 0 se integró directo a `main`, antes de que rigieran las reglas de PR; desde el Sprint 1 todo entra por PR. Las tareas `QA-S0` salieron de recorrer el sistema completo en el navegador antes de cerrar el sprint.
+
+## Historias
+
+### TS-001: Contrato único de trabajo del repositorio
+
+Sprint: 0
+
+Módulo: Base técnica · transversal
+
+Prioridad: CRÍTICA
+
+Dependencias: Ninguna
+
+Estado actual: HECHO
+
+COMO Sistema QUIERO un único documento de convenciones versionado en el repositorio PARA que cualquier integrante, con la herramienta de IA que use, produzca código equivalente y revisable.
+
+**Qué espero que pase**
+
+Alcance del contrato: reúne las convenciones de backend y de frontend, las reglas de configuración y datos, la definición de terminado y la forma en que se encarga una tarea. No queda ningún dato pendiente de completar dentro del documento.
+
+Compatibilidad entre herramientas: el mismo documento sirve para las tres herramientas que usa el equipo; una lo lee directamente y las otras dos mediante un archivo puntero que solo indica leerlo y obedecerlo. Las diferencias entre herramientas se anotan en una sección del propio contrato, nunca en archivos paralelos.
+
+Reglas que el contrato fija: la lógica vive en el servicio y no en el controlador, toda entrada se valida con un objeto de transferencia, el dinero se maneja con tipo exacto y nunca con decimales flotantes, ningún secreto se escribe en el código, y todo cambio de esquema se acompaña de su versión y de los datos de arranque actualizados.
+
+Vigencia: todo encargo posterior lo referencia, y un aporte que lo contradiga se devuelve citando la regla en lugar de corregirse a mano.
+
+Acceso: no tiene pantalla. Lo modifican solo los responsables de integración.
 
 ---
+
+### TS-002: Herramientas de verificación instaladas
+
+Sprint: 0
+
+Módulo: Base técnica · transversal
+
+Prioridad: CRÍTICA
+
+Dependencias: Ninguna
+
+Estado actual: HECHO
+
+COMO Sistema QUIERO que la revisión de estilo y las pruebas se ejecuten con los comandos documentados PARA que la definición de terminado se pueda cumplir en cualquier máquina.
+
+**Qué espero que pase**
+
+Problema que corrige: hoy los comandos de estilo y de pruebas fallan porque las herramientas no están instaladas en el proyecto, y la instalación limpia de la interfaz falla por una dependencia que nadie usa.
+
+Resultado esperado: el comando de estilo corre y termina sin errores; el de pruebas corre y queda listo para recibir pruebas unitarias y de flujo completo; la instalación de la interfaz funciona sin banderas especiales.
+
+Dependencias sin uso: se retiran las librerías heredadas de otro sistema, junto con las referencias que quedaron en la configuración del servidor de desarrollo.
+
+Reglas heredadas: las reglas de estilo que el código heredado incumple en masa se bajan a advertencia y se listan en el aporte, en vez de bloquear al equipo desde el primer día.
+
+Acceso: no tiene pantalla. Lo usa todo el equipo antes de proponer un aporte.
+
+---
+
+### TS-003: Historial de versiones del esquema de datos
+
+Sprint: 0
+
+Módulo: Base técnica · EDT 1.6 Despliegue
+
+Prioridad: CRÍTICA
+
+Dependencias: Ninguna
+
+Estado actual: HECHO
+
+COMO Sistema QUIERO que el esquema de la base tenga historial de versiones y una regla clara de quién lo aplica PARA que seis personas lo cambien sin borrarse datos entre sí.
+
+**Qué espero que pase**
+
+Versión inicial: existe una versión base generada del esquema actual y guardada en el repositorio, con la que cualquiera reconstruye la base desde cero y obtiene exactamente la misma estructura.
+
+Regla de aplicación: cada integrante crea versiones nuevas contra su base local; la base compartida solo recibe versiones ya aprobadas, y las aplica un responsable de integración después de aceptar el aporte. Nadie más ejecuta cambios de estructura contra la base compartida.
+
+Configuración: la conexión de trabajo y la conexión que se usa para aplicar versiones quedan como dos valores distintos en el archivo de configuración de ejemplo, cada uno con su comentario.
+
+Acceso: no tiene pantalla. La base compartida la administran los responsables de integración.
+
+---
+
+### TS-025: Base compartida en la nube y conexión del equipo
+
+Sprint: 0
+
+Módulo: Base técnica · EDT 1.6 Despliegue
+
+Prioridad: CRÍTICA
+
+Dependencias: TS-003
+
+Estado actual: HECHO EN PARTE: proyecto creado, respaldo, aviso de caída y usuario del equipo listos; falta crear las tablas y cargar los datos en la base compartida
+
+COMO Sistema QUIERO una única base de datos en la nube, gratuita y compartida, a la que se conecten los seis PARA que todos trabajen sobre los mismos datos sin instalar ni administrar un motor de base.
+
+**Qué espero que pase**
+
+Conexión: los seis integrantes se conectan a la misma base con la cadena de conexión que está en la configuración de ejemplo; nadie instala un motor de base de datos en su máquina.
+
+Límite de conexiones: la cadena de cada integrante limita el número de conexiones simultáneas que abre su copia del servicio, para que seis máquinas encendidas a la vez no agoten las conexiones disponibles del plan gratuito.
+
+Respaldo: existe una copia de seguridad de la base, tomada al cierre de cada día de trabajo y guardada fuera de la nube, para poder restaurar si alguien borra datos por error.
+
+Aviso de caída: si la base deja de responder, el equipo se entera el mismo día y hay un responsable único de restablecerla.
+
+Acceso: no tiene pantalla. Las credenciales las manejan los responsables de integración.
+
+---
+
+### TS-004: Arranque local reproducible con contenedores
+
+Sprint: 0
+
+Módulo: Base técnica · EDT 1.6 Despliegue
+
+Prioridad: CRÍTICA
+
+Dependencias: TS-003
+
+Estado actual: HECHO
+
+COMO integrante del equipo QUIERO levantar todo el sistema en mi máquina con un solo comando PARA empezar a trabajar el mismo día sin pedir ayuda.
+
+**Qué espero que pase**
+
+Resultado esperado: copiar el archivo de configuración de ejemplo, ejecutar un solo comando de contenedores y en menos de cinco minutos tener la aplicación respondiendo en el navegador, conectada a la base compartida y con los usuarios de demostración funcionando.
+
+Problema que corrige: hoy los contenedores levantan pero el guion de instalación del repositorio pertenece a otro proyecto y espera servicios que no existen, de modo que nunca termina.
+
+Base local opcional: el mismo comando permite levantar además una base local, para quien necesite probar cambios de estructura sin tocar la compartida y para la demostración sin conexión.
+
+Verificación de salud: la comprobación de estado del servicio falla si la base no responde; hoy responde que todo está bien aunque no haya ni una tabla.
+
+Configuración y secretos: ninguna clave queda escrita en los archivos del proyecto, y el archivo de ejemplo lista todas las variables reales del sistema y ninguna heredada de otros proyectos.
+
+Acceso: no tiene pantalla. Lo usa todo el equipo y queda documentado para quien evalúe el proyecto.
+
+---
+
+### TS-005: Datos de arranque repetibles
+
+Sprint: 0
+
+Módulo: Base técnica · EDT 1.6 Despliegue
+
+Prioridad: ALTA
+
+Dependencias: TS-003
+
+Estado actual: HECHO
+
+COMO Sistema QUIERO que la carga de datos de arranque dé siempre el mismo resultado PARA que las pruebas y la demostración no dependan de cuántas veces se ejecutó.
+
+**Qué espero que pase**
+
+Repetibilidad: ejecutar la carga dos veces seguidas deja exactamente la misma cantidad de registros que ejecutarla una sola vez. Hoy duplica todo lo que no tiene una clave que lo identifique.
+
+Fechas: las fechas de los vuelos se calculan a partir de una fecha de referencia configurable, que por defecto es el día de ejecución, de modo que siempre existan vuelos futuros, incluido el día de la sustentación.
+
+Corrección de datos: se corrigen las festividades asignadas a un destino que no les corresponde, y las credenciales de demostración que informa la carga coinciden con las de la documentación del repositorio.
+
+Limpieza: los archivos compilados de la carga de datos dejan de estar versionados.
+
+Acceso: no tiene pantalla. La ejecuta un responsable de integración.
+
+---
+
+### TS-014: Catálogo de datos, extras y datos de la agencia
+
+Sprint: 0
+
+Módulo: Base técnica · datos del catálogo
+
+Prioridad: ALTA
+
+Dependencias: TS-005
+
+Estado actual: HECHO EN PARTE: faltan los datos reales de la agencia y las reseñas de demostración, que llegan con TS-024
+
+COMO Sistema QUIERO un catálogo con variedad suficiente y clientes de demostración con historial coherente PARA poder demostrar filtros, niveles y recomendaciones con datos que resisten preguntas.
+
+**Qué espero que pase**
+
+Vuelos: cada destino tiene vuelos desde Lima en varias fechas, de distintas aerolíneas, con y sin escalas y en distintas clases, repartidos a lo largo de los cuatro meses siguientes a la fecha de referencia. Con diez vuelos en total no se puede demostrar ningún filtro.
+
+Hoteles y actividades: cada destino tiene hoteles de distintas categorías y zonas, y actividades de cada tipo, con precios que permitan distinguir rangos.
+
+Festividades: cada festividad del documento de concepto existe y está asociada al destino que le corresponde de verdad.
+
+Clientes de demostración: uno sin compras, uno de nivel intermedio y uno de nivel alto, cada uno con viajes completados reales, su historial de puntos, sus reseñas y saldos que cuadran exactamente con ese historial. Varios de ellos con viajes al mismo destino, para que las recomendaciones por historial tengan de dónde salir.
+
+Catálogo de extras: traslados y seguro de viaje con su precio, que hoy no existen en ninguna parte y sin los cuales el paso de extras no puede calcular su precio en el servidor.
+
+Datos de la agencia: nombre, identificación, dirección, teléfono, correo y logotipo de Expertia Travel S.A.C., que se usan en la confirmación de compra, en el detalle imprimible del viaje y en el pie de la plataforma.
+
+Datos de respaldo: quedan cargados los feriados y el clima promedio por destino y por mes que se usan cuando los servicios externos no responden.
+
+Acceso: no tiene pantalla. Los datos se cargan con la carga de arranque.
+
+---
+
+### TS-015: Catálogo de servicios consultable
+
+Sprint: 0
+
+Módulo: Base técnica · transversal
+
+Prioridad: CRÍTICA
+
+Dependencias: Ninguna
+
+Estado actual: HECHO
+
+COMO Sistema QUIERO que todos los servicios disponibles estén publicados y se puedan probar desde el navegador PARA que quien hace pantallas no invente campos ni espere a que alguien le explique la respuesta.
+
+**Qué espero que pase**
+
+Contenido: se publican todos los servicios con los datos que reciben, los que devuelven y los errores posibles, y se pueden ejecutar desde ahí iniciando sesión con un usuario de demostración.
+
+Congelamiento: el contrato queda congelado antes de repartir las pantallas de cada sprint. Si un servicio tiene que cambiar, primero se actualiza el catálogo y recién después se avisa a quien depende de él.
+
+Autoridad: es la única fuente válida sobre cómo responde el sistema. Ninguna pantalla se construye sobre una suposición ni sobre un ejemplo pegado en el chat del grupo.
+
+Acceso: disponible para todo el equipo mientras el proyecto está en desarrollo.
+
+---
+
+### TS-006: Limpieza del repositorio
+
+Sprint: 0
+
+Módulo: Base técnica · transversal
+
+Prioridad: ALTA
+
+Dependencias: Ninguna
+
+Estado actual: HECHO EN PARTE: inventario del código heredado, README real y archivos de compilación fuera; el retiro del código sin uso espera la decisión de cada pieza en el inventario
+
+COMO Sistema QUIERO que el repositorio contenga solo lo que se usa PARA que nadie arregle, extienda ni copie código muerto.
+
+**Qué espero que pase**
+
+Código sin uso: se eliminan las pantallas y piezas de interfaz que no están enlazadas a ninguna ruta ni las usa nadie, salvo la de cambio de contraseña, que se conserva porque se enruta en el sprint 1.
+
+Archivos de compilación: dejan de estar versionados los archivos que genera la compilación, y los que ya estaban se quitan del repositorio.
+
+Documentación del repositorio: la descripción del proyecto pasa a describir lo que existe de verdad, con los comandos reales y las credenciales de demostración reales, sin carpetas ni servicios que nunca se construyeron.
+
+Avance previo: lo que exista en ramas de trabajo anteriores se revisa antes de borrar nada; se conserva lo que sirva y se descarta el resto, dejando constancia de qué se tomó.
+
+Acceso: no tiene pantalla. El aporte lista los archivos eliminados con su razón.
+
+---
+
+### TS-007: Verificación automática de cada aporte
+
+Sprint: 0
+
+Módulo: Base técnica · transversal
+
+Prioridad: CRÍTICA
+
+Dependencias: TS-002
+
+Estado actual: HECHO EN PARTE: la verificación corre en cada aporte; la rama principal no se puede proteger en el plan gratuito, así que la regla se cumple por acuerdo
+
+COMO Sistema QUIERO que cada aporte se verifique solo antes de que lo lea una persona PARA que la revisión humana no se gaste en lo que una máquina detecta mejor.
+
+**Qué espero que pase**
+
+Qué se verifica: cada aporte dispara la compilación del servicio, la revisión de estilo, la compilación de la interfaz y las pruebas unitarias existentes. Un aporte que no pasa alguna queda marcado y no se revisa hasta que su autor lo corrija.
+
+Rama principal: no se incorpora nada sin verificación en verde y sin la aprobación de un integrante distinto del autor; si toca un área reservada, la aprueba un responsable de integración. GitHub no lo bloquea en este repositorio privado del plan gratuito, así que se cumple por acuerdo.
+
+Evidencia: se deja un aporte de prueba con un error de estilo, se comprueba que la verificación lo marca en rojo, y esa captura sirve como evidencia de control de calidad en el acta del sprint.
+
+Acceso: no tiene pantalla. La configuración la mantienen los responsables de integración.
+
+---
+
+### TS-012: Motor único de fidelización
+
+Sprint: 0
+
+Módulo: 1.4.7 Fidelización (Puntos, Niveles y Canjes)
+
+Prioridad: CRÍTICA
+
+Dependencias: TS-002
+
+Estado actual: HECHO
+
+COMO Sistema QUIERO todas las reglas de puntos, niveles y canje en un solo lugar y con pruebas PARA que den el mismo resultado en cualquier pantalla del sistema.
+
+**Qué espero que pase**
+
+Reglas que concentra: cuántos puntos otorga una compra, que es uno por cada cien soles del total pagado; qué nivel corresponde según los viajes completados, Explorador de cero a dos, Viajero de tres a siete, Frecuente de ocho a catorce y Elite de quince en adelante; cuánto vale un canje, que es quinientos puntos igual a cincuenta soles exactos, y ese es el mínimo; qué descuento adicional otorga cada nivel cuando el cliente canjea, que es cero, cinco, diez y quince por ciento sobre el total del paquete; y el tope del canje, que es el cincuenta por ciento del paquete sumando puntos y nivel, de modo que los puntos que no caben se conservan.
+
+Fuente única: la compra, la pantalla de puntos, el perfil y el panel de administración usan este motor, y no queda ninguna de estas constantes escrita en otro lado. Hoy están repartidas en tres partes distintas del sistema y el nivel se calcula de dos formas que pueden no coincidir.
+
+Pruebas: quedan probados los límites exactos, cuatrocientos noventa y nueve contra quinientos puntos, el salto de dos a tres, de siete a ocho y de catorce a quince viajes, montos con céntimos, y que el descuento nunca supere el cincuenta por ciento del paquete.
+
+Independencia: el motor funciona y se prueba completo desde este sprint aunque todavía ninguna pantalla lo use; lo que se conecta en el sprint 3 son las pantallas, no las reglas.
+
+Acceso: no tiene pantalla. Lo consume el resto del sistema.
+
+---
+
+### TS-008: Navegación común y piezas visuales
+
+Sprint: 0
+
+Módulo: 1.4.1 Plataforma Web CRM
+
+Prioridad: CRÍTICA
+
+Dependencias: TS-006
+
+Estado actual: HECHO EN PARTE: falta pasar los colores y la tipografía de la maqueta
+
+COMO visitante o cliente QUIERO una barra de navegación que esté siempre presente PARA moverme entre explorar, mi paquete, mis viajes y mi cuenta sin perderme.
+
+**Qué espero que pase**
+
+Navegación del visitante: ve explorar, contacto y las opciones de iniciar sesión y crear cuenta.
+
+Navegación del cliente: ve inicio, explorar, mis viajes, mis puntos, perfil y cerrar sesión, con su nombre y su nivel de membresía visibles. Si tiene un paquete a medio armar, aparece además un acceso para continuarlo.
+
+Piezas visuales reutilizables: quedan definidos los botones, tarjetas, campos de formulario, estrellas de calificación, estado de carga y estado vacío que todas las demás pantallas copian, tomando colores, tipografía y espaciados de la maqueta de referencia del proyecto.
+
+Pantallas angostas: en un teléfono la navegación se reduce a un menú, ninguna pantalla se corta y ningún contenido obliga a desplazarse en horizontal. Toda pantalla que se construya después se revisa también en ancho de teléfono.
+
+Acceso: la barra es visible para todos; su contenido cambia según haya o no sesión iniciada.
+
+---
+
+### TS-009: Armador dividido en pasos
+
+Sprint: 0
+
+Módulo: 1.4.2 Búsqueda y Armado de Paquetes
+
+Prioridad: CRÍTICA
+
+Dependencias: Ninguna
+
+Estado actual: HECHO
+
+COMO Sistema QUIERO el armador de paquetes dividido en un contenedor, un componente por paso y un lugar único donde vive lo que el cliente va eligiendo PARA que varias personas trabajen en pasos distintos sin pisarse y para que lo elegido se pueda guardar.
+
+**Qué espero que pase**
+
+Estructura: un contenedor muestra el indicador de pasos y la navegación hacia adelante y hacia atrás, y cada uno de los seis pasos vive por separado. Nada más: sin capas ni abstracciones adicionales, porque el tiempo es corto.
+
+Estado del paquete: todo lo que el cliente elige, vuelo, fechas, pasajeros, hotel, actividades, extras y puntos a canjear, vive en un solo lugar y se puede convertir a texto para guardarlo. Volver a un paso anterior conserva lo ya elegido.
+
+Sin cambios visibles: al terminar, el armador se ve y se comporta igual que hoy. Esta tarea no agrega funcionalidad y sirve de plantilla para todos los pasos que se construyen después.
+
+Acceso: hereda el acceso actual del armador; no lo modifica.
+
+---
+
+### TS-026: Instrucciones y límites para las herramientas de IA
+
+Sprint: 0
+
+Módulo: Base técnica · transversal
+
+Prioridad: CRÍTICA
+
+Dependencias: TS-001
+
+Estado actual: HECHO
+
+COMO Sistema QUIERO que las herramientas de IA del equipo trabajen con instrucciones estrictas y límites explícitos PARA que seis personas con distinto nivel entreguen código parejo y revisable.
+
+**Qué espero que pase**
+
+Instrucciones por tarea: cada encargo entregado a una herramienta de IA incluye la historia con su criterio de aceptación, los archivos que puede tocar, los archivos que tiene prohibido tocar, el servicio y la pantalla de referencia que debe copiar, y el comando con el que se verifica el resultado.
+
+Límites del sistema: queda escrito que las herramientas de IA no modifican el esquema de datos ni sus versiones, el cálculo de precios, el motor de fidelización, la transacción de pago ni la autenticación. Esas cinco áreas las escriben los responsables de integración.
+
+Explicación obligatoria: cada entrega incluye tres líneas escritas por la persona, no por la herramienta, explicando qué hace lo que entregó. Sin esas tres líneas el aporte no se revisa.
+
+Verificación visual: toda pantalla se contrasta con la maqueta de referencia antes de entregarse, y se revisa además en ancho de teléfono.
+
+Registro: queda constancia de qué herramienta se usó en cada entrega y qué validó la persona, porque el informe final del curso exige declarar el uso de inteligencia artificial, su propósito y cómo se validó.
+
+Acceso: no tiene pantalla. Lo mantienen los responsables de integración.
+
+## Fichas de cierre
 
 ### TS-001: Contrato único del repositorio
 
@@ -15,25 +414,23 @@ Archivos:
 - `CLAUDE.md`: puntero a `AGENTS.md`.
 - `.gitignore`: deja fuera la configuración personal de cada herramienta (`.claude/settings.local.json`, `.kiro/`, `.opencode/`).
 
-PR: Sprint 0
-
 ---
 
 ### TS-026: Plantillas de encargo y de PR
 
 git commit -m "docs: agrega plantilla de encargo y plantilla de PR (TS-026)"
 git commit -m "docs: agrega la ficha de cierre por tarea y la exige en la definición de terminado (TS-026)"
+git commit -m "docs: integra en el repositorio las historias de los sprints 0 a 4 (TS-026)"
 
-Dejé dos plantillas. La de encargo dice qué se le entrega a una herramienta de IA antes de pedirle una tarea: historia, criterio de aceptación, archivos que puede y no puede tocar, referencia a copiar y comando de verificación. Trae un ejemplo lleno. La de PR exige las tres líneas escritas por la persona, la herramienta y el modelo usados, y la lista de verificación. Al cerrar el sprint agregué la ficha de cierre: cada tarea terminada deja en `docs/tareas/` qué se hizo, con qué commit y en qué archivos, en el mismo PR. Quedó como parte de la definición de terminado, en la plantilla de PR y en la de encargo, y este archivo tiene las fichas del Sprint 0.
+Dejé dos plantillas. La de encargo dice qué se le entrega a una herramienta de IA antes de pedirle una tarea: historia, criterio de aceptación, archivos que puede y no puede tocar, referencia a copiar y comando de verificación. Trae un ejemplo lleno. La de PR exige las tres líneas escritas por la persona, la herramienta y el modelo usados, y la lista de verificación. Al cerrar el sprint agregué la ficha de cierre: cada tarea terminada deja en `docs/tareas/` qué se hizo, con qué commit y en qué archivos, en el mismo PR. Quedó como parte de la definición de terminado, en la plantilla de PR y en la de encargo. Por último pasé al repositorio las historias de los sprints 0 a 4: cada archivo de `docs/tareas/` tiene las historias del sprint y debajo sus fichas, y el encargo copia la historia de ahí.
 
 Archivos:
 - `docs/encargos/PLANTILLA.md`: plantilla de encargo con ejemplo; pide redactar la ficha al terminar.
 - `.github/pull_request_template.md`: plantilla que GitHub carga en cada PR, con la casilla de la ficha.
 - `docs/tareas/README.md`: formato de la ficha y ejemplo.
-- `docs/tareas/sprint-0.md`: fichas de este sprint.
+- `docs/tareas/sprint-0.md`: historias y fichas de este sprint.
+- `docs/tareas/sprint-1.md` a `sprint-4.md`: historias de los sprints siguientes, con su estado al cierre del Sprint 0.
 - `AGENTS.md`: la ficha en la definición de terminado (§10).
-
-PR: Sprint 0
 
 ---
 
@@ -51,8 +448,6 @@ Archivos:
 - `backend/tsconfig.json`, `backend/tsconfig.build.json`: incluyen las pruebas y separan la salida.
 - `frontend/package.json`, `frontend/nginx.conf`, `frontend/proxy.conf.json`: sin dependencias ni proxys del sistema anterior.
 
-PR: Sprint 0
-
 ---
 
 ### TS-006: Inventario del código heredado y README real
@@ -66,8 +461,6 @@ Archivos:
 - `docs/HEREDADO.md`: inventario completo.
 - `README.md`: reescrito.
 - `backend/tsconfig.tsbuildinfo`, `backend/tsconfig.build.tsbuildinfo`: eliminados y agregados al `.gitignore`.
-
-PR: Sprint 0
 
 ---
 
@@ -84,8 +477,6 @@ Archivos:
 - `.gitattributes`: `eol=lf` para `.sql`, `.sh` y `.toml`.
 
 Base de datos: migración `20261006080000_init`, equivalente al esquema heredado.
-
-PR: Sprint 0
 
 ---
 
@@ -104,8 +495,6 @@ Archivos:
 - `frontend/src/app/features/loyalty/loyalty.component.ts`, `home/home.component.ts`, `packages/steps/step-summary.component.ts`: muestran disponibles, histórico, avance y canje que vienen de la API.
 - `docs/fidelizacion.md`: reglas, ejemplos con el tope y endpoints.
 
-PR: Sprint 0
-
 ---
 
 ### TS-004: Arranque reproducible con Docker
@@ -121,8 +510,6 @@ Archivos:
 - `backend/src/app.controller.ts` y su prueba: salud con consulta a la base.
 - `frontend/src/environments/`: sin la URL de WebSocket del sistema anterior.
 
-PR: Sprint 0
-
 ---
 
 ### TS-005: Carga de arranque idempotente
@@ -135,8 +522,6 @@ Archivos:
 - `backend/prisma/seed.ts`: carga con upserts por clave natural.
 - `backend/prisma/seed-data/catalog.ts`, `flights.ts`, `users.ts`: datos separados por tema.
 - `backend/prisma/seed.js`, `seed.js.map`, `seed.d.ts`: eliminados y agregados al `.gitignore`.
-
-PR: Sprint 0
 
 ---
 
@@ -155,8 +540,6 @@ Archivos:
 
 Base de datos: migración `20261006090000_catalogo_extras_agencia_respaldo`, con el enum `ExtraPricing` (`POR_RESERVA`, `POR_PASAJERO`) y las cuatro tablas nuevas.
 
-PR: Sprint 0
-
 ---
 
 ### TS-025: Base compartida, respaldo, aviso de caída y accesos
@@ -171,13 +554,12 @@ Archivos:
 - `docs/ACCESOS.md`: accesos, quién los tiene y los dos usuarios de la base.
 - `scripts/supabase-usuarios.sql`: usuario `aerocrm_equipo` y permisos.
 - `scripts/db-compartida.ps1`, `scripts/db-compartida.sh`: migrar y cargar datos en la base compartida con `backend/.env.compartida`, sin tocar `backend/.env`.
+- `backend/.env.compartida.example`: plantilla de ese archivo, con el host del pooler.
 - `scripts/db-backup.ps1`, `scripts/db-backup.sh`: respaldo.
 - `.github/workflows/db-health.yml`: aviso diario de caída.
 - `backend/.env.example`, `README.md`: las cadenas usan el usuario del equipo.
 
 Base de datos: usuario `aerocrm_equipo` con lectura y escritura sobre las tablas de `public` y sin permiso para crear objetos; los roles `anon` y `authenticated` de Supabase sin acceso a nuestras tablas.
-
-PR: Sprint 0
 
 ---
 
@@ -193,8 +575,6 @@ Archivos:
 - `backend/src/*/*.controller.ts` (auth, bookings, clients, contact, destinations, loyalty y el de salud): decoradores de documentación.
 - `docs/api.md`: cómo probar un servicio y cómo documentar uno nuevo.
 
-PR: Sprint 0
-
 ---
 
 ### TS-007: Verificación automática en cada PR
@@ -206,8 +586,6 @@ Cada PR corre en GitHub lint, build, pruebas unitarias y de flujo completo del b
 Archivos:
 - `.github/workflows/ci.yml`: los dos trabajos, backend y frontend.
 - `backend/.eslintrc.js`: ajuste de reglas para las advertencias heredadas.
-
-PR: Sprint 0
 
 ---
 
@@ -222,8 +600,6 @@ Archivos:
 - `frontend/src/app/features/packages/package-builder.state.ts`: estado del paquete.
 - `frontend/src/app/features/packages/steps/`: los seis pasos.
 - `docs/armador.md`: estructura y cómo agregar un paso.
-
-PR: Sprint 0
 
 ---
 
@@ -240,8 +616,6 @@ Archivos:
 - `frontend/src/app/features/packages/package-builder.state.ts`: guarda y retoma el paquete en curso.
 - `frontend/tailwind.config.js`, `src/styles.scss`, `src/index.html`: tokens de color y tipografía.
 - `docs/interfaz.md`: cómo usar la barra y las piezas.
-
-PR: Sprint 0
 
 ---
 
@@ -260,8 +634,6 @@ Archivos:
 - `frontend/src/app/app.config.ts`: idioma es-PE.
 - Pantallas de login, registro, contacto, inicio, destino, búsqueda, mis viajes, detalle, puntos y armador: textos en español.
 
-PR: Sprint 0
-
 ---
 
 ### QA-S0: Clima y feriados de respaldo
@@ -272,8 +644,6 @@ Si OpenWeatherMap o Calendarific no responden o no hay clave configurada, el con
 
 Archivos:
 - `backend/src/destinations/destinations.service.ts`: respaldo de clima y feriados, y el filtro de origen.
-
-PR: Sprint 0
 
 ---
 
@@ -288,8 +658,6 @@ Archivos:
 - `frontend/src/app/core/interceptors/auth.interceptor.ts`: manejo del 401.
 - `frontend/src/app/core/services/auth.service.ts`: descarte del token vencido.
 - `frontend/src/app/features/auth/login/`, `register/`: navegan a la página de origen.
-
-PR: Sprint 0
 
 ---
 
@@ -307,8 +675,6 @@ Archivos:
 - `frontend/src/app/features/search/search.component.ts`: aviso de días de diferencia y fecha mínima.
 - `frontend/src/app/shared/pipes/duration.pipe.ts`: pipe `duracion`.
 
-PR: Sprint 0
-
 ---
 
 ### QA-S0: Armador para visitantes y paquete con dueño
@@ -325,8 +691,6 @@ Archivos:
 - `frontend/src/app/features/packages/steps/step-summary.component.ts`: inicio de sesión para confirmar y total a pagar.
 - `docs/armador.md`: visitantes, dueño del paquete y pendientes.
 
-PR: Sprint 0
-
 ---
 
 ### QA-S0: Fechas de hotel, actividades por pasajero y extras en el detalle
@@ -341,8 +705,6 @@ Archivos:
 - `frontend/src/app/features/my-trips/trip-detail.component.ts`: extras, cantidades, descuento y fechas.
 - `backend/src/bookings/bookings.service.ts`: total de la línea de actividad.
 
-PR: Sprint 0
-
 ---
 
 ### QA-S0: Menú compacto en pantallas medianas
@@ -355,8 +717,6 @@ Archivos:
 - `frontend/src/app/core/layout/navbar/navbar.component.ts`: cambio de punto de corte.
 - `docs/interfaz.md`: punto de corte actualizado.
 
-PR: Sprint 0
-
 ---
 
 ### QA-S0: .gitignore completo
@@ -367,10 +727,6 @@ El `.gitignore` solo cubría `backend/.env` y traía restos de otro proyecto. Ah
 
 Archivos:
 - `.gitignore`.
-
-PR: Sprint 0
-
----
 
 ## Pendiente al cerrar el sprint
 
