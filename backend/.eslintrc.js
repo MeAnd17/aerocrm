@@ -14,7 +14,8 @@ module.exports = {
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
-    // Bajadas a advertencia por código heredado (TS-002). El código nuevo no debe sumar advertencias.
+    // Bajadas a advertencia por código heredado (TS-002). El código nuevo no debe sumar advertencias:
+    // la CI (TS-007) falla si el total supera el número fijado en .github/workflows/ci.yml (--max-warnings).
     '@typescript-eslint/no-explicit-any': 'warn', // 12 casos heredados
     '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }], // 2 casos heredados
   },

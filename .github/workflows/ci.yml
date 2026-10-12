@@ -1,0 +1,61 @@
+# Verificación automática de cada aporte (TS-007).
+# Un PR que no pasa algún paso queda marcado en rojo y no se revisa hasta que su autor lo corrija.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend · lint, build y pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      # Las pruebas no tocan ninguna base: PrismaService se reemplaza por un doble.
+      JWT_SECRET: secreto-solo-para-ci
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      DIRECT_URL: postgresql://ci:ci@localhost:5432/ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npx prisma generate
+      - name: Estilo
+        run: npm run lint -- --max-warnings 13
+      - name: Compilación
+        run: npm run build
+      - name: Pruebas unitarias
+        run: npm test
+      - name: Pruebas de flujo completo
+        run: npm run test:e2e
+
+  frontend:
+    name: Frontend · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Compilación
+        run: npm run build
