@@ -57,8 +57,11 @@ export const CLASS_FACTOR: Record<FlightClass, number> = {
   FIRST_CLASS: 4,
 };
 
-/** Fechas de salida: cada 10 días durante los cuatro meses siguientes a la referencia. */
-export const OUTBOUND_OFFSETS = [3, 13, 23, 33, 43, 53, 63, 73, 83, 93, 103, 113];
+/**
+ * Fechas de salida: cada 7 días durante los cuatro meses siguientes a la referencia.
+ * Con la búsqueda de ±3 días, cualquier fecha elegida en ese periodo encuentra al menos una salida.
+ */
+export const OUTBOUND_OFFSETS = [3, 10, 17, 24, 31, 38, 45, 52, 59, 66, 73, 80, 87, 94, 101, 108, 115];
 /** El regreso sale 7 días después de la ida. */
 export const RETURN_AFTER_DAYS = 7;
 const DEPARTURE_TIMES = ['06:15', '09:40', '13:05', '17:30', '21:50', '23:55'];

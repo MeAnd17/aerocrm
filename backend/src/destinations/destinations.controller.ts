@@ -36,16 +36,18 @@ export class DestinationsController {
   }
 
   @Get(':id/flights')
-  @ApiOperation({ summary: 'Vuelos hacia el destino' })
+  @ApiOperation({ summary: 'Vuelos hacia el destino alrededor de una fecha', description: 'Devuelve los vuelos entre flexDays días antes y después de departureDate, ordenados por cercanía a esa fecha. Cada vuelo trae daysFromRequested.' })
   @ApiQuery({ name: 'origin', required: false, example: 'LIM', description: 'IATA de origen' })
   @ApiQuery({ name: 'departureDate', required: false, example: '2026-12-20' })
   @ApiQuery({ name: 'passengers', required: false, type: Number, example: 2 })
+  @ApiQuery({ name: 'flexDays', required: false, type: Number, example: 3, description: 'Días de flexibilidad antes y después de la fecha (0 a 7). Por defecto 3' })
   searchFlights(
     @Param('id', ParseIntPipe) id: number,
     @Query('origin') origin: string,
     @Query('departureDate') departureDate: string,
     @Query('passengers') passengers: number,
+    @Query('flexDays') flexDays?: number,
   ) {
-    return this.destinationsService.searchFlights(origin, id, departureDate, passengers ?? 1);
+    return this.destinationsService.searchFlights(origin, id, departureDate, passengers ?? 1, flexDays ?? 3);
   }
 }

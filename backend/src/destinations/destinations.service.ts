@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
@@ -97,7 +97,11 @@ export class DestinationsService {
     };
   }
 
-  async searchFlights(originIata: string, destinationId: number, departureDate: string, passengers: number) {
+  /**
+   * Vuelos hacia un destino alrededor de la fecha pedida (±flexDays días), ordenados por cercanía a esa fecha
+   * y luego por precio. Nunca devuelve vuelos que ya salieron.
+   */
+  async searchFlights(originIata: string, destinationId: number, departureDate: string, passengers: number, flexDays = 3) {
     const destination = await this.prisma.destination.findUnique({ where: { id: destinationId } });
     if (!destination) throw new NotFoundException('Destino no encontrado');
 
@@ -105,26 +109,35 @@ export class DestinationsService {
     // así que sin esta guarda tomaba el primer destino de la tabla como origen.
     const origin = originIata ? await this.prisma.destination.findFirst({ where: { iataCode: originIata } }) : null;
 
-    const dep = new Date(departureDate);
-    const nextDay = new Date(dep);
-    nextDay.setDate(nextDay.getDate() + 1);
+    const DAY = 86_400_000;
+    const flex = Math.min(Math.max(Number(flexDays) || 0, 0), 7);
+    const requested = new Date(`${departureDate}T00:00:00Z`);
+    if (Number.isNaN(requested.getTime())) throw new BadRequestException('La fecha de salida no es válida');
+    const from = new Date(Math.max(requested.getTime() - flex * DAY, Date.now()));
+    const to = new Date(requested.getTime() + (flex + 1) * DAY);
 
     const flights = await this.prisma.flight.findMany({
       where: {
         destinationId,
         ...(origin ? { originId: origin.id } : {}),
-        departureDate: { gte: dep, lt: nextDay },
+        departureDate: { gte: from, lt: to },
         seatsAvailable: { gte: passengers },
         isActive: true,
       },
       include: { origin: true, destination: true },
-      orderBy: { pricePerPerson: 'asc' },
     });
 
-    return flights.map(f => ({
-      ...f,
-      totalPrice: Number(f.pricePerPerson) * passengers,
-    }));
+    const daysFrom = (d: Date) => Math.round((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - requested.getTime()) / DAY);
+    return flights
+      .map((f) => ({
+        ...f,
+        // Días de diferencia con la fecha pedida: 0 = ese mismo día, -2 = dos días antes, 1 = un día después.
+        daysFromRequested: daysFrom(f.departureDate),
+        totalPrice: Number(f.pricePerPerson) * passengers,
+      }))
+      .sort((a, b) => Math.abs(a.daysFromRequested) - Math.abs(b.daysFromRequested)
+        || a.departureDate.getTime() - b.departureDate.getTime()
+        || Number(a.pricePerPerson) - Number(b.pricePerPerson));
   }
 
   /** Clima promedio del mes de salida, con la misma forma que la respuesta de OpenWeatherMap. */

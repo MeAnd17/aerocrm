@@ -81,7 +81,7 @@ Los puntos, niveles y saldos se calculan con el motor de fidelización a partir 
 
 La carga es idempotente: correrla dos veces deja lo mismo que correrla una vez. Las fechas de los vuelos se calculan desde `SEED_REFERENCE_DATE` (o desde hoy si está vacía), así siempre hay vuelos en los cuatro meses siguientes. Fija esa fecha antes de la sustentación.
 
-Contiene 11 destinos, alrededor de 680 vuelos desde y hacia Lima (varias aerolíneas, con y sin escalas, tres clases), hoteles de 3 a 5 estrellas y actividades de cada tipo por destino, festividades curadas, extras con precio, datos de la agencia, clima promedio por mes y feriados nacionales de respaldo.
+Contiene 11 destinos, alrededor de 960 vuelos desde y hacia Lima (varias aerolíneas, con y sin escalas, tres clases), hoteles de 3 a 5 estrellas y actividades de cada tipo por destino, festividades curadas, extras con precio, datos de la agencia, clima promedio por mes y feriados nacionales de respaldo.
 
 ## Comandos de verificación
 

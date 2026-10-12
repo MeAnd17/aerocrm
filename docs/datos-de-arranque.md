@@ -30,7 +30,7 @@ Antes de la sustentación conviene fijar la fecha y volver a cargar, para que lo
 | Dato | Cantidad |
 |---|---|
 | Destinos | 11 (Lima como origen y 10 destinos) |
-| Vuelos | ~680: ida y vuelta, cada 10 días, 2 o 3 aerolíneas por ruta, con y sin escalas, económica, premium y ejecutiva |
+| Vuelos | ~960: ida y vuelta, cada 7 días, 2 o 3 aerolíneas por ruta, con y sin escalas, económica, premium y ejecutiva. La búsqueda mira ±3 días, así que cualquier fecha de los próximos cuatro meses encuentra vuelos |
 | Hoteles | 3 a 4 por destino, de 3 a 5 estrellas y en distintas zonas |
 | Actividades | Al menos una de cada tipo del armador (aventura, cultural, gastronómico, familiar) por destino |
 | Festividades | 11, cada una en su destino real |
