@@ -105,13 +105,28 @@ Los mismos pasos corren automáticamente en cada PR (`.github/workflows/ci.yml`)
       test/                pruebas de flujo completo
     frontend/
       src/app/core/        guards, interceptor, servicios únicos (ApiService, AuthService, ToastService)
-      src/app/shared/      piezas reutilizables
+      src/app/core/layout/navbar/   barra de navegación común
+      src/app/shared/ui/   piezas visuales base: botón, tarjeta, campo, estrellas, carga, vacío
       src/app/features/    una carpeta por pantalla
     docs/
       encargos/PLANTILLA.md   cómo se encarga una tarea a una herramienta de IA
       HEREDADO.md             estado del código heredado: qué se conserva, rehace o retira
       BASE-DE-DATOS.md        conexión, migraciones, respaldo y aviso de caída
     scripts/               respaldo de la base
+
+## Documentación
+
+| Documento | Contenido |
+|---|---|
+| [AGENTS.md](AGENTS.md) | Reglas del repositorio |
+| [docs/api.md](docs/api.md) | Cómo usar Swagger y documentar un endpoint |
+| [docs/fidelizacion.md](docs/fidelizacion.md) | Puntos, niveles y canje |
+| [docs/armador.md](docs/armador.md) | Estructura del armador de paquetes |
+| [docs/interfaz.md](docs/interfaz.md) | Barra de navegación y piezas base de la interfaz |
+| [docs/datos-de-arranque.md](docs/datos-de-arranque.md) | Qué carga el seed y cómo agregar datos |
+| [docs/BASE-DE-DATOS.md](docs/BASE-DE-DATOS.md) | Conexión, migraciones, respaldo y caídas |
+| [docs/HEREDADO.md](docs/HEREDADO.md) | Estado del código que venía de antes |
+| [docs/encargos/PLANTILLA.md](docs/encargos/PLANTILLA.md) | Cómo pedirle una tarea a una herramienta de IA |
 
 ## Base de datos
 

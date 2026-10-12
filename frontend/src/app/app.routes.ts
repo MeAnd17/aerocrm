@@ -10,11 +10,13 @@ export const routes: Routes = [
   },
   {
     path: 'login',
+    data: { fullBleed: true },
     loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent),
     canActivate: [noAuthGuard],
   },
   {
     path: 'register',
+    data: { fullBleed: true },
     loadComponent: () => import('./features/auth/register/register.component').then(m => m.RegisterComponent),
     canActivate: [noAuthGuard],
   },

@@ -90,6 +90,9 @@ export class PackageBuilderComponent implements OnInit {
         passengers: Number(params['passengers']) || 1,
       });
       this.loadFlightAndContext();
+    } else if (this.state.hasDraft()) {
+      // Continuar un paquete a medio armar (acceso desde la barra de navegación).
+      this.loadFlightAndContext();
     }
   }
 
@@ -111,7 +114,7 @@ export class PackageBuilderComponent implements OnInit {
       departureDate: s.departureDate(), returnDate: ret.toISOString().split('T')[0],
     }).subscribe((ctx) => {
       s.context.set(ctx);
-      s.goTo(2);
+      if (s.step() < 2) s.goTo(2);
     });
   }
 }

@@ -26,8 +26,9 @@
 
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background-color: var(--navy-900);
-  color: #f1f5f9;
+  /* Fondo claro común a todas las pantallas de AeroCRM (TS-008). */
+  background-color: #f8fafc;
+  color: #0f172a;
   margin: 0;
   padding: 0;
   min-height: 100vh;
@@ -36,9 +37,9 @@ body {
 
 /* ── Scrollbar ────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--navy-900); }
-::-webkit-scrollbar-thumb { background: var(--navy-500); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--gold-500); }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
 /* ── Reusable component classes (no @apply with custom colors) ───────────── */
 

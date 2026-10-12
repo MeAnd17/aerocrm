@@ -24,6 +24,21 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Tokens de AeroCRM (TS-008). [AJUSTAR] con los colores de la maqueta de referencia.
+        // Las pantallas usan primary-*; cambiar aquí cambia toda la plataforma.
+        primary: {
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+        },
+        // Paletas heredadas del sistema anterior (docs/HEREDADO.md). No usar en pantallas nuevas.
         navy: {
           950: '#050d1a',
           900: '#0a1628',

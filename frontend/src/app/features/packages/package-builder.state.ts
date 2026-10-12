@@ -1,4 +1,6 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, effect, signal } from '@angular/core';
+
+const DRAFT_KEY = 'aerocrm.paquete';
 
 /**
  * Lugar único donde vive lo que el cliente va eligiendo en el armador (TS-009).
@@ -59,6 +61,20 @@ export class PackageBuilderState {
   readonly totalPrice = computed(() => this.flightTotal() + this.hotelTotal() + this.activitiesTotal() + this.extrasTotal());
   /** El descuento lo calcula el motor de fidelización del backend (AGENTS.md B7). */
   readonly pointsDiscount = computed(() => Number(this.redemption()?.totalDiscount ?? 0));
+
+  /** Hay un paquete a medio armar (la barra de navegación ofrece continuarlo). */
+  readonly hasDraft = computed(() => this.flightId() !== null);
+
+  constructor() {
+    // El paquete a medio armar se guarda en el navegador para no perderlo (modo explorador, M2).
+    const saved = readDraft();
+    if (saved) this.restore(saved);
+    effect(() => {
+      const text = this.serialize();
+      if (this.flightId() === null) removeDraft();
+      else writeDraft(text);
+    });
+  }
 
   // ── Acciones ────────────────────────────────────────────────────────────────
   goTo(step: number) {
@@ -159,5 +175,30 @@ export class PackageBuilderState {
     this.usePoints.set(!!draft.usePoints);
     this.redemption.set(null);
     return true;
+  }
+}
+
+// El almacenamiento del navegador puede no estar disponible (modo privado): nunca debe romper el armador.
+function readDraft(): string | null {
+  try {
+    return localStorage.getItem(DRAFT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeDraft(text: string) {
+  try {
+    localStorage.setItem(DRAFT_KEY, text);
+  } catch {
+    /* sin almacenamiento: el paquete vive solo mientras la pestaña esté abierta */
+  }
+}
+
+function removeDraft() {
+  try {
+    localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    /* nada que limpiar */
   }
 }

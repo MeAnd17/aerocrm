@@ -28,6 +28,14 @@ Cada paso lee y escribe en `PackageBuilderState`. Ningún paso guarda su propia 
 
 Todo son `signal` y `computed`: en las plantillas se leen como `state.hotel()` y se escriben con `state.hotel.set(...)`.
 
+## Paquete a medio armar
+
+El estado se guarda solo en el navegador cada vez que cambia (`localStorage`, clave `aerocrm.paquete`). Si el cliente cierra la pestaña o va a iniciar sesión, al volver la barra de navegación muestra **Continuar paquete** y el armador retoma en el mismo paso.
+
+Para convertirlo a texto y restaurarlo a mano: `state.serialize()` y `state.restore(texto)`. El formato lleva `version: 1`; si algún día cambia la forma del paquete, se sube la versión y los borradores viejos se descartan solos.
+
+Al confirmar la compra, el estado se limpia.
+
 ## Trabajar en un paso
 
 - El paso nuevo o modificado vive en su archivo de `steps/` y usa `inject(PackageBuilderState)`.
