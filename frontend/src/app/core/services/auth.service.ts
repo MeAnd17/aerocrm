@@ -71,6 +71,14 @@ export class AuthService {
   }
 
   private loadUser(): AuthUser | null {
+    // Si el token venció, no se muestra una sesión que ya no existe.
+    if (!this.isAuthenticated()) {
+      try {
+        localStorage.removeItem(this.TOKEN_KEY);
+        localStorage.removeItem(this.USER_KEY);
+      } catch { /* sin almacenamiento */ }
+      return null;
+    }
     try {
       const raw = localStorage.getItem(this.USER_KEY);
       return raw ? JSON.parse(raw) : null;

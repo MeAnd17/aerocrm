@@ -1,8 +1,9 @@
 import { Component, signal } from '@angular/core';
+import { safeReturnUrl } from '../../../core/guards/auth.guard';
 import { apiErrorMessage } from '../../../core/services/api-error';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -94,7 +95,7 @@ import { AuthService } from '../../../core/services/auth.service';
         }
 
         <p class="text-center text-sm text-gray-500 mt-4">
-          ¿Ya tienes cuenta? <a routerLink="/login" class="text-blue-600 font-medium hover:underline">Inicia sesión</a>
+          ¿Ya tienes cuenta? <a routerLink="/login" queryParamsHandling="preserve" class="text-blue-600 font-medium hover:underline">Inicia sesión</a>
         </p>
       </div>
     </div>
@@ -121,7 +122,7 @@ export class RegisterComponent {
     { value: 'CULTURA', label: '🏛️ Cultura' },
   ];
 
-  constructor(private auth: AuthService, private router: Router) {}
+  constructor(private auth: AuthService, private router: Router, private route: ActivatedRoute) {}
 
   nextStep() {
     if (!this.form.firstName || !this.form.lastName || !this.form.email || !this.form.password) return;
@@ -132,7 +133,7 @@ export class RegisterComponent {
     this.loading.set(true);
     this.error.set('');
     this.auth.register(this.form).subscribe({
-      next: () => this.router.navigate(['/home']),
+      next: () => this.router.navigateByUrl(safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl'))),
       error: (err) => {
         this.error.set(apiErrorMessage(err, 'No pudimos crear la cuenta'));
         this.loading.set(false);

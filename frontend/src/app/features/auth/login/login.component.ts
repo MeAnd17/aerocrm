@@ -1,8 +1,9 @@
 import { Component, signal } from '@angular/core';
+import { safeReturnUrl } from '../../../core/guards/auth.guard';
 import { apiErrorMessage } from '../../../core/services/api-error';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -45,7 +46,7 @@ import { AuthService } from '../../../core/services/auth.service';
 
         <p class="text-center text-sm text-gray-500 mt-6">
           ¿No tienes cuenta?
-          <a routerLink="/register" class="text-blue-600 font-medium hover:underline">Regístrate gratis</a>
+          <a routerLink="/register" queryParamsHandling="preserve" class="text-blue-600 font-medium hover:underline">Regístrate gratis</a>
         </p>
         <p class="text-center text-sm text-gray-400 mt-2">
           <a routerLink="/explore" class="hover:underline">Explorar sin cuenta →</a>
@@ -60,14 +61,14 @@ export class LoginComponent {
   loading = signal(false);
   error = signal('');
 
-  constructor(private auth: AuthService, private router: Router) {}
+  constructor(private auth: AuthService, private router: Router, private route: ActivatedRoute) {}
 
   onSubmit() {
     if (!this.email || !this.password) return;
     this.loading.set(true);
     this.error.set('');
     this.auth.login(this.email, this.password).subscribe({
-      next: () => this.router.navigate(['/home']),
+      next: () => this.router.navigateByUrl(safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl'))),
       error: (err) => {
         this.error.set(apiErrorMessage(err, 'Correo o contraseña incorrectos'));
         this.loading.set(false);
