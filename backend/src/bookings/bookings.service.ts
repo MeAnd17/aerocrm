@@ -1,19 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
-
-// Points: 1 point per 100 soles spent
-const POINTS_RATIO = 100;
-const MIN_REDEEM_POINTS = 500;
-const POINTS_VALUE = 0.1; // 1 point = S/.0.10 → 500 points = S/.50
-
-// Membership discounts when redeeming
-const MEMBERSHIP_BONUS: Record<string, number> = {
-  EXPLORADOR: 0,
-  VIAJERO: 0.05,
-  FRECUENTE: 0.10,
-  ELITE: 0.15,
-};
+import {
+  RedemptionError,
+  computeRedemption,
+  fromCents,
+  pointsForPurchase,
+  toCents,
+} from '../loyalty/loyalty.rules';
 
 function generateConfirmationCode(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -74,29 +68,32 @@ export class BookingsService {
     if (!user?.client) throw new NotFoundException('Cliente no encontrado');
     const client = user.client;
 
-    // Calculate total price
-    const flightsTotal = dto.flights.reduce((s, f) => s + f.priceSnapshot * dto.passengers, 0);
-    const hotelsTotal = (dto.hotels ?? []).reduce((s, h) => s + h.priceSnapshot, 0);
-    const activitiesTotal = (dto.activities ?? []).reduce((s, a) => s + a.priceSnapshot * a.quantity, 0);
-    const extrasTotal = (dto.extras ?? []).reduce((s, e) => s + e.price, 0);
-    let totalPrice = flightsTotal + hotelsTotal + activitiesTotal + extrasTotal;
+    // Total del paquete en céntimos (AGENTS.md B5).
+    // Pendiente (deuda, AGENTS.md B6): los precios aún llegan del cliente como priceSnapshot;
+    // el cálculo desde el catálogo en el servidor se hace con la historia del resumen del armador.
+    const flightsCents = dto.flights.reduce((s, f) => s + toCents(f.priceSnapshot) * dto.passengers, 0);
+    const hotelsCents = (dto.hotels ?? []).reduce((s, h) => s + toCents(h.priceSnapshot), 0);
+    const activitiesCents = (dto.activities ?? []).reduce((s, a) => s + toCents(a.priceSnapshot) * a.quantity, 0);
+    const extrasCents = (dto.extras ?? []).reduce((s, e) => s + toCents(e.price), 0);
+    const packageTotalCents = flightsCents + hotelsCents + activitiesCents + extrasCents;
 
-    // Apply points redemption
-    let pointsUsed = 0;
-    let discountAmount = 0;
-    if (dto.pointsToRedeem && dto.pointsToRedeem >= MIN_REDEEM_POINTS) {
-      if (dto.pointsToRedeem > client.availablePoints) {
-        throw new BadRequestException('No tienes suficientes puntos disponibles');
-      }
-      pointsUsed = dto.pointsToRedeem;
-      const baseDiscount = dto.pointsToRedeem * POINTS_VALUE;
-      const bonus = MEMBERSHIP_BONUS[client.membershipLevel] ?? 0;
-      discountAmount = baseDiscount * (1 + bonus);
-      totalPrice = Math.max(0, totalPrice - discountAmount);
+    // Canje y puntos: solo el motor de fidelización decide (AGENTS.md B7).
+    let redemption;
+    try {
+      redemption = computeRedemption({
+        packageTotalCents,
+        pointsToRedeem: dto.pointsToRedeem ?? 0,
+        availablePoints: client.availablePoints,
+        completedTrips: client.completedTrips,
+      });
+    } catch (e) {
+      if (e instanceof RedemptionError) throw new BadRequestException(e.message);
+      throw e;
     }
-
-    // Calculate points earned (1 per 100 soles)
-    const pointsEarned = Math.floor(totalPrice / POINTS_RATIO);
+    const pointsUsed = redemption.pointsUsed;
+    const totalPrice = fromCents(redemption.finalTotalCents);
+    const discountAmount = fromCents(redemption.totalDiscountCents);
+    const pointsEarned = pointsForPurchase(redemption.finalTotalCents);
 
     // Generate unique confirmation code
     let confirmationCode = generateConfirmationCode();
@@ -121,7 +118,7 @@ export class BookingsService {
           notes: dto.notes,
           status: 'CONFIRMADO',
           bookingFlights: {
-            create: dto.flights.map(f => ({ flightId: f.flightId, priceSnapshot: f.priceSnapshot * dto.passengers })),
+            create: dto.flights.map(f => ({ flightId: f.flightId, priceSnapshot: fromCents(toCents(f.priceSnapshot) * dto.passengers) })),
           },
           bookingHotels: {
             create: (dto.hotels ?? []).map(h => ({

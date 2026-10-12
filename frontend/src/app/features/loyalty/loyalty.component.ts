@@ -122,12 +122,7 @@ export class LoyaltyComponent implements OnInit {
   }
 
   progress(): number {
-    const next = this.status()?.nextLevel;
-    const completed = this.status()?.completedTrips ?? 0;
-    if (!next) return 100;
-    const levels: Record<string, number> = { VIAJERO: 3, FRECUENTE: 8, ELITE: 15 };
-    const target = levels[next.level];
-    const prev = target - next.tripsNeeded;
-    return Math.round(((completed - prev) / (target - prev)) * 100);
+    // El avance lo calcula el motor de fidelización del backend (AGENTS.md B7).
+    return this.status()?.nextLevel?.progressPercent ?? 100;
   }
 }

@@ -121,12 +121,7 @@ export class HomeComponent implements OnInit {
   }
 
   levelProgress(): number {
-    const next = this.home()?.membership?.nextLevel;
-    const completed = this.home()?.membership?.completedTrips ?? 0;
-    if (!next) return 100;
-    const levels: Record<string, number> = { VIAJERO: 3, FRECUENTE: 8, ELITE: 15 };
-    const prevMin = levels[next.level] - next.tripsNeeded;
-    const target = levels[next.level];
-    return Math.round(((completed - prevMin) / (target - prevMin)) * 100);
+    // El avance lo calcula el motor de fidelización del backend (AGENTS.md B7).
+    return this.home()?.membership?.nextLevel?.progressPercent ?? 100;
   }
 }

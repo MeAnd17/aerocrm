@@ -180,14 +180,15 @@ import { AuthService } from '../../core/services/auth.service';
           </div>
 
           <!-- Puntos a canjear -->
-          @if (user()?.availablePoints >= 500) {
+          @if (loyalty()?.canRedeem) {
             <div class="bg-blue-50 rounded-lg p-3">
               <p class="text-sm font-medium text-blue-800 mb-2">
-                Tienes {{ user()?.availablePoints }} puntos (S/. {{ user()?.availablePoints * 0.1 | number:'1.2-2' }} de descuento)
+                Tienes {{ loyalty()?.availablePoints }} puntos (S/. {{ loyalty()?.availablePointsValue }} de descuento)
               </p>
               <label class="flex items-center gap-2 text-sm">
-                <input type="checkbox" [(ngModel)]="usePoints" class="rounded" />
-                Canjear {{ user()?.availablePoints }} puntos y ahorrar S/. {{ pointsDiscount() | number:'1.2-2' }}
+                <input type="checkbox" [ngModel]="usePoints" (ngModelChange)="onUsePointsChange($event)" class="rounded" />
+                Canjear {{ loyalty()?.availablePoints }} puntos
+                @if (redemption()) { y ahorrar S/. {{ pointsDiscount() | number:'1.2-2' }} }
               </label>
             </div>
           }
@@ -218,6 +219,8 @@ export class PackageBuilderComponent implements OnInit {
   hotelCheckIn = '';
   hotelCheckOut = '';
   usePoints = false;
+  loyalty = signal<any>(null);
+  redemption = signal<any>(null);
 
   steps = [
     { n: 1, label: 'Vuelo' }, { n: 2, label: 'Destino' }, { n: 3, label: 'Hotel' },
@@ -239,6 +242,9 @@ export class PackageBuilderComponent implements OnInit {
   user() { return this.auth.currentUser(); }
 
   ngOnInit() {
+    if (this.auth.isAuthenticated()) {
+      this.api.get<any>('loyalty/status').subscribe({ next: (s) => this.loyalty.set(s) });
+    }
     const params = this.route.snapshot.queryParams;
     this.passengers.set(Number(params['passengers']) || 1);
     if (params['flightId']) {
@@ -266,9 +272,17 @@ export class PackageBuilderComponent implements OnInit {
   activitiesTotal() { return this.selectedActivities().reduce((s, a) => s + Number(a.price), 0); }
   extrasTotal() { return this.selectedExtras().reduce((s, e) => s + e.price, 0); }
   totalPrice() { return this.flightTotal() + this.hotelTotal() + this.activitiesTotal() + this.extrasTotal(); }
-  pointsDiscount() {
-    const pts = this.user()?.availablePoints ?? 0;
-    return pts * 0.1;
+  // El descuento lo calcula el motor de fidelización del backend (AGENTS.md B7).
+  pointsDiscount() { return Number(this.redemption()?.totalDiscount ?? 0); }
+
+  onUsePointsChange(value: boolean) {
+    this.usePoints = value;
+    this.redemption.set(null);
+    if (!value) return;
+    this.api.post<any>('loyalty/redemption-preview', {
+      packageTotal: this.totalPrice().toFixed(2),
+      pointsToRedeem: this.loyalty()?.availablePoints ?? 0,
+    }).subscribe({ next: (r) => this.redemption.set(r) });
   }
 
   toggleHotel(hotel: any) { this.selectedHotel.set(this.selectedHotel()?.id === hotel.id ? null : hotel); }
@@ -289,7 +303,7 @@ export class PackageBuilderComponent implements OnInit {
     const params = this.route.snapshot.queryParams;
     const body: any = {
       passengers: this.passengers(),
-      pointsToRedeem: this.usePoints ? (this.user()?.availablePoints ?? 0) : 0,
+      pointsToRedeem: this.usePoints ? (this.loyalty()?.availablePoints ?? 0) : 0,
       flights: [{ flightId: Number(params['flightId']), priceSnapshot: this.flight()?.pricePerPerson ?? 0 }],
       hotels: this.selectedHotel() && this.hotelCheckIn && this.hotelCheckOut ? [{
         hotelId: this.selectedHotel().id,

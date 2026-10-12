@@ -2,10 +2,14 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { CreateTravelerDto } from './dto/create-traveler.dto';
+import { LoyaltyService } from '../loyalty/loyalty.service';
 
 @Injectable()
 export class ClientsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private loyalty: LoyaltyService,
+  ) {}
 
   async getProfile(userId: number) {
     const user = await this.prisma.user.findUnique({
@@ -66,7 +70,7 @@ export class ClientsService {
     });
 
     // Puntos y nivel
-    const nextLevel = this.getNextLevelInfo(client.membershipLevel, client.completedTrips);
+    const loyalty = this.loyalty.buildStatus(client);
 
     // Destinos guardados
     const savedDestinations = await this.prisma.savedDestination.findMany({
@@ -86,11 +90,13 @@ export class ClientsService {
     return {
       user: { firstName: user.firstName, lastName: user.lastName },
       membership: {
-        level: client.membershipLevel,
-        availablePoints: client.availablePoints,
-        totalPoints: client.totalPoints,
-        completedTrips: client.completedTrips,
-        nextLevel,
+        level: loyalty.level,
+        levelLabel: loyalty.levelLabel,
+        availablePoints: loyalty.availablePoints,
+        availablePointsValue: loyalty.availablePointsValue,
+        totalPoints: loyalty.totalPoints,
+        completedTrips: loyalty.completedTrips,
+        nextLevel: loyalty.nextLevel,
       },
       nextBooking: nextBooking ?? null,
       savedDestinations,
@@ -98,16 +104,6 @@ export class ClientsService {
     };
   }
 
-  private getNextLevelInfo(currentLevel: string, completedTrips: number) {
-    const levels = [
-      { level: 'VIAJERO', minTrips: 3, discount: 5 },
-      { level: 'FRECUENTE', minTrips: 8, discount: 10 },
-      { level: 'ELITE', minTrips: 15, discount: 15 },
-    ];
-    const next = levels.find(l => completedTrips < l.minTrips);
-    if (!next) return null;
-    return { level: next.level, tripsNeeded: next.minTrips - completedTrips, discount: next.discount };
-  }
 
   // ── Travelers ────────────────────────────────────────────────────────────
   async getTravelers(userId: number) {

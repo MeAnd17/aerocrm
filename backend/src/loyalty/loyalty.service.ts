@@ -1,12 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { RedemptionPreviewDto } from './dto/redemption-preview.dto';
 import { PrismaService } from '../prisma/prisma.service';
-
-const LEVEL_RULES = [
-  { level: 'ELITE',     minTrips: 15, discount: 15 },
-  { level: 'FRECUENTE', minTrips: 8,  discount: 10 },
-  { level: 'VIAJERO',   minTrips: 3,  discount: 5  },
-  { level: 'EXPLORADOR',minTrips: 0,  discount: 0  },
-] as const;
+import {
+  LEVELS,
+  MIN_REDEEM_POINTS,
+  RedemptionError,
+  computeRedemption,
+  toCents,
+  fromCents,
+  levelForTrips,
+  levelStatus,
+  pointsValueCents,
+} from './loyalty.rules';
 
 @Injectable()
 export class LoyaltyService {
@@ -20,28 +25,65 @@ export class LoyaltyService {
     if (!user?.client) throw new NotFoundException('Cliente no encontrado');
     const client = user.client;
 
-    const currentRule = LEVEL_RULES.find(r => client.completedTrips >= r.minTrips) ?? LEVEL_RULES[3];
-    const nextRule = LEVEL_RULES.slice().reverse().find(r => r.minTrips > client.completedTrips);
+    return this.buildStatus(client);
+  }
 
+  /** Resumen de fidelización de un cliente, calculado solo con el motor (B7). */
+  buildStatus(client: { totalPoints: number; availablePoints: number; completedTrips: number }) {
+    const status = levelStatus(client.completedTrips);
+    const valueCents = pointsValueCents(client.availablePoints);
     return {
-      level: client.membershipLevel,
+      level: status.current.level,
+      levelLabel: status.current.label,
       totalPoints: client.totalPoints,
       availablePoints: client.availablePoints,
       completedTrips: client.completedTrips,
-      currentDiscount: currentRule.discount,
-      nextLevel: nextRule ? {
-        level: nextRule.level,
-        tripsNeeded: nextRule.minTrips - client.completedTrips,
-        discount: nextRule.discount,
-      } : null,
-      pointsValue: `${client.availablePoints} puntos = S/.${(client.availablePoints * 0.1).toFixed(2)}`,
-      levels: LEVEL_RULES.map(r => ({
+      currentDiscount: status.current.redeemDiscountPercent,
+      canRedeem: client.availablePoints >= MIN_REDEEM_POINTS,
+      minRedeemPoints: MIN_REDEEM_POINTS,
+      availablePointsValue: fromCents(valueCents),
+      pointsValue: `${client.availablePoints} puntos = S/ ${fromCents(valueCents)}`,
+      nextLevel: status.next
+        ? {
+            level: status.next.level,
+            levelLabel: status.next.label,
+            tripsNeeded: status.next.tripsNeeded,
+            discount: status.next.redeemDiscountPercent,
+            progressPercent: status.next.progressPercent,
+          }
+        : null,
+      levels: LEVELS.map((r) => ({
         level: r.level,
+        levelLabel: r.label,
         minTrips: r.minTrips,
-        discount: r.discount,
+        discount: r.redeemDiscountPercent,
         reached: client.completedTrips >= r.minTrips,
       })),
     };
+  }
+
+  /** Calcula el descuento de un canje sin registrar nada, para mostrarlo en el resumen del armador. */
+  async previewRedemption(userId: number, dto: RedemptionPreviewDto) {
+    const client = await this.prisma.client.findFirst({ where: { userId } });
+    if (!client) throw new NotFoundException('Cliente no encontrado');
+    try {
+      const r = computeRedemption({
+        packageTotalCents: toCents(dto.packageTotal),
+        pointsToRedeem: dto.pointsToRedeem,
+        availablePoints: client.availablePoints,
+        completedTrips: client.completedTrips,
+      });
+      return {
+        pointsUsed: r.pointsUsed,
+        pointsDiscount: fromCents(r.pointsDiscountCents),
+        levelDiscount: fromCents(r.levelDiscountCents),
+        totalDiscount: fromCents(r.totalDiscountCents),
+        finalTotal: fromCents(r.finalTotalCents),
+      };
+    } catch (e) {
+      if (e instanceof RedemptionError) throw new BadRequestException(e.message);
+      throw e;
+    }
   }
 
   async getPointsHistory(userId: number) {
@@ -58,17 +100,15 @@ export class LoyaltyService {
     });
   }
 
-  // Called after a booking is marked COMPLETADO
+  // Se llama cuando una reserva pasa a COMPLETADO
   async onTripCompleted(clientId: number) {
     const client = await this.prisma.client.findUnique({ where: { id: clientId } });
     if (!client) return;
 
     const newTrips = client.completedTrips + 1;
-    const newLevel = LEVEL_RULES.find(r => newTrips >= r.minTrips)?.level ?? 'EXPLORADOR';
-
     await this.prisma.client.update({
       where: { id: clientId },
-      data: { completedTrips: newTrips, membershipLevel: newLevel as any },
+      data: { completedTrips: newTrips, membershipLevel: levelForTrips(newTrips).level },
     });
   }
 }
