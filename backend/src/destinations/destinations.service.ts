@@ -54,6 +54,7 @@ export class DestinationsService {
           `https://api.openweathermap.org/data/2.5/forecast?q=${destination.city},${destination.countryCode}&appid=${apiKey}&units=metric&lang=es&cnt=5`
         );
         weather = {
+          source: 'pronostico',
           city: res.data.city.name,
           forecast: res.data.list.slice(0, 3).map((item: any) => ({
             description: item.weather[0].description,
@@ -64,6 +65,9 @@ export class DestinationsService {
       }
     } catch { weather = null; }
 
+    // Respaldo (M7): sin API o si falla, clima promedio del mes guardado en la base.
+    if (!weather) weather = await this.fallbackWeather(destination.id, destination.city, dep);
+
     // Feriados via Calendarific
     let holidays = [];
     try {
@@ -73,13 +77,15 @@ export class DestinationsService {
         const res = await axios.get(
           `https://calendarific.com/api/v2/holidays?api_key=${apiKey}&country=${destination.countryCode}&year=${year}`
         );
-        const month = dep.getMonth() + 1;
         holidays = res.data.response.holidays.filter((h: any) => {
           const hDate = new Date(h.date.iso);
           return hDate >= dep && hDate <= ret;
         }).map((h: any) => ({ name: h.name, date: h.date.iso, type: h.type[0] }));
       }
     } catch { holidays = []; }
+
+    // Respaldo (M7): feriados nacionales de fecha fija guardados en la base.
+    if (!holidays.length) holidays = await this.fallbackHolidays(destination.countryCode, dep, ret);
 
     return {
       destination,
@@ -95,7 +101,9 @@ export class DestinationsService {
     const destination = await this.prisma.destination.findUnique({ where: { id: destinationId } });
     if (!destination) throw new NotFoundException('Destino no encontrado');
 
-    const origin = await this.prisma.destination.findFirst({ where: { iataCode: originIata } });
+    // Sin origen se buscan vuelos desde cualquier ciudad. Ojo: Prisma ignora un filtro undefined,
+    // así que sin esta guarda tomaba el primer destino de la tabla como origen.
+    const origin = originIata ? await this.prisma.destination.findFirst({ where: { iataCode: originIata } }) : null;
 
     const dep = new Date(departureDate);
     const nextDay = new Date(dep);
@@ -117,5 +125,39 @@ export class DestinationsService {
       ...f,
       totalPrice: Number(f.pricePerPerson) * passengers,
     }));
+  }
+
+  /** Clima promedio del mes de salida, con la misma forma que la respuesta de OpenWeatherMap. */
+  private async fallbackWeather(destinationId: number, city: string, dep: Date) {
+    const climate = await this.prisma.destinationClimate.findUnique({
+      where: { destinationId_month: { destinationId, month: dep.getUTCMonth() + 1 } },
+    });
+    if (!climate) return null;
+    return {
+      source: 'promedio',
+      city,
+      forecast: [
+        {
+          description: `${climate.summary} (promedio del mes)`,
+          temp_min: Math.round(Number(climate.minTempC)),
+          temp_max: Math.round(Number(climate.maxTempC)),
+        },
+      ],
+    };
+  }
+
+  /** Feriados de fecha fija del país entre la salida y el regreso (incluye viajes que cruzan de año). */
+  private async fallbackHolidays(countryCode: string, dep: Date, ret: Date) {
+    const rows = await this.prisma.holiday.findMany({ where: { countryCode } });
+    const result: { name: string; date: string; type: string }[] = [];
+    for (let year = dep.getUTCFullYear(); year <= ret.getUTCFullYear(); year++) {
+      for (const h of rows) {
+        const date = new Date(Date.UTC(year, h.month - 1, h.day));
+        if (date >= dep && date <= ret) {
+          result.push({ name: h.name, date: date.toISOString().slice(0, 10), type: 'Feriado nacional' });
+        }
+      }
+    }
+    return result.sort((a, b) => a.date.localeCompare(b.date));
   }
 }
