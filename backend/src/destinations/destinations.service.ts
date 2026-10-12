@@ -110,7 +110,8 @@ export class DestinationsService {
     const origin = originIata ? await this.prisma.destination.findFirst({ where: { iataCode: originIata } }) : null;
 
     const DAY = 86_400_000;
-    const flex = Math.min(Math.max(Number(flexDays) || 0, 0), 7);
+    const flexValue = Number(flexDays);
+    const flex = Number.isFinite(flexValue) ? Math.min(Math.max(Math.floor(flexValue), 0), 7) : 3;
     const requested = new Date(`${departureDate}T00:00:00Z`);
     if (Number.isNaN(requested.getTime())) throw new BadRequestException('La fecha de salida no es válida');
     const from = new Date(Math.max(requested.getTime() - flex * DAY, Date.now()));

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
+import { Controller, DefaultValuePipe, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { ApiNotFoundResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { DestinationsService } from './destinations.service';
 
@@ -45,9 +45,10 @@ export class DestinationsController {
     @Param('id', ParseIntPipe) id: number,
     @Query('origin') origin: string,
     @Query('departureDate') departureDate: string,
-    @Query('passengers') passengers: number,
-    @Query('flexDays') flexDays?: number,
+    // Con transform activo, un número ausente llega como NaN y `??` no lo reemplaza: DefaultValuePipe sí.
+    @Query('passengers', new DefaultValuePipe(1), ParseIntPipe) passengers: number,
+    @Query('flexDays', new DefaultValuePipe(3), ParseIntPipe) flexDays: number,
   ) {
-    return this.destinationsService.searchFlights(origin, id, departureDate, passengers ?? 1, flexDays ?? 3);
+    return this.destinationsService.searchFlights(origin, id, departureDate, passengers, flexDays);
   }
 }
