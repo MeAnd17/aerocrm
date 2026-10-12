@@ -3,8 +3,10 @@
 # Uso (desde la raíz del repositorio):  ./scripts/db-backup.sh
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
-url="$(grep -E '^\s*DIRECT_URL\s*=' "$root/backend/.env" | head -1 | sed -E 's/^\s*DIRECT_URL\s*=\s*//; s/^["'"'"']//; s/["'"'"']$//')"
-[ -n "$url" ] || { echo "DIRECT_URL no está definida en backend/.env" >&2; exit 1; }
+# Usa backend/.env.compartida si existe; si no, backend/.env.
+envfile="$root/backend/.env.compartida"; [ -f "$envfile" ] || envfile="$root/backend/.env"
+url="$(grep -E '^\s*DIRECT_URL\s*=' "$envfile" | head -1 | sed -E 's/^\s*DIRECT_URL\s*=\s*//; s/^["'"'"']//; s/["'"'"']$//')"
+[ -n "$url" ] || { echo "DIRECT_URL no está definida en $envfile" >&2; exit 1; }
 mkdir -p "$root/backups"
 name="aerocrm-$(date +%Y%m%d-%H%M).dump"
 docker run --rm -v "$root/backups:/backups" postgres:17-alpine \

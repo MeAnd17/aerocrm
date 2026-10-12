@@ -1,13 +1,15 @@
 # Respaldo de la base compartida (TS-025).
 # Uso (desde la raíz del repositorio):  powershell -ExecutionPolicy Bypass -File scripts/db-backup.ps1
-# Requiere Docker Desktop. Lee DIRECT_URL de backend/.env y guarda el respaldo en backups/ (no se versiona).
+# Requiere Docker Desktop. Lee DIRECT_URL de backend/.env.compartida (o de backend/.env si no existe)
+# y guarda el respaldo en backups/ (no se versiona).
 # Si la base no responde, termina con error: ese es el aviso de caída (ver docs/BASE-DE-DATOS.md).
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-$envFile = Join-Path $root 'backend/.env'
-if (-not (Test-Path $envFile)) { throw "No existe backend/.env" }
+$envFile = Join-Path $root 'backend/.env.compartida'
+if (-not (Test-Path $envFile)) { $envFile = Join-Path $root 'backend/.env' }
+if (-not (Test-Path $envFile)) { throw "No existe backend/.env.compartida ni backend/.env" }
 $line = Get-Content $envFile | Where-Object { $_ -match '^\s*DIRECT_URL\s*=' } | Select-Object -First 1
-if (-not $line) { throw "DIRECT_URL no está definida en backend/.env" }
+if (-not $line) { throw "DIRECT_URL no está definida en $envFile" }
 $url = ($line -replace '^\s*DIRECT_URL\s*=\s*', '').Trim('"', "'", ' ')
 
 $dir = Join-Path $root 'backups'

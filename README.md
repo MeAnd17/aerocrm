@@ -29,8 +29,8 @@ Las reglas para trabajar en este repositorio, con o sin herramientas de IA, est�
 
 Completa `backend/.env`:
 
-- `DATABASE_URL` y `DIRECT_URL`: las cadenas de la base compartida te las pasan por privado los responsables de integración (ver AGENTS.md G4). Para trabajar sin la base compartida, usa las dos líneas de base local que están comentadas en el archivo.
-- `JWT_SECRET`: el mismo para todo el equipo; te lo pasan junto con las cadenas.
+- `DATABASE_URL` y `DIRECT_URL`: las cadenas de la base compartida con el usuario `aerocrm_equipo`, de la página de Accesos (ver [docs/ACCESOS.md](docs/ACCESOS.md)). Para trabajar sin la base compartida, usa las dos líneas de base local que están comentadas en el archivo.
+- `JWT_SECRET`: el mismo para todo el equipo; está en la misma página.
 - `CALENDARIFIC_API_KEY` y `OPENWEATHER_API_KEY`: opcionales. Sin ellas, el sistema usa los datos de respaldo.
 
 ### 2a. Todo con un solo comando (contra la base compartida)
@@ -112,7 +112,9 @@ Los mismos pasos corren automáticamente en cada PR (`.github/workflows/ci.yml`)
       encargos/PLANTILLA.md   cómo se encarga una tarea a una herramienta de IA
       HEREDADO.md             estado del código heredado: qué se conserva, rehace o retira
       BASE-DE-DATOS.md        conexión, migraciones, respaldo y aviso de caída
-    scripts/               respaldo de la base
+      ACCESOS.md              accesos del equipo, sin valores secretos
+      tareas/                 ficha de cierre de cada tarea, por sprint
+    scripts/               respaldo de la base y usuarios de Supabase
 
 ## Documentación
 
@@ -125,6 +127,8 @@ Los mismos pasos corren automáticamente en cada PR (`.github/workflows/ci.yml`)
 | [docs/interfaz.md](docs/interfaz.md) | Barra de navegación y piezas base de la interfaz |
 | [docs/datos-de-arranque.md](docs/datos-de-arranque.md) | Qué carga el seed y cómo agregar datos |
 | [docs/BASE-DE-DATOS.md](docs/BASE-DE-DATOS.md) | Conexión, migraciones, respaldo y caídas |
+| [docs/ACCESOS.md](docs/ACCESOS.md) | Qué accesos hay, quién los tiene y cómo se piden |
+| [docs/tareas/](docs/tareas/README.md) | Ficha de cierre de cada tarea terminada, por sprint |
 | [docs/HEREDADO.md](docs/HEREDADO.md) | Estado del código que venía de antes |
 | [docs/encargos/PLANTILLA.md](docs/encargos/PLANTILLA.md) | Cómo pedirle una tarea a una herramienta de IA |
 
