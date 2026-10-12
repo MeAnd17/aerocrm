@@ -34,3 +34,8 @@ backend/node_modules/.prisma/
 
 # Angular cache
 .angular/cache/
+
+# Herramientas de IA (configuración personal; el contrato es AGENTS.md)
+.claude/settings.local.json
+.kiro/
+.opencode/
