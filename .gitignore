@@ -6,11 +6,14 @@ node_modules/
 dist/
 out-tsc/
 .angular/
+coverage/
 
-# Environment files (contain secrets)
+# Variables de entorno (contienen secretos). Solo se versiona el ejemplo.
 .env
-backend/.env
-!backend/.env.example
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
 
 # Logs
 *.log
@@ -47,3 +50,15 @@ backend/prisma/*.d.ts
 
 # Respaldos de la base (contienen datos; se guardan solo en la máquina del responsable)
 backups/
+
+# Respaldos y volcados de base sueltos
+*.dump
+*.sql.gz
+
+# Ajustes locales de Docker de cada integrante
+docker-compose.override.yml
+
+# Llaves y certificados locales
+*.pem
+*.key
+
