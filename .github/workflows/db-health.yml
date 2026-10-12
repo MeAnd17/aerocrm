@@ -1,0 +1,23 @@
+# Aviso de caída de la base compartida (TS-025).
+# Corre todos los días a las 8:00 de Lima. Si la base no responde, el job falla y GitHub
+# avisa por correo a quien tenga activadas las notificaciones de Actions del repositorio.
+# Además, la consulta diaria evita que Supabase pause el proyecto por inactividad (plan gratuito).
+# Requiere el secreto SUPABASE_DIRECT_URL (Settings > Secrets and variables > Actions).
+name: Salud de la base
+
+on:
+  schedule:
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Consultar la base
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DIRECT_URL }}
+        run: |
+          if [ -z "$DB_URL" ]; then echo "Falta el secreto SUPABASE_DIRECT_URL"; exit 1; fi
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "SELECT now() AS hora, count(*) AS usuarios FROM \"User\";"

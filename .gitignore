@@ -44,3 +44,6 @@ backend/node_modules/.prisma/
 backend/prisma/*.js
 backend/prisma/*.js.map
 backend/prisma/*.d.ts
+
+# Respaldos de la base (contienen datos; se guardan solo en la máquina del responsable)
+backups/
