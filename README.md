@@ -1,192 +1,131 @@
-# Plataforma web CRM de ventas y fidelización para agencia de viajes
+# AeroCRM
 
-Una plataforma web responsive que centraliza la planificación y compra simulada de viajes, construye el perfil del cliente a partir de su historial y lo fideliza mediante un programa de puntos y membresías.
+Plataforma web CRM de ventas y fidelización para Expertia Travel S.A.C. El cliente arma y compra un paquete de viaje completo (vuelo, hotel, actividades y extras) en un flujo de seis pasos. Con cada compra la agencia conoce mejor al cliente y lo retiene con puntos y niveles de membresía. Los pagos son simulados.
 
----
+Las reglas para trabajar en este repositorio, con o sin herramientas de IA, están en [AGENTS.md](AGENTS.md). Léelas antes de tu primer aporte.
 
-## Idea general
-
-Cuando alguien quiere viajar, el proceso típico es caótico: busca vuelos en Google Flights, compara hoteles en Booking, busca tours en TripAdvisor, y al final no sabe si está pagando de más ni tiene todo organizado en un solo lugar. Además, cada vez que viaja empieza desde cero — ninguna plataforma lo recuerda ni le ofrece algo relevante basado en lo que ya hizo.
-
-Este proyecto resuelve exactamente eso: el cliente planea, compara y compra todo su viaje en un solo lugar, y con cada compra la agencia lo conoce mejor para ofrecerle algo más relevante la próxima vez.
-
----
-
-## Tech Stack
+## Stack
 
 | Capa | Tecnología |
 |---|---|
-| Frontend | Angular 17 + Tailwind CSS (responsive) |
-| Backend | NestJS (TypeScript) |
-| Base de datos | PostgreSQL + Prisma ORM |
+| Frontend | Angular 17 (componentes standalone) + Tailwind CSS |
+| Backend | NestJS 10 + Prisma 5, API REST con prefijo `/api` |
+| Base de datos | PostgreSQL: compartida en Supabase, o local en contenedor |
 | Autenticación | JWT |
-| IA | Ollama / Llama 3 (local) — evolutivo |
-| APIs externas | Calendarific (feriados), OpenWeatherMap (clima) |
-| Despliegue | Docker + Cloudflare |
+| APIs externas | Calendarific (feriados) y OpenWeatherMap (clima), con datos de respaldo en la base |
+| Contenedores | Docker Compose |
 
----
+## Requisitos
 
-## Quick Start
+- Node.js 20 o superior y npm (el proyecto usa `npm`; no uses pnpm ni yarn)
+- Docker Desktop
+- Git
 
-**Prerequisitos:** Docker Desktop instalado y corriendo.
+## Arranque
 
-```bash
-git clone <repo-url>
-cd aerocrm
-docker compose up -d
-```
+### 1. Configuración
 
-Abrir **http://localhost** en el navegador.
+    cp backend/.env.example backend/.env
 
----
+Completa `backend/.env`:
 
-## Credenciales demo
+- `DATABASE_URL` y `DIRECT_URL`: las cadenas de la base compartida te las pasan por privado los responsables de integración (ver AGENTS.md G4). Para trabajar sin la base compartida, usa las dos líneas de base local que están comentadas en el archivo.
+- `JWT_SECRET`: el mismo para todo el equipo; te lo pasan junto con las cadenas.
+- `CALENDARIFIC_API_KEY` y `OPENWEATHER_API_KEY`: opcionales. Sin ellas, el sistema usa los datos de respaldo.
 
-| Rol | Email | Contraseña |
-|---|---|---|
-| **Administrador** | admin@viajes.com | Admin1234! |
-| **Cliente** | cliente@demo.com | Cliente1234! |
+### 2a. Todo con un solo comando (contra la base compartida)
 
----
+    docker compose up -d --build
 
-## Cómo se aplica el CRM
-
-**Conocer al cliente** — El perfil se construye de dos formas: con las preguntas opcionales al momento del registro (máximo 3, con botón de omitir) y con cada compra que realiza. El sistema infiere destinos visitados, presupuesto habitual y tipo de viaje sin pedirle nada explícitamente.
-
-**Vender en el momento correcto** — Para clientes nuevos sin historial, las recomendaciones se basan en lo que busca durante la sesión. Para clientes con historial, el sistema personaliza según sus compras anteriores y la época del año en que suele viajar.
-
-**Fidelizar con cada viaje** — Cada compra suma puntos. El nivel de membresía sube según la cantidad de viajes completados. El cliente tiene una razón concreta para volver a la agencia.
-
----
-
-## Módulos
-
-### Modo explorador (sin cuenta)
-Cualquier persona entra sin registrarse. Ve recomendaciones generales de destinos populares y ofertas de temporada. Puede buscar, armar un paquete completo y ver el precio total. Solo se pide cuenta al momento de pagar — lo que armó no se pierde.
-
-### Registro
-Formulario con datos básicos y 2-3 preguntas opcionales con botones visuales (¿cómo sueles viajar?, ¿qué tipo de destino prefieres?). Con botón de omitir. Esas respuestas afinan las recomendaciones desde el primer día.
-
-### Inicio (cliente logueado)
-- Resumen del próximo viaje: vuelo, hotel, actividades, clima esperado y festividades que coinciden
-- Puntos acumulados con progreso hacia el siguiente nivel
-- Temporadas próximas con festividades y precios desde
-- Ofertas basadas en historial de compras
-
-### Buscador y armador de paquetes
-El corazón de la plataforma. Flujo de 6 pasos:
-
-1. **Vuelos** — resultados desde base de datos propia, filtros por precio, duración y aerolínea
-2. **Contexto del destino** — feriados nacionales (Calendarific API) + festividades culturales curadas (Carnaval de Barranquilla, Feria de las Flores, Día de Muertos, Carnaval de Río, Feria de Abril, etc.) + clima (OpenWeatherMap)
-3. **Hotel** — hoteles desde base de datos propia, filtros por categoría, zona y precio
-4. **Actividades** — tours y experiencias desde base de datos propia, filtros por tipo
-5. **Extras** — traslados aeropuerto-hotel, seguro de viaje
-6. **Resumen** — precio total con desglose, descuento por puntos (mínimo 500 para canjear), confirmación con documentos
-
-### Mis viajes
-- Paquetes con estados: Pendiente, Confirmado, En curso, Completado, Cancelado
-- Detalle de cada viaje con vuelo, hotel y actividades
-- Voucher PDF descargable con número de confirmación, datos del viajero y monto
-
-### Destinos y ofertas
-- Explorador por temporada: Semana Santa, vacaciones de mitad de año, Navidad, puentes festivos
-- Filtros por presupuesto, duración y tipo de viaje (playa, ciudad, aventura, cultura)
-- Destinos favoritos guardados
-
-### Programa de fidelización
-
-**Acumulación de puntos:**
-| Servicio | Puntos |
+| Servicio | Dirección |
 |---|---|
-| Vuelo | 1 punto por cada S/.100 gastados |
-| Hotel | 1 punto por cada S/.100 gastados |
-| Actividad | 1 punto por cada S/.100 gastados |
-| Extras | 1 punto por cada S/.100 gastados |
+| Aplicación | http://localhost:8100 |
+| API | http://localhost:3100/api |
+| Catálogo de servicios (Swagger) | http://localhost:3100/api/docs |
 
-**Niveles por viajes completados:**
-| Nivel | Viajes completados | Descuento al canjear |
-|---|---|---|
-| Explorador | 0 - 2 | Sin descuento adicional |
-| Viajero | 3 - 7 | 5% adicional |
-| Frecuente | 8 - 14 | 10% adicional |
-| Elite | 15 o más | 15% adicional |
+### 2b. Todo con base local (sin internet, o para probar cambios de esquema)
 
-**Canje:** mínimo 500 puntos = S/.50 de descuento aplicable en la próxima compra.
+    docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 
-### Contacto
-Formulario simple donde el cliente escribe su consulta y se envía directo al correo de la agencia. Sin gestión de tickets ni sistema complejo.
+Levanta además PostgreSQL 16 en `localhost:5433`, aplica las migraciones y carga los datos de arranque.
 
-### Perfil
-- Datos personales y documentos de viaje
-- Preferencias editables
-- Viajeros frecuentes guardados (pareja, hijos) para no reingresar datos
-- Historial de compras y puntos
+### 2c. Desarrollo con recarga automática
 
----
+    # terminal 1
+    cd backend
+    npm ci
+    npx prisma generate
+    npm run start:dev          # http://localhost:3000/api · Swagger en /api/docs
 
-## Fuentes de datos
+    # terminal 2
+    cd frontend
+    npm ci
+    npm start                  # http://localhost:4200
 
-| Información | Fuente |
+## Usuarios de demostración
+
+Contraseña de todos: `Demo1234!`
+
+| Correo | Perfil |
 |---|---|
-| Vuelos, hoteles y actividades | Base de datos propia (datos simulados) |
-| Feriados nacionales | Calendarific API (gratuita) |
-| Festividades culturales | Base de datos curada manualmente |
-| Clima | OpenWeatherMap API (gratuita) |
-| Pagos | Flujo simulado — el sistema refleja la compra sin procesarla |
+| `lucia.ramos@demo.pe` | Cliente nuevo: sin compras, nivel Explorador |
+| `diego.salazar@demo.pe` | Nivel Viajero: 4 viajes completados y un viaje a Madrid confirmado |
+| `valeria.torres@demo.pe` | Nivel Elite: 16 viajes completados, viaja en familia y tiene puntos para canjear |
 
----
+Los puntos, niveles y saldos se calculan con el motor de fidelización a partir del historial de cada cliente, así que siempre cuadran.
 
-## Alcance del proyecto
+## Datos de arranque
 
-**MVP (10 semanas):**
-- Registro con preferencias opcionales
-- Modo explorador con recomendaciones generales
-- Búsqueda y armado de paquetes con datos en BD
-- Sistema de puntos simple por compra
-- Niveles de membresía por viajes completados
-- Mis viajes con vouchers PDF
-- Feriados y clima en vivo via APIs
-- Formulario de contacto
+    cd backend
+    npx prisma db seed
 
-**Evolutivos (si hay tiempo):**
-1. Recomendaciones de destino con tips y consideraciones del lugar (zona horaria, qué llevar, mejor época)
-2. Asistente con IA (Ollama/Llama 3) para ayuda dentro de la plataforma: cómo subo de nivel, cómo canjeo puntos, qué incluye mi paquete
+La carga es idempotente: correrla dos veces deja lo mismo que correrla una vez. Las fechas de los vuelos se calculan desde `SEED_REFERENCE_DATE` (o desde hoy si está vacía), así siempre hay vuelos en los cuatro meses siguientes. Fija esa fecha antes de la sustentación.
 
----
+Contiene 11 destinos, alrededor de 680 vuelos desde y hacia Lima (varias aerolíneas, con y sin escalas, tres clases), hoteles de 3 a 5 estrellas y actividades de cada tipo por destino, festividades curadas, extras con precio, datos de la agencia, clima promedio por mes y feriados nacionales de respaldo.
 
-## Arquitectura
+## Comandos de verificación
 
-```
-aerocrm/
-├── backend/                  # NestJS API
-│   ├── src/
-│   │   ├── auth/             # JWT guards
-│   │   ├── clients/          # Perfil, historial, preferencias
-│   │   ├── packages/         # Armador de paquetes
-│   │   ├── destinations/     # Destinos, festividades, clima
-│   │   ├── loyalty/          # Puntos, niveles, canjes
-│   │   ├── bookings/         # Reservas y estados
-│   │   └── contact/          # Formulario de contacto
-│   └── prisma/
-│       └── schema.prisma
-├── frontend/                 # Angular 17
-│   └── src/app/
-│       ├── core/             # Guards, interceptors, servicios
-│       ├── shared/           # Componentes UI reutilizables
-│       └── features/         # Una carpeta por módulo
-├── docker-compose.yml
-└── setup.sh
-```
+    # backend
+    npm run lint
+    npm run build
+    npm test
+    npm run test:e2e
 
----
+    # frontend
+    npm run build
 
-## Variables de entorno
+Los mismos pasos corren automáticamente en cada PR (`.github/workflows/ci.yml`).
 
-```env
-DATABASE_URL="postgresql://user:password@localhost:5432/viajes_crm"
-JWT_SECRET="your-secret-key"
-JWT_EXPIRES_IN="24h"
-CALENDARIFIC_API_KEY="your-calendarific-key"
-OPENWEATHER_API_KEY="your-openweather-key"
-PORT=3000
-```
+## Estructura
+
+    backend/
+      src/<módulo>/        auth · bookings · clients · contact · destinations · loyalty · prisma
+      src/loyalty/loyalty.rules.ts   motor único de puntos, niveles y canje
+      prisma/              schema.prisma · migrations/ · seed.ts · seed-data/
+      test/                pruebas de flujo completo
+    frontend/
+      src/app/core/        guards, interceptor, servicios únicos (ApiService, AuthService, ToastService)
+      src/app/shared/      piezas reutilizables
+      src/app/features/    una carpeta por pantalla
+    docs/
+      encargos/PLANTILLA.md   cómo se encarga una tarea a una herramienta de IA
+      HEREDADO.md             estado del código heredado: qué se conserva, rehace o retira
+      BASE-DE-DATOS.md        conexión, migraciones, respaldo y aviso de caída
+    scripts/               respaldo de la base
+
+## Base de datos
+
+Quién aplica migraciones, cómo se respalda la base y qué hacer si se cae: [docs/BASE-DE-DATOS.md](docs/BASE-DE-DATOS.md).
+
+## Reglas de negocio de fidelización
+
+| Regla | Valor |
+|---|---|
+| Puntos | 1 por cada S/ 100 del total pagado |
+| Canje | Mínimo 500 puntos; cada punto vale S/ 0.10 (500 puntos = S/ 50) |
+| Explorador | 0 a 2 viajes completados · sin descuento adicional |
+| Viajero | 3 a 7 viajes · 5 % adicional sobre el paquete al canjear |
+| Frecuente | 8 a 14 viajes · 10 % adicional |
+| Elite | 15 viajes o más · 15 % adicional |
+
+Se implementan solo en `backend/src/loyalty/loyalty.rules.ts`.

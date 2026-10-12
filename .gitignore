@@ -8,6 +8,7 @@ out-tsc/
 .angular/
 
 # Environment files (contain secrets)
+.env
 backend/.env
 !backend/.env.example
 
@@ -25,9 +26,8 @@ Thumbs.db
 *.swp
 *.swo
 
-# Docker volumes (local only)
-mysql_data/
-ollama_data/
+# Caché del compilador de TypeScript
+*.tsbuildinfo
 
 # Prisma
 backend/node_modules/.prisma/
