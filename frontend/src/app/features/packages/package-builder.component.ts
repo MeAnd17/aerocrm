@@ -1,6 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { PackageBuilderState } from './package-builder.state';
@@ -20,6 +20,7 @@ import { StepSummaryComponent } from './steps/step-summary.component';
   standalone: true,
   imports: [
     CommonModule,
+    RouterLink,
     StepFlightComponent,
     StepContextComponent,
     StepHotelComponent,
@@ -50,6 +51,14 @@ import { StepSummaryComponent } from './steps/step-summary.component';
           </div>
         }
       </div>
+
+      @if (!state.hasDraft()) {
+        <div class="bg-white rounded-xl border shadow-sm p-6 text-center space-y-3">
+          <p class="text-gray-700 font-medium">Todavía no elegiste un vuelo.</p>
+          <p class="text-sm text-gray-500">El paquete se arma a partir del vuelo: búscalo y pulsa «Seleccionar».</p>
+          <a [routerLink]="searchRoute()" class="inline-block bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-blue-700">Buscar vuelos</a>
+        </div>
+      }
 
       @if (state.step() >= 1 && state.flight()) {
         <app-step-flight />
@@ -96,8 +105,13 @@ export class PackageBuilderComponent implements OnInit {
     }
   }
 
+  /** El buscador con sesión vive en /search; sin sesión, en /explore. */
+  searchRoute() {
+    return this.auth.isAuthenticated() ? '/search' : '/explore';
+  }
+
   back() {
-    this.router.navigate(['/search']);
+    this.router.navigate([this.searchRoute()]);
   }
 
   private loadFlightAndContext() {

@@ -45,7 +45,7 @@ import { AuthService } from '../../../core/services/auth.service';
             <p class="text-sm text-blue-800 mt-2">
               Usarás <strong>{{ r.pointsUsed }}</strong> de tus {{ r.availablePoints }} puntos y ahorras
               <strong>S/. {{ r.totalDiscount | number:'1.2-2' }}</strong>
-              @if (r.levelDiscount !== '0.00') { (incluye S/. {{ r.levelDiscount | number:'1.2-2' }} por tu nivel) }.
+              @if (r.levelDiscount !== '0.00') { (incluye S/. {{ r.levelDiscount | number:'1.2-2' }} por tu nivel)}.
               @if (r.pointsLeft > 0) { Te quedan {{ r.pointsLeft }} puntos para tu próximo viaje. }
             </p>
           }
@@ -71,7 +71,7 @@ import { AuthService } from '../../../core/services/auth.service';
       } @else {
       <button (click)="confirmBooking()" [disabled]="loading()"
         class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold text-lg transition disabled:opacity-50">
-        {{ loading() ? 'Confirmando...' : '✅ Confirmar y pagar S/. ' + (state.usePoints() ? (state.totalPrice() - state.pointsDiscount()) : state.totalPrice() | number:'1.2-2') }}
+        @if (loading()) { Confirmando... } @else { ✅ Confirmar y pagar S/. {{ payableTotal() | number:'1.2-2' }} }
       </button>
       }
     </div>
@@ -88,6 +88,19 @@ export class StepSummaryComponent {
   readonly loading = signal(false);
   readonly error = signal('');
   readonly redemptionError = signal('');
+
+  constructor() {
+    // El canje se calcula sobre el total de este momento: al entrar (o volver) al resumen se pide de nuevo,
+    // así no queda un descuento viejo si el cliente cambió el paquete o recargó la página.
+    this.state.usePoints.set(false);
+    this.state.redemption.set(null);
+  }
+
+  /** Lo que se cobra: con canje, el total final que calculó el backend; sin canje, el total del paquete. */
+  payableTotal() {
+    const r = this.state.redemption();
+    return this.state.usePoints() && r ? Number(r.finalTotal) : this.state.totalPrice();
+  }
 
   onUsePointsChange(value: boolean) {
     this.state.usePoints.set(value);

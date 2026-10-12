@@ -63,9 +63,11 @@ Cada paquete guarda su dueño (`ownerId`):
 
 ## Importante
 
-Los totales del estado son solo para mostrar mientras se arma. El precio que vale es el que calcula el servidor al confirmar (AGENTS.md B6), y el descuento por puntos lo calcula siempre el backend con `POST /api/loyalty/redemption-preview`.
+Los totales del estado son solo para mostrar mientras se arma. El precio que vale es el que calcula el servidor al confirmar (AGENTS.md B6), y el descuento por puntos lo calcula siempre el backend con `POST /api/loyalty/redemption-preview`. Cada vez que se entra al resumen la casilla de puntos arranca desmarcada y el canje se vuelve a pedir, para que nunca se muestre un descuento calculado sobre un paquete que ya cambió. El botón de pagar muestra el `finalTotal` que devuelve ese servicio.
 
 ## Pendiente
 
-- Los precios de los extras están escritos en `step-extras.component.ts`. El catálogo con precio ya está en la base (`ExtraOption`); falta el servicio que lo exponga.
+- Los precios de los extras están escritos en `step-extras.component.ts`. El catálogo con precio ya está en la base (`ExtraOption`); falta el servicio que lo exponga. Mientras tanto el seguro se cobra una sola vez, aunque en la base está marcado como precio por pasajero (`POR_PASAJERO`).
+- Solo hay vuelo de ida: el paquete todavía no incluye el vuelo de regreso.
+- Desde el detalle de un destino, el botón de buscar lleva a `/search`, que pide sesión; para un visitante debería llevar a `/explore`.
 - Al confirmar, el frontend todavía envía los precios (`priceSnapshot`). Tienen que calcularse en el servidor a partir del catálogo.
