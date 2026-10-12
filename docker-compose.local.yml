@@ -1,0 +1,56 @@
+# Base local en contenedor (TS-004). Para:
+#   - probar cambios de esquema sin tocar la base compartida (AGENTS.md D2)
+#   - la demostración sin conexión a internet
+#
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+#
+# Levanta PostgreSQL 16 en localhost:5433, aplica las migraciones, carga los datos
+# de arranque y conecta el backend a esta base en lugar de la compartida.
+# Para usar solo la base desde tu máquina (npx prisma migrate dev):
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d postgres
+#   y en backend/.env: DATABASE_URL y DIRECT_URL = postgresql://aerocrm:aerocrm@localhost:5433/aerocrm
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aerocrm-postgres
+    restart: unless-stopped
+    environment:
+      # Credenciales solo de la base local de desarrollo; no protegen nada real.
+      POSTGRES_USER: aerocrm
+      POSTGRES_PASSWORD: aerocrm
+      POSTGRES_DB: aerocrm
+    ports:
+      - "5433:5432"
+    volumes:
+      - aerocrm_pg_local:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aerocrm -d aerocrm"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  db-init:
+    build:
+      context: ./backend
+    container_name: aerocrm-db-init
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://aerocrm:aerocrm@postgres:5432/aerocrm
+      DIRECT_URL: postgresql://aerocrm:aerocrm@postgres:5432/aerocrm
+    command: sh -c "npx prisma migrate deploy && npx prisma db seed"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    environment:
+      DATABASE_URL: postgresql://aerocrm:aerocrm@postgres:5432/aerocrm
+      DIRECT_URL: postgresql://aerocrm:aerocrm@postgres:5432/aerocrm
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+
+volumes:
+  aerocrm_pg_local:

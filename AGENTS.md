@@ -39,8 +39,8 @@ Gestor de paquetes: **npm** (hay `package-lock.json`). No se usa pnpm ni yarn. S
     npm test
 
     # todo el sistema
-    docker compose up -d --build                    # contra la base de .env
-    docker compose --profile local-db up -d --build # con base local en contenedor
+    docker compose up -d --build                                              # contra la base de backend/.env
+    docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build   # con base local en contenedor
 
 Ningún agente inventa otro comando. Si un comando no existe o falla, se reporta.
 

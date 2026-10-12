@@ -1,74 +1,40 @@
+# AeroCRM — arranque completo con un solo comando (TS-004).
+#
+#   1. cp backend/.env.example backend/.env   y completa los valores (ver README)
+#   2. docker compose up -d --build
+#
+# Frontend: http://localhost:8100 · API: http://localhost:3100/api · Swagger: http://localhost:3100/api/docs
+# Usa la base compartida de Supabase definida en backend/.env.
+# Para trabajar con una base local en contenedor, ver docker-compose.local.yml.
+# Ninguna clave se escribe en este archivo (AGENTS.md D4).
+
 services:
-
-  # ── PostgreSQL ────────────────────────────────────────────────────────────
-  postgres:
-    image: postgres:16-alpine
-    container_name: viajes-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: viajes_user
-      POSTGRES_PASSWORD: viajes_pass
-      POSTGRES_DB: viajes_crm
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U viajes_user -d viajes_crm"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
-    networks:
-      - viajes-net
-
-  # ── NestJS Backend ───────────────────────────────────────────────────────
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
-    container_name: viajes-backend
+    container_name: aerocrm-backend
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
+    env_file: ./backend/.env
     environment:
-      DATABASE_URL: "postgresql://viajes_user:viajes_pass@postgres:5432/viajes_crm"
-      JWT_SECRET: "viajes-crm-jwt-secret-change-in-production-2026"
-      JWT_EXPIRES_IN: "24h"
-      CALENDARIFIC_API_KEY: "${CALENDARIFIC_API_KEY:-your-calendarific-key}"
-      OPENWEATHER_API_KEY: "${OPENWEATHER_API_KEY:-your-openweather-key}"
-      NODE_ENV: "production"
+      NODE_ENV: production
       PORT: "3000"
     ports:
       - "3100:3000"
-    networks:
-      - viajes-net
     healthcheck:
+      # Falla si la base no responde: /api/health hace SELECT 1.
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 20s
 
-  # ── Angular Frontend (nginx) ─────────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
-    container_name: viajes-frontend
+    container_name: aerocrm-frontend
     restart: unless-stopped
     depends_on:
       backend:
         condition: service_healthy
     ports:
       - "8100:80"
-    networks:
-      - viajes-net
-
-volumes:
-  postgres_data:
-
-networks:
-  viajes-net:
-    driver: bridge
