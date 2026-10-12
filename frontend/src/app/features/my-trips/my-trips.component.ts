@@ -1,4 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
+import { LabelPipe } from '../../shared/pipes/label.pipe';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
@@ -6,7 +7,7 @@ import { ApiService } from '../../core/services/api.service';
 @Component({
   selector: 'app-my-trips',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, LabelPipe],
   template: `
     <div class="space-y-5">
       <h1 class="text-2xl font-bold text-gray-800">Mis viajes</h1>
@@ -60,7 +61,7 @@ import { ApiService } from '../../core/services/api.service';
                     'bg-gray-100 text-gray-700': booking.status === 'COMPLETADO',
                     'bg-red-100 text-red-600': booking.status === 'CANCELADO'
                   }">
-                  {{ booking.status }}
+                  {{ booking.status | etiqueta }}
                 </span>
               </div>
 

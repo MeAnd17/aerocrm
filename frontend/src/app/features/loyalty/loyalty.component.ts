@@ -1,11 +1,12 @@
 import { Component, OnInit, signal } from '@angular/core';
+import { LabelPipe } from '../../shared/pipes/label.pipe';
 import { CommonModule } from '@angular/common';
 import { ApiService } from '../../core/services/api.service';
 
 @Component({
   selector: 'app-loyalty',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, LabelPipe],
   template: `
     <div class="space-y-5">
       <h1 class="text-2xl font-bold text-gray-800">Programa de fidelización</h1>
@@ -14,7 +15,7 @@ import { ApiService } from '../../core/services/api.service';
         <!-- Nivel actual -->
         <div class="bg-gradient-to-r from-blue-900 to-blue-700 rounded-2xl p-6 text-white">
           <p class="text-blue-200 text-sm mb-1">Tu nivel actual</p>
-          <h2 class="text-3xl font-bold">{{ status()?.level }}</h2>
+          <h2 class="text-3xl font-bold">{{ status()?.level | etiqueta }}</h2>
           <div class="flex gap-6 mt-4">
             <div>
               <p class="text-2xl font-bold">{{ status()?.availablePoints }}</p>
@@ -37,7 +38,7 @@ import { ApiService } from '../../core/services/api.service';
           <div class="bg-white rounded-xl border shadow-sm p-5">
             <p class="text-sm text-gray-600 mb-2">
               Te faltan <strong>{{ status()?.nextLevel?.tripsNeeded }} viajes</strong>
-              para alcanzar el nivel <strong>{{ status()?.nextLevel?.level }}</strong>
+              para alcanzar el nivel <strong>{{ status()?.nextLevel?.level | etiqueta }}</strong>
               y obtener {{ status()?.nextLevel?.discount }}% de descuento al canjear
             </p>
             <div class="h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -63,7 +64,7 @@ import { ApiService } from '../../core/services/api.service';
                   {{ level.level === 'EXPLORADOR' ? '🌱' : level.level === 'VIAJERO' ? '✈️' : level.level === 'FRECUENTE' ? '⭐' : '👑' }}
                 </span>
                 <div class="flex-1">
-                  <p class="font-medium text-gray-800">{{ level.level }}</p>
+                  <p class="font-medium text-gray-800">{{ level.level | etiqueta }}</p>
                   <p class="text-xs text-gray-500">Desde {{ level.minTrips }} viajes</p>
                 </div>
                 <span class="text-sm font-semibold text-blue-700">+{{ level.discount }}%</span>

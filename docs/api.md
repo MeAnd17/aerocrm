@@ -35,6 +35,13 @@ Swagger es la única referencia sobre cómo responde el sistema. Antes de armar 
 
 `/api/health` devuelve 503 si la base no responde. Es lo que usa Docker para saber si el backend está sano.
 
+## Errores
+
+Todas las respuestas de error llegan en español con la forma `{ "statusCode": 400, "message": ... }`:
+
+- **Validación (400):** `message` es una lista, por ejemplo `["Ingresa un correo electrónico válido", "El campo pasajeros debe ser un número entero"]`. La traducción la hace `src/common/validation.ts`; si un DTO trae un campo nuevo, se agrega su nombre en español en `FIELD_LABELS`.
+- **Sin sesión (401), sin permiso (403), ruta inexistente (404) y error inesperado (500):** mensajes fijos en español, desde `src/common/http-messages.filter.ts`. Los errores inesperados se registran completos en el log del servidor y al cliente no le llega el detalle.
+
 ## Al agregar o cambiar un endpoint
 
 - Los DTO se documentan solos: el plugin de Swagger (configurado en `nest-cli.json`) lee los decoradores de `class-validator` y los comentarios `/** */` de cada propiedad.

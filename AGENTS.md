@@ -54,7 +54,7 @@ Ningún agente inventa otro comando. Si un comando no existe o falla, se reporta
 - B6. El precio de un paquete se calcula siempre en el servidor. El frontend solo lo muestra.
 - B7. Puntos, niveles y canje se calculan solo en el motor de fidelización (`backend/src/loyalty/loyalty.rules.ts`). Ninguna de sus constantes se escribe en otro lugar, tampoco en el frontend: el frontend recibe los valores ya calculados por la API.
 - B8. Todo endpoint nuevo o modificado queda documentado en Swagger: `@ApiTags`, `@ApiOperation`, respuestas y errores posibles, y DTOs con `@ApiProperty`.
-- B9. Errores con las excepciones de NestJS (`NotFoundException`, `BadRequestException`…) y mensaje en español para el usuario.
+- B9. Errores con las excepciones de NestJS (`NotFoundException`, `BadRequestException`…) y mensaje en español para el usuario. Los mensajes de validación de los DTO los traduce `src/common/validation.ts`: un campo nuevo en un DTO lleva su nombre en español en `FIELD_LABELS`. Las pruebas e2e arman la aplicación con `configureApp` (`src/app.setup.ts`), igual que el servidor.
 
 ## 5. Frontend
 
@@ -66,6 +66,7 @@ Ningún agente inventa otro comando. Si un comando no existe o falla, se reporta
 - F6. Toda pantalla se construye con las piezas de `shared/ui/` y se contrasta con la maqueta de referencia del proyecto, también en ancho de teléfono (375 px). Ninguna pantalla obliga a desplazarse en horizontal.
 - F7. Ninguna pantalla se construye sobre un campo que no esté en Swagger.
 - F8. Estado de componente con `signal`/`computed`. El estado que comparten varias pantallas vive en un servicio de `core/` o del feature, nunca duplicado en componentes.
+- F9. Ningún texto en inglés en pantalla. Los valores de enum se muestran con el pipe `etiqueta` (`shared/pipes/label.pipe.ts`), los errores de la API con `apiErrorMessage` (`core/services/api-error.ts`) y las fechas con el pipe `date`, que ya usa el idioma es-PE.
 
 ## 6. Datos, esquema y configuración
 

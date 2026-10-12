@@ -28,12 +28,12 @@ import { PackageBuilderState } from '../package-builder.state';
       @if (state.hotel()) {
         <div class="flex gap-3">
           <div class="flex-1">
-            <label class="block text-xs text-gray-500 mb-1">Check-in</label>
+            <label class="block text-xs text-gray-500 mb-1">Fecha de entrada</label>
             <input type="date" [ngModel]="state.hotelCheckIn()" (ngModelChange)="state.hotelCheckIn.set($event)"
               class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <div class="flex-1">
-            <label class="block text-xs text-gray-500 mb-1">Check-out</label>
+            <label class="block text-xs text-gray-500 mb-1">Fecha de salida</label>
             <input type="date" [ngModel]="state.hotelCheckOut()" (ngModelChange)="state.hotelCheckOut.set($event)"
               class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>

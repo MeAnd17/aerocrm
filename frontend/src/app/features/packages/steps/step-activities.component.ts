@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core';
+import { LabelPipe } from '../../../shared/pipes/label.pipe';
 import { CommonModule } from '@angular/common';
 import { PackageBuilderState } from '../package-builder.state';
 
@@ -6,7 +7,7 @@ import { PackageBuilderState } from '../package-builder.state';
 @Component({
   selector: 'app-step-activities',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, LabelPipe],
   template: `
     <div class="bg-white rounded-xl border shadow-sm p-5">
       <h3 class="font-semibold text-gray-800 mb-3">🎯 Actividades <span class="text-gray-400 font-normal text-sm">(opcional)</span></h3>
@@ -18,7 +19,7 @@ import { PackageBuilderState } from '../package-builder.state';
             class="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:border-blue-300 transition">
             <div>
               <p class="font-medium text-sm">{{ act.name }}</p>
-              <p class="text-xs text-gray-500">{{ act.type }} · {{ act.durationHours }}h</p>
+              <p class="text-xs text-gray-500">{{ act.type | etiqueta }} · {{ act.durationHours }}h</p>
             </div>
             <p class="font-bold text-blue-900 text-sm">S/. {{ act.price }}</p>
           </div>

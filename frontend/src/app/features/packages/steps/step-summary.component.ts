@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { apiErrorMessage } from '../../../core/services/api-error';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -93,7 +94,7 @@ export class StepSummaryComponent {
         s.reset();
         this.router.navigate(['/my-trips', booking.id]);
       },
-      error: (err) => { this.error.set(err.error?.message ?? 'Error al confirmar'); this.loading.set(false); },
+      error: (err) => { this.error.set(apiErrorMessage(err, 'No pudimos confirmar la compra')); this.loading.set(false); },
     });
   }
 }

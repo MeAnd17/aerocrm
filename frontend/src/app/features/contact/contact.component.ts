@@ -1,4 +1,5 @@
 import { Component, signal } from '@angular/core';
+import { apiErrorMessage } from '../../core/services/api-error';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
@@ -68,7 +69,7 @@ export class ContactComponent {
     this.error.set('');
     this.api.post<any>('contact', this.form).subscribe({
       next: () => { this.sent.set(true); this.loading.set(false); },
-      error: (err) => { this.error.set(err.error?.message ?? 'Error al enviar'); this.loading.set(false); },
+      error: (err) => { this.error.set(apiErrorMessage(err, 'No pudimos enviar tu mensaje')); this.loading.set(false); },
     });
   }
 }

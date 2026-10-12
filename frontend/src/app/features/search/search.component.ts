@@ -1,4 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
+import { LabelPipe } from '../../shared/pipes/label.pipe';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -7,7 +8,7 @@ import { ApiService } from '../../core/services/api.service';
 @Component({
   selector: 'app-search',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, LabelPipe],
   template: `
     <div class="space-y-6">
       <div class="bg-gradient-to-r from-blue-900 to-blue-700 rounded-2xl p-6 text-white">
@@ -70,7 +71,7 @@ import { ApiService } from '../../core/services/api.service';
                 </div>
                 <div class="text-right">
                   <p class="text-xl font-bold text-blue-900">S/. {{ flight.totalPrice | number:'1.2-2' }}</p>
-                  <p class="text-xs text-gray-400">{{ searchForm.passengers }} pax · {{ flight.classType }}</p>
+                  <p class="text-xs text-gray-400">{{ searchForm.passengers }} pax · {{ flight.classType | etiqueta }}</p>
                   <button (click)="selectFlight(flight)"
                     class="mt-2 bg-blue-600 text-white text-sm px-4 py-1.5 rounded-lg hover:bg-blue-700 transition">
                     Seleccionar
@@ -108,7 +109,7 @@ import { ApiService } from '../../core/services/api.service';
                     'bg-green-100 text-green-700': dest.type === 'AVENTURA',
                     'bg-yellow-100 text-yellow-700': dest.type === 'CULTURA'
                   }">
-                  {{ dest.type }}
+                  {{ dest.type | etiqueta }}
                 </span>
               </button>
             }

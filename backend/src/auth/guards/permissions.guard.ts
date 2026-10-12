@@ -14,13 +14,13 @@ export class PermissionsGuard implements CanActivate {
     if (!required || required.length === 0) return true;
 
     const { user } = context.switchToHttp().getRequest();
-    if (!user) throw new ForbiddenException('Access denied');
+    if (!user) throw new ForbiddenException('Acceso denegado');
 
     // Admin role bypasses all permission checks
     if (user.roles && user.roles.includes('Admin')) return true;
 
     const hasPermission = required.every(perm => user.permissions?.includes(perm));
-    if (!hasPermission) throw new ForbiddenException('You do not have permission to perform this action');
+    if (!hasPermission) throw new ForbiddenException('No tienes permiso para realizar esta acción');
     return true;
   }
 }

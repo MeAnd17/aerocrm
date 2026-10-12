@@ -37,6 +37,14 @@ Están en `frontend/src/app/shared/ui/` y se importan desde `shared/ui`:
 
 Una pantalla nueva se arma con estas piezas. Si hace falta una pieza que no existe, se agrega en `shared/ui` y no dentro de la pantalla (AGENTS.md F6).
 
+## Textos en español
+
+Nada en pantalla se muestra en inglés.
+
+- **Valores de la API** como `ECONOMY`, `EN_CURSO` o `AVENTURA` se muestran con el pipe `etiqueta`: `{{ vuelo.classType | etiqueta }}` → Económica. Si aparece un valor nuevo, se agrega en `shared/pipes/label.pipe.ts`.
+- **Errores de la API**: `apiErrorMessage(err, 'Texto si no hay mensaje')` de `core/services/api-error.ts`. Une en una línea los mensajes de validación y muestra un texto claro si no hay conexión.
+- **Fechas y números**: el idioma de la aplicación es `es-PE`, así que `{{ fecha | date:'dd MMM yyyy' }}` muestra "12 oct. 2026".
+
 ## Colores
 
 Los colores de la plataforma están en `frontend/tailwind.config.js` como la paleta `primary` (`bg-primary-600`, `text-primary-700`…). Las pantallas nuevas usan `primary-*` y no colores sueltos como `blue-600`, así un cambio de marca se hace en un solo lugar.
