@@ -13,11 +13,23 @@ Si una pantalla o un servicio necesita saber cuántos puntos da una compra, qué
 | Valor de un punto | S/ 0.10 (500 puntos = S/ 50.00) |
 | Niveles por viajes completados | Explorador 0–2 · Viajero 3–7 · Frecuente 8–14 · Elite 15+ |
 | Descuento adicional al canjear | 0 / 5 / 10 / 15 % sobre el total del paquete, según el nivel |
-| Tope | El descuento total nunca supera el total del paquete |
+| Tope | El descuento total (puntos + nivel) llega como máximo al **50 % del paquete** (`MAX_REDEEM_PERCENT`) |
 
 El descuento por nivel solo se aplica cuando el cliente canjea puntos. Sin canje no hay descuento.
 
-Ejemplo: un cliente Elite canjea 500 puntos en un paquete de S/ 3000. Los puntos descuentan S/ 50 y el nivel S/ 450 (15 %). Paga S/ 2500 y gana 25 puntos por esa compra.
+Si el cliente tiene más puntos de los que caben bajo el tope, se usan solo los necesarios y el resto le queda. Si en un paquete pequeño no caben ni los 500 puntos mínimos, el canje no se permite y la pantalla lo explica.
+
+Ejemplos con un cliente Elite que tiene 2524 puntos:
+
+| Paquete | Por nivel (15 %) | Puntos usados | Descuento | Paga | Le quedan |
+|---|---|---|---|---|---|
+| S/ 3000 | S/ 450 | 2524 (S/ 252.40) | S/ 702.40 | S/ 2297.60 | 0 |
+| S/ 600 | S/ 90 | 2100 (S/ 210) | S/ 300 (tope) | S/ 300 | 424 |
+| S/ 40 | — | — | no se permite: caben 140 puntos y el mínimo es 500 | S/ 40 | 2524 |
+
+## Saldo que ve el cliente
+
+En la pantalla de puntos el número grande es **"Disponibles para canjear"**, con su valor en soles. El total histórico (`totalPoints`) va abajo y en chico, como referencia: no se puede canjear. Mostrar el histórico como número principal hace que el cliente crea que puede canjearlo todo.
 
 ## Funciones
 
@@ -27,7 +39,8 @@ Ejemplo: un cliente Elite canjea 500 puntos en un paquete de S/ 3000. Los puntos
 | `pointsValueCents(puntos)` | Cuánto valen esos puntos, en céntimos |
 | `levelForTrips(viajes)` | La regla del nivel que corresponde |
 | `levelStatus(viajes)` | Nivel actual, siguiente nivel, viajes que faltan y avance en % |
-| `computeRedemption({ packageTotalCents, pointsToRedeem, availablePoints, completedTrips })` | Descuento por puntos, por nivel, total y precio final. Lanza `RedemptionError` si el canje no es válido |
+| `computeRedemption({ packageTotalCents, pointsToRedeem, availablePoints, completedTrips })` | Puntos realmente usados, descuento por puntos, por nivel, total y precio final, respetando el tope. Lanza `RedemptionError` si el canje no es válido |
+| `maxDiscountCents(totalCents)` | Descuento máximo que admite un paquete |
 | `toCents(monto)` / `fromCents(cents)` | Conversión entre `Decimal` de Prisma (o texto) y céntimos enteros |
 
 Todo el cálculo se hace en céntimos enteros para no arrastrar errores de coma flotante (`0.1 + 0.2`). Para guardar en la base se convierte con `fromCents`.
@@ -38,7 +51,7 @@ Todo el cálculo se hace en céntimos enteros para no arrastrar errores de coma 
 |---|---|
 | `GET /api/loyalty/status` | Nivel, puntos, valor de los puntos disponibles, descuento actual y avance al siguiente nivel (`nextLevel.progressPercent`) |
 | `GET /api/loyalty/history` | Últimos 50 movimientos de puntos |
-| `POST /api/loyalty/redemption-preview` | Calcula el descuento de un canje sin registrarlo. Lo usa el resumen del armador |
+| `POST /api/loyalty/redemption-preview` | Calcula el canje sin registrarlo: puntos que se usarán, descuento, puntos que quedan y descuento máximo. Lo usa el resumen del armador |
 | `GET /api/clients/me/home` | El bloque `membership` trae los mismos datos que `status` |
 | `POST /api/bookings` | Al comprar, aplica el canje y suma los puntos ganados |
 
@@ -46,7 +59,7 @@ En el frontend, el inicio y la pantalla de puntos muestran la barra de avance co
 
 ## Pruebas
 
-`backend/src/loyalty/loyalty.rules.spec.ts` cubre los límites: 499 contra 500 puntos, los saltos de 2→3, 7→8 y 14→15 viajes, montos con céntimos y el tope del descuento.
+`backend/src/loyalty/loyalty.rules.spec.ts` cubre los límites: 499 contra 500 puntos, los saltos de 2→3, 7→8 y 14→15 viajes, montos con céntimos, el canje justo en el tope del 50 %, los puntos que sobran y el paquete donde no cabe el mínimo.
 
     cd backend
     npx jest src/loyalty

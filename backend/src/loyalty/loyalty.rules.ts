@@ -22,6 +22,11 @@ export const SOLES_PER_POINT = 100;
 export const MIN_REDEEM_POINTS = 500;
 /** Valor de un punto al canjear, en céntimos (500 puntos = S/ 50.00). */
 export const POINT_VALUE_CENTS = 10;
+/**
+ * Tope del descuento total de un canje (puntos + adicional por nivel), en % del paquete.
+ * El cliente siempre paga al menos el resto y siempre gana puntos por esa compra.
+ */
+export const MAX_REDEEM_PERCENT = 50;
 
 /** Ordenados de menor a mayor. */
 export const LEVELS: readonly LevelRule[] = [
@@ -103,6 +108,11 @@ export function levelStatus(completedTrips: number): LevelStatus {
 
 // ── Canje ─────────────────────────────────────────────────────────────────────
 
+/** Descuento máximo que admite un paquete, en céntimos. */
+export function maxDiscountCents(packageTotalCents: number): number {
+  return Math.floor((packageTotalCents * MAX_REDEEM_PERCENT) / 100);
+}
+
 export interface RedemptionInput {
   packageTotalCents: number;
   pointsToRedeem: number;
@@ -123,7 +133,8 @@ export interface RedemptionResult {
  * - Sin canje (0 puntos): no hay descuento, tampoco el adicional por nivel.
  * - El canje exige al menos MIN_REDEEM_POINTS y no puede superar los puntos disponibles.
  * - El adicional por nivel se aplica sobre el total del paquete.
- * - El descuento total nunca supera el total del paquete.
+ * - El descuento total nunca supera MAX_REDEEM_PERCENT del paquete. Si el cliente ofrece más puntos
+ *   de los que caben, solo se usan los necesarios (pointsUsed) y el resto le queda.
  */
 export function computeRedemption(input: RedemptionInput): RedemptionResult {
   const { packageTotalCents, availablePoints, completedTrips } = input;
@@ -145,13 +156,24 @@ export function computeRedemption(input: RedemptionInput): RedemptionResult {
     throw new RedemptionError('No tienes suficientes puntos disponibles');
   }
 
-  const pointsDiscountCents = pointsValueCents(pointsToRedeem);
+  const capCents = maxDiscountCents(packageTotalCents);
   const levelPercent = levelForTrips(completedTrips).redeemDiscountPercent;
-  const levelDiscountCents = Math.floor((packageTotalCents * levelPercent) / 100);
-  const totalDiscountCents = Math.min(packageTotalCents, pointsDiscountCents + levelDiscountCents);
+  const levelDiscountCents = Math.min(Math.floor((packageTotalCents * levelPercent) / 100), capCents);
+
+  // Puntos que caben bajo el tope, una vez descontado el adicional por nivel.
+  const pointsThatFit = Math.floor((capCents - levelDiscountCents) / POINT_VALUE_CENTS);
+  const pointsUsed = Math.min(pointsToRedeem, pointsThatFit);
+  if (pointsUsed < MIN_REDEEM_POINTS) {
+    throw new RedemptionError(
+      `En este paquete solo puedes canjear hasta ${pointsThatFit} puntos (el descuento máximo es el ${MAX_REDEEM_PERCENT} % del paquete) y el canje mínimo es de ${MIN_REDEEM_POINTS}`,
+    );
+  }
+
+  const pointsDiscountCents = pointsValueCents(pointsUsed);
+  const totalDiscountCents = levelDiscountCents + pointsDiscountCents;
 
   return {
-    pointsUsed: pointsToRedeem,
+    pointsUsed,
     pointsDiscountCents,
     levelDiscountCents,
     totalDiscountCents,

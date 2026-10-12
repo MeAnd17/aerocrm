@@ -16,21 +16,30 @@ import { ApiService } from '../../core/services/api.service';
         <div class="bg-gradient-to-r from-blue-900 to-blue-700 rounded-2xl p-6 text-white">
           <p class="text-blue-200 text-sm mb-1">Tu nivel actual</p>
           <h2 class="text-3xl font-bold">{{ status()?.level | etiqueta }}</h2>
-          <div class="flex gap-6 mt-4">
+
+          <!-- Lo que el cliente puede usar va primero y grande; el total histórico, chico (no se canjea). -->
+          <div class="mt-4 rounded-xl bg-white/10 p-4 text-center">
+            <p class="text-blue-100 text-sm">Disponibles para canjear</p>
+            <p class="text-4xl font-bold mt-1">{{ status()?.availablePoints | number }}</p>
+            <p class="text-blue-100 text-sm">equivalen a S/. {{ status()?.availablePointsValue | number:'1.2-2' }}</p>
+            <p class="text-blue-200 text-xs mt-2">{{ status()?.totalPoints | number }} acumulados en total (histórico)</p>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3 mt-4 text-center">
             <div>
-              <p class="text-2xl font-bold">{{ status()?.availablePoints }}</p>
-              <p class="text-blue-200 text-xs">puntos disponibles</p>
-            </div>
-            <div>
-              <p class="text-2xl font-bold">{{ status()?.completedTrips }}</p>
+              <p class="text-xl font-bold">{{ status()?.completedTrips }}</p>
               <p class="text-blue-200 text-xs">viajes completados</p>
             </div>
             <div>
-              <p class="text-2xl font-bold">{{ status()?.currentDiscount }}%</p>
-              <p class="text-blue-200 text-xs">descuento al canjear</p>
+              <p class="text-xl font-bold">{{ status()?.currentDiscount }}%</p>
+              <p class="text-blue-200 text-xs">adicional al canjear</p>
+            </div>
+            <div>
+              <p class="text-xl font-bold">{{ status()?.minRedeemPoints }}</p>
+              <p class="text-blue-200 text-xs">puntos mínimos para canjear</p>
             </div>
           </div>
-          <p class="text-blue-200 text-sm mt-4">{{ status()?.pointsValue }}</p>
+          <p class="text-blue-200 text-xs mt-3 text-center">Con puntos puedes pagar hasta el {{ status()?.maxRedeemPercent }} % de un paquete.</p>
         </div>
 
         <!-- Progreso al siguiente nivel -->

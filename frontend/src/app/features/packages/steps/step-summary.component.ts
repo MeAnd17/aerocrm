@@ -39,9 +39,20 @@ import { AuthService } from '../../../core/services/auth.service';
           </p>
           <label class="flex items-center gap-2 text-sm">
             <input type="checkbox" [ngModel]="state.usePoints()" (ngModelChange)="onUsePointsChange($event)" class="rounded" />
-            Canjear {{ state.loyalty()?.availablePoints }} puntos
-            @if (state.redemption()) { y ahorrar S/. {{ state.pointsDiscount() | number:'1.2-2' }} }
+            Usar mis puntos en este paquete
           </label>
+          @if (state.redemption(); as r) {
+            <p class="text-sm text-blue-800 mt-2">
+              Usarás <strong>{{ r.pointsUsed }}</strong> de tus {{ r.availablePoints }} puntos y ahorras
+              <strong>S/. {{ r.totalDiscount | number:'1.2-2' }}</strong>
+              @if (r.levelDiscount !== '0.00') { (incluye S/. {{ r.levelDiscount | number:'1.2-2' }} por tu nivel) }.
+              @if (r.pointsLeft > 0) { Te quedan {{ r.pointsLeft }} puntos para tu próximo viaje. }
+            </p>
+          }
+          @if (redemptionError()) {
+            <p class="text-sm text-amber-700 mt-2">{{ redemptionError() }}</p>
+          }
+          <p class="text-xs text-gray-500 mt-2">Con puntos puedes pagar hasta el {{ state.loyalty()?.maxRedeemPercent }} % del paquete.</p>
         </div>
       }
 
@@ -76,15 +87,24 @@ export class StepSummaryComponent {
 
   readonly loading = signal(false);
   readonly error = signal('');
+  readonly redemptionError = signal('');
 
   onUsePointsChange(value: boolean) {
     this.state.usePoints.set(value);
     this.state.redemption.set(null);
+    this.redemptionError.set('');
     if (!value) return;
+    // Se ofrecen todos los puntos; el backend usa solo los que caben bajo el tope.
     this.api.post<any>('loyalty/redemption-preview', {
       packageTotal: this.state.totalPrice().toFixed(2),
       pointsToRedeem: this.state.loyalty()?.availablePoints ?? 0,
-    }).subscribe({ next: (r) => this.state.redemption.set(r) });
+    }).subscribe({
+      next: (r) => this.state.redemption.set(r),
+      error: (err) => {
+        this.state.usePoints.set(false);
+        this.redemptionError.set(apiErrorMessage(err, 'No pudimos calcular el canje'));
+      },
+    });
   }
 
   /** El visitante inicia sesión y vuelve al resumen; el paquete pasa a ser suyo. */

@@ -3,7 +3,9 @@ import { RedemptionPreviewDto } from './dto/redemption-preview.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   LEVELS,
+  MAX_REDEEM_PERCENT,
   MIN_REDEEM_POINTS,
+  maxDiscountCents,
   RedemptionError,
   computeRedemption,
   toCents,
@@ -41,6 +43,7 @@ export class LoyaltyService {
       currentDiscount: status.current.redeemDiscountPercent,
       canRedeem: client.availablePoints >= MIN_REDEEM_POINTS,
       minRedeemPoints: MIN_REDEEM_POINTS,
+      maxRedeemPercent: MAX_REDEEM_PERCENT,
       availablePointsValue: fromCents(valueCents),
       pointsValue: `${client.availablePoints} puntos = S/ ${fromCents(valueCents)}`,
       nextLevel: status.next
@@ -79,6 +82,9 @@ export class LoyaltyService {
         levelDiscount: fromCents(r.levelDiscountCents),
         totalDiscount: fromCents(r.totalDiscountCents),
         finalTotal: fromCents(r.finalTotalCents),
+        maxDiscount: fromCents(maxDiscountCents(toCents(dto.packageTotal))),
+        availablePoints: client.availablePoints,
+        pointsLeft: client.availablePoints - r.pointsUsed,
       };
     } catch (e) {
       if (e instanceof RedemptionError) throw new BadRequestException(e.message);

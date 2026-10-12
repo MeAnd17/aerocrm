@@ -33,8 +33,9 @@ import { AuthService } from '../../core/services/auth.service';
         </div>
         <div class="flex items-center gap-6">
           <div>
-            <p class="text-2xl font-bold text-blue-900">{{ home()?.membership?.availablePoints ?? 0 }}</p>
-            <p class="text-xs text-gray-500">puntos disponibles</p>
+            <p class="text-2xl font-bold text-blue-900">{{ home()?.membership?.availablePoints ?? 0 | number }}</p>
+            <p class="text-xs text-gray-500">disponibles para canjear</p>
+            <p class="text-[11px] text-gray-400">{{ home()?.membership?.totalPoints ?? 0 | number }} acumulados (histórico)</p>
           </div>
           <div>
             <p class="text-2xl font-bold text-blue-900">{{ home()?.membership?.completedTrips ?? 0 }}</p>

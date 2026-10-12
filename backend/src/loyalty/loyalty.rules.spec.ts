@@ -105,15 +105,40 @@ describe('Motor de fidelización', () => {
       expect(r.finalTotalCents).toBe(199999 - 6000 - 9999);
     });
 
-    it('el descuento nunca supera el total del paquete', () => {
+    it('el descuento nunca pasa del 50 % y los puntos que sobran se le quedan al cliente', () => {
+      // Valeria: Elite, 2524 puntos, paquete de S/ 600 → tope S/ 300 = 15 % por nivel (S/ 90) + 2100 puntos (S/ 210).
       const r = computeRedemption({
+        packageTotalCents: toCents('600.00'),
+        availablePoints: 2524,
+        completedTrips: 16,
+        pointsToRedeem: 2524,
+      });
+      expect(r.levelDiscountCents).toBe(9000);
+      expect(r.pointsUsed).toBe(2100);
+      expect(r.totalDiscountCents).toBe(30000);
+      expect(r.finalTotalCents).toBe(30000);
+    });
+
+    it('justo en el tope: usa exactamente los puntos que caben', () => {
+      // Explorador, paquete S/ 100 → tope S/ 50 = 500 puntos exactos.
+      const r = computeRedemption({ packageTotalCents: toCents('100.00'), availablePoints: 900, completedTrips: 0, pointsToRedeem: 900 });
+      expect(r.pointsUsed).toBe(500);
+      expect(r.finalTotalCents).toBe(5000);
+    });
+
+    it('rechaza el canje si bajo el tope no caben ni los 500 puntos mínimos', () => {
+      expect(() => computeRedemption({
         packageTotalCents: toCents('40.00'),
         availablePoints: 5000,
         completedTrips: 15,
         pointsToRedeem: 5000,
-      });
-      expect(r.totalDiscountCents).toBe(4000);
-      expect(r.finalTotalCents).toBe(0);
+      })).toThrow('solo puedes canjear hasta 140 puntos');
+    });
+
+    it('con un paquete grande el tope no se nota: usa todos los puntos pedidos', () => {
+      const r = computeRedemption({ packageTotalCents: toCents('3000.00'), availablePoints: 2524, completedTrips: 16, pointsToRedeem: 2524 });
+      expect(r.pointsUsed).toBe(2524);
+      expect(r.totalDiscountCents).toBe(45000 + 25240);
     });
   });
 });

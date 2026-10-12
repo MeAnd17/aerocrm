@@ -121,7 +121,7 @@ Compila · pasa lint · las pruebas del flujo tocado en verde · arranca desde c
 
 ## 12. Dominio fijo
 
-Puntos: 1 por cada S/ 100 del total pagado (redondeo hacia abajo). Niveles por viajes completados: Explorador 0–2, Viajero 3–7, Frecuente 8–14, Elite 15+. Canje mínimo 500 puntos; cada punto vale S/ 0.10 (500 puntos = S/ 50). Descuento adicional por nivel al canjear: 0 / 5 / 10 / 15 %. El descuento total nunca supera el total del paquete. Estados de reserva: `PENDIENTE`, `CONFIRMADO`, `EN_CURSO`, `COMPLETADO`, `CANCELADO`. Calendarific y OpenWeatherMap tienen dato de respaldo en base: ninguna pantalla queda en blanco porque una API externa no respondió. Estas reglas se implementan solo en el motor (regla B7).
+Puntos: 1 por cada S/ 100 del total pagado (redondeo hacia abajo). Niveles por viajes completados: Explorador 0–2, Viajero 3–7, Frecuente 8–14, Elite 15+. Canje mínimo 500 puntos; cada punto vale S/ 0.10 (500 puntos = S/ 50). Descuento adicional por nivel al canjear: 0 / 5 / 10 / 15 %. El descuento total del canje (puntos + nivel) llega como máximo al 50 % del paquete; si sobran puntos, se conservan. Estados de reserva: `PENDIENTE`, `CONFIRMADO`, `EN_CURSO`, `COMPLETADO`, `CANCELADO`. Calendarific y OpenWeatherMap tienen dato de respaldo en base: ninguna pantalla queda en blanco porque una API externa no respondió. Estas reglas se implementan solo en el motor (regla B7).
 
 ## 13. Código heredado
 

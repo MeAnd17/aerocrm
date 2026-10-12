@@ -138,6 +138,7 @@ Quién aplica migraciones, cómo se respalda la base y qué hacer si se cae: [do
 |---|---|
 | Puntos | 1 por cada S/ 100 del total pagado |
 | Canje | Mínimo 500 puntos; cada punto vale S/ 0.10 (500 puntos = S/ 50) |
+| Tope | Con puntos se paga como máximo el 50 % del paquete; los puntos que no caben se conservan |
 | Explorador | 0 a 2 viajes completados · sin descuento adicional |
 | Viajero | 3 a 7 viajes · 5 % adicional sobre el paquete al canjear |
 | Frecuente | 8 a 14 viajes · 10 % adicional |
