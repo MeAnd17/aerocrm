@@ -18,7 +18,7 @@ Backend NestJS 10 + Prisma 5 en `backend/` (prefijo global `/api`). Base Postgre
     frontend/src/app/core/         guards · interceptors · layout · services (singleton, providedIn: 'root')
     frontend/src/app/shared/       componentes, pipes y directivas reutilizables
     frontend/src/app/features/<feature>/   un componente standalone por pantalla
-    docs/                          encargos, inventario del código heredado
+    docs/                          encargos, inventario del código heredado, accesos, fichas de cierre por sprint
 
 ## 3. Comandos
 
@@ -110,7 +110,7 @@ Las modifican solo los responsables de integración (G4), revisando línea por l
 
 ## 10. Definición de terminado
 
-Compila · pasa lint · las pruebas del flujo tocado en verde · arranca desde cero con `docker compose up -d` y la carga de arranque · el criterio de aceptación fue demostrado a otro integrante · documentación afectada actualizada en el mismo PR · PR aprobado por alguien distinto a quien lo escribió.
+Compila · pasa lint · las pruebas del flujo tocado en verde · arranca desde cero con `docker compose up -d` y la carga de arranque · el criterio de aceptación fue demostrado a otro integrante · documentación afectada actualizada en el mismo PR · ficha de cierre de la tarea en `docs/tareas/sprint-N.md`, con el formato de `docs/tareas/README.md` · PR aprobado por alguien distinto a quien lo escribió.
 
 ## 11. Diferencias por herramienta
 

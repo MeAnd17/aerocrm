@@ -29,6 +29,7 @@
 - [ ] Si cambia el esquema: la migración y la carga de arranque van en este PR
 - [ ] Si agrega una variable de entorno: está en `.env.example` con su comentario
 - [ ] Si agrega o cambia un endpoint: está documentado en Swagger
+- [ ] Agregué la ficha de cierre de la tarea en `docs/tareas/sprint-N.md`
 
 ## Capturas
 

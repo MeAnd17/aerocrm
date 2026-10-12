@@ -33,7 +33,7 @@ VERIFICACIÓN
 REGLAS DE LA SESIÓN
 - Primero preséntame el plan con la lista de archivos a crear o modificar. No ejecutes hasta que lo apruebe.
 - Si la historia es ambigua o el repositorio la contradice, detente y pregunta.
-- No hagas commit ni push. Al terminar reporta: archivos tocados, resultado de la verificación y lo que viste fuera de alcance.
+- No hagas commit ni push. Al terminar reporta: archivos tocados, resultado de la verificación y lo que viste fuera de alcance, y redacta la ficha de cierre con el formato de docs/tareas/README.md.
 ```
 
 ## Ejemplo lleno (historia ficticia)
@@ -69,5 +69,5 @@ cd frontend && npm run build
 REGLAS DE LA SESIÓN
 - Primero preséntame el plan con la lista de archivos a crear o modificar. No ejecutes hasta que lo apruebe.
 - Si la historia es ambigua o el repositorio la contradice, detente y pregunta.
-- No hagas commit ni push. Al terminar reporta: archivos tocados, resultado de la verificación y lo que viste fuera de alcance.
+- No hagas commit ni push. Al terminar reporta: archivos tocados, resultado de la verificación y lo que viste fuera de alcance, y redacta la ficha de cierre con el formato de docs/tareas/README.md.
 ```
