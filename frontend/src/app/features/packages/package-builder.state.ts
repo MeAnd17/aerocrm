@@ -64,7 +64,8 @@ export class PackageBuilderState {
     return Math.max(1, Math.round((new Date(outDate).getTime() - new Date(inDate).getTime()) / 86400000));
   });
   readonly hotelTotal = computed(() => Number(this.hotel()?.pricePerNight ?? 0) * Math.max(1, this.hotelNights()));
-  readonly activitiesTotal = computed(() => this.activities().reduce((s, a) => s + Number(a.price), 0));
+  /** Las actividades se cobran por pasajero. */
+  readonly activitiesTotal = computed(() => this.activities().reduce((s, a) => s + Number(a.price), 0) * this.passengers());
   readonly extrasTotal = computed(() => this.extras().reduce((s, e) => s + e.price, 0));
   readonly totalPrice = computed(() => this.flightTotal() + this.hotelTotal() + this.activitiesTotal() + this.extrasTotal());
   /** El descuento lo calcula el motor de fidelización del backend (AGENTS.md B7). */
@@ -117,6 +118,18 @@ export class PackageBuilderState {
 
   toggleHotel(hotel: any) {
     this.hotel.set(this.hotel()?.id === hotel.id ? null : hotel);
+    if (this.hotel() && !this.hotelCheckIn()) this.prefillHotelDates();
+  }
+
+  /** Entrada = día de llegada del vuelo; salida = 7 noches después. El cliente puede cambiarlas. */
+  private prefillHotelDates() {
+    const arrival = this.flight()?.arrivalDate ?? this.flight()?.departureDate;
+    if (!arrival) return;
+    const entrada = new Date(arrival);
+    const salida = new Date(entrada);
+    salida.setDate(salida.getDate() + 7);
+    this.hotelCheckIn.set(localDate(entrada));
+    this.hotelCheckOut.set(localDate(salida));
   }
 
   toggleActivity(act: any) {
@@ -238,4 +251,9 @@ function removeDraft() {
   } catch {
     /* nada que limpiar */
   }
+}
+
+/** Fecha local en formato AAAA-MM-DD (la que espera un <input type="date">). */
+function localDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }

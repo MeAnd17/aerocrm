@@ -48,6 +48,12 @@ Cada paquete guarda su dueño (`ownerId`):
 | El dueño cierra sesión | Se descarta |
 | Entra un usuario distinto al dueño | Se descarta; nadie ve el paquete de otro |
 
+## Precios y fechas
+
+- Las actividades se cobran **por pasajero**: el resumen muestra "× N" y la reserva guarda la cantidad.
+- Al elegir hotel, las fechas se precargan: entrada = día de llegada del vuelo y salida = 7 noches después. El cliente puede cambiarlas.
+- Las fechas del hotel se guardan como fecha sin hora; en pantalla se muestran con zona `UTC` (`date:'dd/MM/yyyy':'UTC'`) para que no se corran un día.
+
 ## Trabajar en un paso
 
 - El paso nuevo o modificado vive en su archivo de `steps/` y usa `inject(PackageBuilderState)`.

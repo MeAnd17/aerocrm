@@ -21,7 +21,7 @@ import { AuthService } from '../../../core/services/auth.service';
           <div class="flex justify-between"><span>🏨 {{ state.hotel()?.name }} ({{ state.hotelNights() }} noches)</span><span class="font-semibold">S/. {{ state.hotelTotal() | number:'1.2-2' }}</span></div>
         }
         @for (act of state.activities(); track act.id) {
-          <div class="flex justify-between"><span>🎯 {{ act.name }}</span><span class="font-semibold">S/. {{ act.price }}</span></div>
+          <div class="flex justify-between"><span>🎯 {{ act.name }} (× {{ state.passengers() }})</span><span class="font-semibold">S/. {{ act.price * state.passengers() | number:'1.2-2' }}</span></div>
         }
         @for (extra of state.extras(); track extra.type) {
           <div class="flex justify-between"><span>➕ {{ extra.label }}</span><span class="font-semibold">S/. {{ extra.price }}</span></div>
@@ -105,7 +105,8 @@ export class StepSummaryComponent {
         checkIn: s.hotelCheckIn(), checkOut: s.hotelCheckOut(),
         nights: s.hotelNights(), priceSnapshot: s.hotelTotal(),
       }] : [],
-      activities: s.activities().map((a) => ({ activityId: a.id, quantity: 1, priceSnapshot: Number(a.price) })),
+      // Las actividades se cobran por pasajero.
+      activities: s.activities().map((a) => ({ activityId: a.id, quantity: s.passengers(), priceSnapshot: Number(a.price) })),
       extras: s.extras().map((e) => ({ type: e.type, price: e.price })),
     };
     this.api.post<any>('bookings', body).subscribe({

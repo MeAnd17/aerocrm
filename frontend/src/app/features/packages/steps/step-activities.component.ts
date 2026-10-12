@@ -21,7 +21,10 @@ import { PackageBuilderState } from '../package-builder.state';
               <p class="font-medium text-sm">{{ act.name }}</p>
               <p class="text-xs text-gray-500">{{ act.type | etiqueta }} · {{ act.durationHours }}h</p>
             </div>
-            <p class="font-bold text-blue-900 text-sm">S/. {{ act.price }}</p>
+            <div class="text-right">
+              <p class="font-bold text-blue-900 text-sm">S/. {{ act.price }}</p>
+              <p class="text-xs text-gray-400">por persona</p>
+            </div>
           </div>
         }
       </div>

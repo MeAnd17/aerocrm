@@ -127,7 +127,8 @@ export class BookingsService {
             })),
           },
           bookingActivities: {
-            create: (dto.activities ?? []).map(a => ({ activityId: a.activityId, quantity: a.quantity, priceSnapshot: a.priceSnapshot })),
+            // priceSnapshot guarda el total de la línea (precio por persona × cantidad), igual que vuelos y hotel.
+            create: (dto.activities ?? []).map(a => ({ activityId: a.activityId, quantity: a.quantity, priceSnapshot: fromCents(toCents(a.priceSnapshot) * a.quantity) })),
           },
           bookingExtras: {
             create: (dto.extras ?? []).map(e => ({ type: e.type, price: e.price, details: e.details })),

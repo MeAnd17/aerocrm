@@ -49,7 +49,7 @@ import { ApiService } from '../../core/services/api.service';
           <div class="bg-white rounded-xl border shadow-sm p-4">
             <h3 class="font-semibold text-gray-800 mb-2">🏨 Hotel</h3>
             <p class="font-bold">{{ bh.hotel.name }}</p>
-            <p class="text-sm text-gray-500">Check-in: {{ bh.checkIn | date:'dd/MM/yyyy' }} · Check-out: {{ bh.checkOut | date:'dd/MM/yyyy' }} · {{ bh.nights }} noches</p>
+            <p class="text-sm text-gray-500">Entrada: {{ bh.checkIn | date:'dd/MM/yyyy':'UTC' }} · Salida: {{ bh.checkOut | date:'dd/MM/yyyy':'UTC' }} · {{ bh.nights }} noches</p>
             <p class="text-sm font-semibold text-blue-900 mt-1">S/. {{ bh.priceSnapshot | number:'1.2-2' }}</p>
           </div>
         }
@@ -60,8 +60,21 @@ import { ApiService } from '../../core/services/api.service';
             <h3 class="font-semibold text-gray-800 mb-2">🎯 Actividades</h3>
             @for (ba of booking().bookingActivities; track ba.id) {
               <div class="flex justify-between py-1.5 border-b last:border-0 text-sm">
-                <span>{{ ba.activity.name }}</span>
+                <span>{{ ba.activity.name }} @if (ba.quantity > 1) { (× {{ ba.quantity }}) }</span>
                 <span class="font-semibold">S/. {{ ba.priceSnapshot | number:'1.2-2' }}</span>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Extras -->
+        @if (booking().bookingExtras?.length) {
+          <div class="bg-white rounded-xl border shadow-sm p-4">
+            <h3 class="font-semibold text-gray-800 mb-2">➕ Extras</h3>
+            @for (be of booking().bookingExtras; track be.id) {
+              <div class="flex justify-between py-1.5 border-b last:border-0 text-sm">
+                <span>{{ be.type | etiqueta }}</span>
+                <span class="font-semibold">S/. {{ be.price | number:'1.2-2' }}</span>
               </div>
             }
           </div>
@@ -73,7 +86,7 @@ import { ApiService } from '../../core/services/api.service';
             <div>
               <p class="font-bold text-blue-900 text-lg">Total pagado</p>
               @if (booking().pointsUsed > 0) {
-                <p class="text-sm text-blue-600">Se canjearon {{ booking().pointsUsed }} puntos</p>
+                <p class="text-sm text-blue-600">Se canjearon {{ booking().pointsUsed }} puntos · descuento S/. {{ booking().discountAmount | number:'1.2-2' }}</p>
               }
               @if (booking().pointsEarned > 0) {
                 <p class="text-sm text-green-600">+{{ booking().pointsEarned }} puntos ganados</p>
