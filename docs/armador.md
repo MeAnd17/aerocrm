@@ -32,9 +32,21 @@ Todo son `signal` y `computed`: en las plantillas se leen como `state.hotel()` y
 
 El estado se guarda solo en el navegador cada vez que cambia (`localStorage`, clave `aerocrm.paquete`). Si el cliente cierra la pestaña o va a iniciar sesión, al volver la barra de navegación muestra **Continuar paquete** y el armador retoma en el mismo paso.
 
-Para convertirlo a texto y restaurarlo a mano: `state.serialize()` y `state.restore(texto)`. El formato lleva `version: 1`; si algún día cambia la forma del paquete, se sube la versión y los borradores viejos se descartan solos.
+Para convertirlo a texto y restaurarlo a mano: `state.serialize()` y `state.restore(texto)`. El formato lleva `version: 2`; si algún día cambia la forma del paquete, se sube la versión y los borradores viejos se descartan solos.
 
 Al confirmar la compra, el estado se limpia.
+
+## Visitantes y dueño del paquete
+
+El armador está abierto sin sesión (modo explorador, M2). En el resumen, un visitante ve **Inicia sesión para confirmar**: inicia sesión o crea su cuenta y vuelve al resumen con su paquete intacto.
+
+Cada paquete guarda su dueño (`ownerId`):
+
+| Situación | Qué pasa con el paquete |
+|---|---|
+| Lo armó un visitante y luego inicia sesión | Pasa a ser de ese usuario |
+| El dueño cierra sesión | Se descarta |
+| Entra un usuario distinto al dueño | Se descarta; nadie ve el paquete de otro |
 
 ## Trabajar en un paso
 

@@ -1,4 +1,5 @@
-import { Injectable, computed, effect, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
+import { AuthService } from '../../core/services/auth.service';
 
 const DRAFT_KEY = 'aerocrm.paquete';
 
@@ -11,7 +12,9 @@ const DRAFT_KEY = 'aerocrm.paquete';
  * es el que calcula el servidor al confirmar (AGENTS.md B6).
  */
 export interface PackageDraft {
-  version: 1;
+  version: 2;
+  /** Usuario dueño del paquete; null si lo armó un visitante. */
+  ownerId: number | null;
   step: number;
   destinationId: number | null;
   flightId: number | null;
@@ -28,6 +31,11 @@ export interface PackageDraft {
 
 @Injectable({ providedIn: 'root' })
 export class PackageBuilderState {
+  private readonly auth = inject(AuthService);
+
+  /** Dueño del paquete en curso: null mientras lo arma un visitante. */
+  readonly ownerId = signal<number | null>(null);
+
   // ── Lo que el cliente elige ─────────────────────────────────────────────────
   readonly step = signal(1);
   readonly destinationId = signal<number | null>(null);
@@ -69,11 +77,37 @@ export class PackageBuilderState {
     // El paquete a medio armar se guarda en el navegador para no perderlo (modo explorador, M2).
     const saved = readDraft();
     if (saved) this.restore(saved);
+    // El paquete pertenece a quien lo armó (ver syncOwner).
+    effect(() => {
+      const userId = this.auth.currentUser()?.id ?? null;
+      untracked(() => this.syncOwner(userId));
+    });
     effect(() => {
       const text = this.serialize();
       if (this.flightId() === null) removeDraft();
       else writeDraft(text);
     });
+  }
+
+  /**
+   * Cambio de sesión con un paquete en curso:
+   * - un visitante inicia sesión → el paquete pasa a ser suyo (modo explorador, M2);
+   * - el dueño cierra sesión → el paquete se descarta;
+   * - entra otro usuario → el paquete del anterior se descarta.
+   */
+  private syncOwner(userId: number | null) {
+    const owner = this.ownerId();
+    if (this.flightId() === null) {
+      this.ownerId.set(userId);
+      return;
+    }
+    if (owner === userId) return;
+    if (owner === null && userId !== null) {
+      this.ownerId.set(userId);
+      return;
+    }
+    this.reset();
+    this.ownerId.set(userId);
   }
 
   // ── Acciones ────────────────────────────────────────────────────────────────
@@ -106,6 +140,7 @@ export class PackageBuilderState {
   /** Empieza un paquete nuevo a partir del vuelo elegido en el buscador. */
   start(params: { destinationId: number; flightId: number; departureDate: string; passengers: number }) {
     this.reset();
+    this.ownerId.set(this.auth.currentUser()?.id ?? null);
     this.destinationId.set(params.destinationId);
     this.flightId.set(params.flightId);
     this.departureDate.set(params.departureDate);
@@ -132,7 +167,8 @@ export class PackageBuilderState {
   // ── Conversión a texto ──────────────────────────────────────────────────────
   toDraft(): PackageDraft {
     return {
-      version: 1,
+      version: 2,
+      ownerId: this.ownerId(),
       step: this.step(),
       destinationId: this.destinationId(),
       flightId: this.flightId(),
@@ -160,7 +196,8 @@ export class PackageBuilderState {
     } catch {
       return false;
     }
-    if (!draft || draft.version !== 1) return false;
+    if (!draft || draft.version !== 2) return false;
+    this.ownerId.set(draft.ownerId ?? null);
     this.step.set(draft.step ?? 1);
     this.destinationId.set(draft.destinationId ?? null);
     this.flightId.set(draft.flightId ?? null);

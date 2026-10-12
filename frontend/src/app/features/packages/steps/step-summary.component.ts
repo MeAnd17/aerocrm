@@ -1,10 +1,11 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { apiErrorMessage } from '../../../core/services/api-error';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
 import { PackageBuilderState } from '../package-builder.state';
+import { AuthService } from '../../../core/services/auth.service';
 
 /** Paso 6 · Resumen, canje de puntos y confirmación. */
 @Component({
@@ -48,10 +49,20 @@ import { PackageBuilderState } from '../package-builder.state';
         <p class="text-red-600 text-sm">{{ error() }}</p>
       }
 
+      @if (!isLoggedIn()) {
+        <p class="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
+          Tu paquete queda guardado. Inicia sesión o crea tu cuenta para confirmarlo; al volver lo encontrarás tal cual.
+        </p>
+        <button (click)="goToLogin()"
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold text-lg transition">
+          Inicia sesión para confirmar
+        </button>
+      } @else {
       <button (click)="confirmBooking()" [disabled]="loading()"
         class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold text-lg transition disabled:opacity-50">
         {{ loading() ? 'Confirmando...' : '✅ Confirmar y pagar S/. ' + (state.usePoints() ? (state.totalPrice() - state.pointsDiscount()) : state.totalPrice() | number:'1.2-2') }}
       </button>
+      }
     </div>
   `,
 })
@@ -59,6 +70,9 @@ export class StepSummaryComponent {
   readonly state = inject(PackageBuilderState);
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
+
+  readonly isLoggedIn = computed(() => this.auth.currentUser() !== null);
 
   readonly loading = signal(false);
   readonly error = signal('');
@@ -71,6 +85,11 @@ export class StepSummaryComponent {
       packageTotal: this.state.totalPrice().toFixed(2),
       pointsToRedeem: this.state.loyalty()?.availablePoints ?? 0,
     }).subscribe({ next: (r) => this.state.redemption.set(r) });
+  }
+
+  /** El visitante inicia sesión y vuelve al resumen; el paquete pasa a ser suyo. */
+  goToLogin() {
+    this.router.navigate(['/login'], { queryParams: { returnUrl: '/packages/new' } });
   }
 
   confirmBooking() {

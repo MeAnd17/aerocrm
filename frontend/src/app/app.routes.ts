@@ -45,9 +45,9 @@ export const routes: Routes = [
     loadComponent: () => import('./features/destinations/destination-detail.component').then(m => m.DestinationDetailComponent),
   },
   {
+    // Abierto a visitantes (modo explorador, M2): la cuenta se pide recién al confirmar.
     path: 'packages/new',
     loadComponent: () => import('./features/packages/package-builder.component').then(m => m.PackageBuilderComponent),
-    canActivate: [authGuard],
   },
   {
     path: 'my-trips',
