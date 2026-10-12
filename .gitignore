@@ -39,3 +39,8 @@ backend/node_modules/.prisma/
 .claude/settings.local.json
 .kiro/
 .opencode/
+
+# Compilados de la carga de arranque (se ejecuta seed.ts con ts-node)
+backend/prisma/*.js
+backend/prisma/*.js.map
+backend/prisma/*.d.ts
