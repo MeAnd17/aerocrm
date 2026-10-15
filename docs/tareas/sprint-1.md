@@ -534,3 +534,16 @@ Acceso: armar es público; confirmar y pagar exige sesión.
 ## Fichas de cierre
 
 Cada tarea terminada agrega aquí su ficha, en el mismo PR, con el formato de [README.md](README.md).
+
+### US-007: Filtrar los hoteles de un destino
+
+git commit -m "feat: agrega filtros de categoría, zona y precio a la lista de hoteles (US-007)"
+
+Creé una lista de hoteles con filtros que se usa igual en el detalle del destino y en el paso 3 del armador, en lugar de las dos listas escritas a mano que había. Se puede filtrar por categoría (varias a la vez), zona y rango de precio por noche, y ordenar por precio o categoría; si nada coincide, avisa "Ningún hotel coincide con esos filtros". Cada hotel muestra imagen si la tiene, nombre, estrellas, zona y precio por noche, y en el armador, con fechas elegidas, el total de la estadía. Ese total es solo informativo: el precio que vale lo calcula el servidor (TS-011). Los filtros se aplican en el navegador sobre los hoteles que ya trae `GET /api/destinations/:id`, así que no se tocó el backend.
+
+Archivos:
+- `frontend/src/app/shared/components/hotel-list/hotel-list.component.ts`: componente nuevo con los filtros, el orden y el estado vacío.
+- `frontend/src/app/features/packages/steps/step-hotel.component.ts`: el paso 3 usa el componente; las fechas y los botones quedan igual.
+- `frontend/src/app/features/destinations/destination-detail.component.ts`: la sección de hoteles usa el componente.
+
+PR: #

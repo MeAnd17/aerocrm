@@ -3,11 +3,12 @@ import { LabelPipe } from '../../shared/pipes/label.pipe';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
+import { HotelListComponent } from '../../shared/components/hotel-list/hotel-list.component';
 
 @Component({
   selector: 'app-destination-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, LabelPipe],
+  imports: [CommonModule, RouterLink, LabelPipe, HotelListComponent],
   template: `
     <div class="space-y-5">
       @if (destination()) {
@@ -38,21 +39,11 @@ import { ApiService } from '../../core/services/api.service';
           </div>
         }
 
-        <!-- Hoteles -->
+        <!-- Hoteles (US-007) -->
         @if (destination().hotels?.length) {
           <div class="bg-white rounded-xl border shadow-sm p-5">
             <h2 class="font-semibold text-gray-800 mb-3">🏨 Hoteles disponibles</h2>
-            <div class="space-y-2">
-              @for (hotel of destination().hotels; track hotel.id) {
-                <div class="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p class="font-medium text-gray-800">{{ hotel.name }}</p>
-                    <p class="text-xs text-gray-500">{{ hotel.zone }} · {{ '⭐'.repeat(hotel.stars) }}</p>
-                  </div>
-                  <p class="font-bold text-blue-900">S/. {{ hotel.pricePerNight }}<span class="text-xs text-gray-400">/noche</span></p>
-                </div>
-              }
-            </div>
+            <app-hotel-list [hotels]="destination().hotels" />
           </div>
         }
 

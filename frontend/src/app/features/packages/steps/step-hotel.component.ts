@@ -2,28 +2,23 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PackageBuilderState } from '../package-builder.state';
+import { HotelListComponent } from '../../../shared/components/hotel-list/hotel-list.component';
 
 /** Paso 3 · Hotel (opcional). */
 @Component({
   selector: 'app-step-hotel',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HotelListComponent],
   template: `
     <div class="bg-white rounded-xl border shadow-sm p-5">
       <h3 class="font-semibold text-gray-800 mb-3">🏨 Elige tu hotel <span class="text-gray-400 font-normal text-sm">(opcional)</span></h3>
-      <div class="space-y-2 mb-3">
-        @for (hotel of state.context()?.hotels; track hotel.id) {
-          <div (click)="state.toggleHotel(hotel)"
-            [class.ring-2]="state.hotel()?.id === hotel.id"
-            [class.ring-blue-500]="state.hotel()?.id === hotel.id"
-            class="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:border-blue-300 transition">
-            <div>
-              <p class="font-medium text-sm">{{ hotel.name }}</p>
-              <p class="text-xs text-gray-500">{{ '⭐'.repeat(hotel.stars) }} · {{ hotel.zone }}</p>
-            </div>
-            <p class="font-bold text-blue-900 text-sm">S/. {{ hotel.pricePerNight }}/noche</p>
-          </div>
-        }
+      <div class="mb-3">
+        <app-hotel-list
+          [hotels]="state.context()?.hotels"
+          [selectable]="true"
+          [selectedId]="state.hotel()?.id ?? null"
+          [nights]="state.hotelNights()"
+          (select)="state.toggleHotel($event)" />
       </div>
       @if (state.hotel()) {
         <div class="flex gap-3">
