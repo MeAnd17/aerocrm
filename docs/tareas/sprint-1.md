@@ -546,4 +546,4 @@ Archivos:
 - `frontend/src/app/features/packages/steps/step-hotel.component.ts`: el paso 3 usa el componente; las fechas y los botones quedan igual.
 - `frontend/src/app/features/destinations/destination-detail.component.ts`: la sección de hoteles usa el componente.
 
-PR: #
+PR: #1
