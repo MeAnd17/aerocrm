@@ -546,4 +546,4 @@ Archivos:
 - `frontend/src/app/features/packages/steps/step-activities.component.ts`: el paso 4 usa el componente; los botones quedan igual.
 - `frontend/src/app/features/destinations/destination-detail.component.ts`: la sección de actividades usa el componente.
 
-PR: #
+PR: #4
