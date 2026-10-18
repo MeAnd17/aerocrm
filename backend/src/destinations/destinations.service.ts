@@ -16,7 +16,21 @@ export class DestinationsService {
       { country: { contains: search, mode: 'insensitive' } },
       { city: { contains: search, mode: 'insensitive' } },
     ];
-    return this.prisma.destination.findMany({ where, orderBy: { name: 'asc' } });
+    const destinations = await this.prisma.destination.findMany({ where, orderBy: { name: 'asc' } });
+
+    // Precio «desde»: el vuelo más barato que llega al destino con plazas disponibles y fecha futura.
+    // Number() sobre el Decimal de Prisma serializa un resultado ya calculado (AGENTS.md B5).
+    const minPrices = await this.prisma.flight.groupBy({
+      by: ['destinationId'],
+      where: { isActive: true, seatsAvailable: { gte: 1 }, departureDate: { gte: new Date() } },
+      _min: { pricePerPerson: true },
+    });
+    const priceMap = new Map(minPrices.map(p => [p.destinationId, p._min.pricePerPerson]));
+
+    return destinations.map(d => ({
+      ...d,
+      priceFrom: priceMap.has(d.id) ? Number(priceMap.get(d.id)) : null,
+    }));
   }
 
   async findOne(id: number) {
@@ -26,7 +40,13 @@ export class DestinationsService {
         hotels: { where: { isActive: true }, orderBy: { stars: 'desc' } },
         activities: { where: { isActive: true }, orderBy: { type: 'asc' } },
         festivities: { where: { isActive: true } },
-        departingFlights: { where: { isActive: true }, orderBy: { pricePerPerson: 'asc' } },
+        // Vuelos que llegan al destino (no los que salen). Los 5 más baratos con plazas y fecha futura.
+        arrivingFlights: {
+          where: { isActive: true, seatsAvailable: { gte: 1 }, departureDate: { gte: new Date() } },
+          orderBy: { pricePerPerson: 'asc' },
+          take: 5,
+          include: { origin: true },
+        },
       },
     });
     if (!destination) throw new NotFoundException('Destino no encontrado');

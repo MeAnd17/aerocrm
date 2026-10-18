@@ -46,3 +46,101 @@ describe('DestinationsService.searchFlights', () => {
     expect(wide.range().lt.getTime()).toBe(requestedMs + 8 * DAY);
   });
 });
+
+describe('DestinationsService.findAll', () => {
+  function setup() {
+    const prisma = {
+      destination: { findMany: jest.fn() },
+      flight: { groupBy: jest.fn() },
+    };
+    const service = new DestinationsService(prisma as unknown as PrismaService, {} as ConfigService);
+    return { service, prisma };
+  }
+
+  it('agrega priceFrom del vuelo más barato que llega al destino', async () => {
+    const { service, prisma } = setup();
+    prisma.destination.findMany.mockResolvedValue([
+      { id: 1, name: 'Cancún', type: 'PLAYA' },
+      { id: 2, name: 'Lima', type: 'CIUDAD' },
+    ]);
+    prisma.flight.groupBy.mockResolvedValue([{ destinationId: 1, _min: { pricePerPerson: 850 } }]);
+    const result = await service.findAll({});
+    expect(result[0].priceFrom).toBe(850);
+    expect(result[1].priceFrom).toBeNull();
+  });
+
+  it('filtra priceFrom por isActive, plazas disponibles y fecha futura', async () => {
+    const { service, prisma } = setup();
+    prisma.destination.findMany.mockResolvedValue([]);
+    prisma.flight.groupBy.mockResolvedValue([]);
+    await service.findAll({});
+    const where = prisma.flight.groupBy.mock.calls[0][0].where;
+    expect(where.isActive).toBe(true);
+    expect(where.seatsAvailable.gte).toBe(1);
+    expect(where.departureDate.gte).toBeInstanceOf(Date);
+    expect(where.departureDate.gte.getTime()).toBeGreaterThanOrEqual(Date.now() - 1000);
+  });
+
+  it('respeta los filtros de type y search en la consulta de destinos', async () => {
+    const { service, prisma } = setup();
+    prisma.destination.findMany.mockResolvedValue([]);
+    prisma.flight.groupBy.mockResolvedValue([]);
+    await service.findAll({ type: 'PLAYA', search: 'cancun' });
+    const where = prisma.destination.findMany.mock.calls[0][0].where;
+    expect(where.type).toBe('PLAYA');
+    expect(where.OR).toHaveLength(3);
+  });
+});
+
+describe('DestinationsService.findOne', () => {
+  function setup() {
+    const prisma = {
+      destination: { findUnique: jest.fn() },
+    };
+    const service = new DestinationsService(prisma as unknown as PrismaService, {} as ConfigService);
+    return { service, prisma };
+  }
+
+  it('incluye arrivingFlights y no departingFlights', async () => {
+    const { service, prisma } = setup();
+    prisma.destination.findUnique.mockResolvedValue({ id: 1, arrivingFlights: [] });
+    await service.findOne(1);
+    const include = prisma.destination.findUnique.mock.calls[0][0].include;
+    expect(include.arrivingFlights).toBeDefined();
+    expect(include.departingFlights).toBeUndefined();
+  });
+
+  it('filtra arrivingFlights por isActive, plazas y fecha futura', async () => {
+    const { service, prisma } = setup();
+    prisma.destination.findUnique.mockResolvedValue({ id: 1, arrivingFlights: [] });
+    await service.findOne(1);
+    const where = prisma.destination.findUnique.mock.calls[0][0].include.arrivingFlights.where;
+    expect(where.isActive).toBe(true);
+    expect(where.seatsAvailable.gte).toBe(1);
+    expect(where.departureDate.gte).toBeInstanceOf(Date);
+    expect(where.departureDate.gte.getTime()).toBeGreaterThanOrEqual(Date.now() - 1000);
+  });
+
+  it('limita a 5 vuelos y los ordena por precio ascendente', async () => {
+    const { service, prisma } = setup();
+    prisma.destination.findUnique.mockResolvedValue({ id: 1, arrivingFlights: [] });
+    await service.findOne(1);
+    const flightQuery = prisma.destination.findUnique.mock.calls[0][0].include.arrivingFlights;
+    expect(flightQuery.take).toBe(5);
+    expect(flightQuery.orderBy.pricePerPerson).toBe('asc');
+  });
+
+  it('incluye el origen en arrivingFlights', async () => {
+    const { service, prisma } = setup();
+    prisma.destination.findUnique.mockResolvedValue({ id: 1, arrivingFlights: [] });
+    await service.findOne(1);
+    const include = prisma.destination.findUnique.mock.calls[0][0].include.arrivingFlights.include;
+    expect(include.origin).toBe(true);
+  });
+
+  it('lanza NotFoundException si el destino no existe', async () => {
+    const { service, prisma } = setup();
+    prisma.destination.findUnique.mockResolvedValue(null);
+    await expect(service.findOne(999)).rejects.toThrow('Destino no encontrado');
+  });
+});

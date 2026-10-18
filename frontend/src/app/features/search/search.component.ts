@@ -1,21 +1,27 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { LabelPipe } from '../../shared/pipes/label.pipe';
 import { DurationPipe } from '../../shared/pipes/duration.pipe';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
+import { ButtonComponent, CardComponent, EmptyStateComponent, FormFieldComponent, InputDirective, LoadingStateComponent } from '../../shared/ui';
 
 @Component({
   selector: 'app-search',
   standalone: true,
-  imports: [CommonModule, FormsModule, LabelPipe, DurationPipe],
+  imports: [CommonModule, FormsModule, RouterLink, LabelPipe, DurationPipe, ButtonComponent, CardComponent, EmptyStateComponent, FormFieldComponent, InputDirective, LoadingStateComponent],
   template: `
     <div class="space-y-6">
-      <div class="bg-gradient-to-r from-blue-900 to-blue-700 rounded-2xl p-6 text-white">
-        <h1 class="text-2xl font-bold mb-1">Busca tu destino</h1>
-        <p class="text-blue-200 text-sm">Encuentra vuelos, hoteles y actividades en un solo lugar</p>
+      <div class="bg-gradient-to-r from-primary-800 to-primary-600 rounded-2xl p-6 text-white">
+        <h1 class="text-2xl font-bold mb-1">{{ isExplore() ? 'Explora destinos' : 'Busca tu destino' }}</h1>
+        <p class="text-primary-100 text-sm">{{ isExplore() ? 'Descubre tu próximo viaje' : 'Encuentra vuelos, hoteles y actividades en un solo lugar' }}</p>
       </div>
+
+      <!-- Catálogo primero en /explore (visita normal); el buscador va primero si viene del armador -->
+      @if (isExplore() && !hasDestinationParam()) {
+        <ng-container [ngTemplateOutlet]="catalogTpl"></ng-container>
+      }
 
       <!-- Formulario de búsqueda -->
       <div class="bg-white rounded-xl shadow-sm border p-5 space-y-4">
@@ -100,33 +106,71 @@ import { ApiService } from '../../core/services/api.service';
         </div>
       }
 
-      <!-- Todos los destinos -->
-      @if (!searched()) {
-        <div>
-          <h2 class="font-semibold text-gray-800 mb-3">Destinos populares</h2>
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            @for (dest of destinations(); track dest.id) {
-              <button (click)="searchForm.destinationId = dest.id"
-                [class.ring-2]="searchForm.destinationId == dest.id"
-                [class.ring-blue-500]="searchForm.destinationId == dest.id"
-                class="bg-white border rounded-xl p-3 text-left hover:border-blue-300 transition">
-                <p class="font-medium text-sm text-gray-800">{{ dest.city }}</p>
-                <p class="text-xs text-gray-500">{{ dest.country }}</p>
-                <span class="text-xs mt-1 inline-block px-2 py-0.5 rounded-full"
-                  [ngClass]="{
-                    'bg-blue-100 text-blue-700': dest.type === 'PLAYA',
-                    'bg-gray-100 text-gray-700': dest.type === 'CIUDAD',
-                    'bg-green-100 text-green-700': dest.type === 'AVENTURA',
-                    'bg-yellow-100 text-yellow-700': dest.type === 'CULTURA'
-                  }">
-                  {{ dest.type | etiqueta }}
-                </span>
-              </button>
-            }
-          </div>
-        </div>
+      <!-- Catálogo después del buscador: /explore con destinationId (viene del armador), o /search sin buscar -->
+      @if (isExplore() && hasDestinationParam()) {
+        <ng-container [ngTemplateOutlet]="catalogTpl"></ng-container>
+      }
+      @if (!isExplore() && !searched()) {
+        <ng-container [ngTemplateOutlet]="catalogTpl"></ng-container>
       }
     </div>
+
+    <!-- Catálogo de destinos con filtros (US-005) -->
+    <ng-template #catalogTpl>
+      <div class="space-y-4">
+        <!-- Filtros -->
+        <div class="flex flex-col sm:flex-row gap-3">
+          <ui-field label="Buscar" class="flex-1">
+            <input uiInput type="text" [(ngModel)]="filterSearch" placeholder="Nombre, país o ciudad" />
+          </ui-field>
+          <ui-field label="Tipo" class="sm:w-48">
+            <select uiInput [(ngModel)]="filterType">
+              <option value="">Todos los tipos</option>
+              <option value="PLAYA">Playa</option>
+              <option value="CIUDAD">Ciudad</option>
+              <option value="AVENTURA">Aventura</option>
+              <option value="CULTURA">Cultura</option>
+            </select>
+          </ui-field>
+        </div>
+
+        @if (destinationsLoading()) {
+          <ui-loading text="Cargando destinos..." />
+        }
+
+        @if (!destinationsLoading() && filteredDestinations().length > 0) {
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            @for (dest of filteredDestinations(); track dest.id) {
+              <a [routerLink]="['/destinations', dest.id]" class="block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition">
+                @if (dest.imageUrl) {
+                  <img [src]="dest.imageUrl" [alt]="dest.name" class="w-full h-32 object-cover" />
+                } @else {
+                  <div class="w-full h-32 bg-primary-100 flex items-center justify-center">
+                    <span class="text-4xl" aria-hidden="true">🏝️</span>
+                  </div>
+                }
+                <div class="p-4">
+                  <h3 class="font-semibold text-slate-800">{{ dest.name }}</h3>
+                  <p class="text-xs text-slate-500">{{ dest.city }}, {{ dest.country }}</p>
+                  <span class="text-xs mt-1 inline-block px-2 py-0.5 rounded-full bg-primary-50 text-primary-700">
+                    {{ dest.type | etiqueta }}
+                  </span>
+                  @if (dest.priceFrom != null) {
+                    <p class="mt-2 text-sm font-bold text-primary-700">Desde S/. {{ dest.priceFrom | number:'1.2-2' }}</p>
+                  } @else {
+                    <p class="mt-2 text-sm text-slate-400">No hay vuelos disponibles</p>
+                  }
+                </div>
+              </a>
+            }
+          </div>
+        }
+
+        @if (!destinationsLoading() && filteredDestinations().length === 0) {
+          <ui-empty-state icon="🔍" title="No encontramos destinos con esos criterios" />
+        }
+      </div>
+    </ng-template>
   `,
 })
 export class SearchComponent implements OnInit {
@@ -134,15 +178,44 @@ export class SearchComponent implements OnInit {
   flights = signal<any[]>([]);
   loading = signal(false);
   searched = signal(false);
+  isExplore = signal(false);
+  hasDestinationParam = signal(false);
+  destinationsLoading = signal(true);
+  filterSearch = signal('');
+  filterType = signal('');
 
   searchForm = { origin: 'LIM', destinationId: '', departureDate: '', passengers: 1 };
   /** No se puede buscar hacia atrás en el tiempo. */
   readonly today = new Date().toISOString().slice(0, 10);
 
-  constructor(private api: ApiService, private router: Router) {}
+  /** Filtra destinos en el frontend por nombre, país, ciudad y tipo (US-005 CA3). */
+  readonly filteredDestinations = computed(() => {
+    const search = this.filterSearch().toLowerCase().trim();
+    const type = this.filterType();
+    return this.destinations().filter(d => {
+      if (type && d.type !== type) return false;
+      if (search) {
+        const haystack = `${d.name} ${d.country} ${d.city}`.toLowerCase();
+        if (!haystack.includes(search)) return false;
+      }
+      return true;
+    });
+  });
+
+  constructor(private api: ApiService, private router: Router, private route: ActivatedRoute) {}
 
   ngOnInit() {
-    this.api.get<any[]>('destinations').subscribe(data => this.destinations.set(data));
+    this.isExplore.set(this.router.url.startsWith('/explore'));
+    const params = this.route.snapshot.queryParams;
+    if (params['destinationId']) {
+      this.hasDestinationParam.set(true);
+      this.searchForm.destinationId = params['destinationId'];
+    }
+    this.destinationsLoading.set(true);
+    this.api.get<any[]>('destinations').subscribe({
+      next: (data) => { this.destinations.set(data); this.destinationsLoading.set(false); },
+      error: () => { this.destinationsLoading.set(false); },
+    });
   }
 
   search() {

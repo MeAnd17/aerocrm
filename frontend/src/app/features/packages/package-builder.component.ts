@@ -1,9 +1,10 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { PackageBuilderState } from './package-builder.state';
+import { ButtonComponent } from '../../shared/ui';
 import { StepFlightComponent } from './steps/step-flight.component';
 import { StepContextComponent } from './steps/step-context.component';
 import { StepHotelComponent } from './steps/step-hotel.component';
@@ -21,6 +22,7 @@ import { StepSummaryComponent } from './steps/step-summary.component';
   imports: [
     CommonModule,
     RouterLink,
+    ButtonComponent,
     StepFlightComponent,
     StepContextComponent,
     StepHotelComponent,
@@ -53,10 +55,14 @@ import { StepSummaryComponent } from './steps/step-summary.component';
       </div>
 
       @if (!state.hasDraft()) {
-        <div class="bg-white rounded-xl border shadow-sm p-6 text-center space-y-3">
-          <p class="text-gray-700 font-medium">Todavía no elegiste un vuelo.</p>
-          <p class="text-sm text-gray-500">El paquete se arma a partir del vuelo: búscalo y pulsa «Seleccionar».</p>
-          <a [routerLink]="searchRoute()" class="inline-block bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-blue-700">Buscar vuelos</a>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 text-center space-y-3">
+          @if (destination()) {
+            <p class="text-slate-700 font-medium">Arma tu viaje a {{ destination().city }}</p>
+          } @else {
+            <p class="text-slate-700 font-medium">Todavía no elegiste un vuelo.</p>
+          }
+          <p class="text-sm text-slate-500">El paquete se arma a partir del vuelo: búscalo y pulsa «Seleccionar».</p>
+          <a [routerLink]="searchRoute()" [queryParams]="searchQueryParams()" uiButton variant="primary">Buscar vuelos</a>
         </div>
       }
 
@@ -81,10 +87,19 @@ export class PackageBuilderComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
+  /** Destino cargado cuando se entra sin vuelo (US-005 CA7). */
+  readonly destination = signal<any>(null);
+
   readonly steps = [
     { n: 1, label: 'Vuelo' }, { n: 2, label: 'Destino' }, { n: 3, label: 'Hotel' },
     { n: 4, label: 'Actividades' }, { n: 5, label: 'Extras' }, { n: 6, label: 'Resumen' },
   ];
+
+  /** Conserva el destino al volver al buscador público (US-005 CA7). */
+  readonly searchQueryParams = computed(() => {
+    const id = this.state.destinationId();
+    return id ? { destinationId: id } : {};
+  });
 
   ngOnInit() {
     if (this.auth.isAuthenticated()) {
@@ -99,6 +114,10 @@ export class PackageBuilderComponent implements OnInit {
         passengers: Number(params['passengers']) || 1,
       });
       this.loadFlightAndContext();
+    } else if (params['destinationId'] && !this.state.hasDraft()) {
+      // Entró desde el detalle del destino sin vuelo todavía (US-005 CA7).
+      this.state.destinationId.set(Number(params['destinationId']));
+      this.loadDestination();
     } else if (this.state.hasDraft()) {
       // Continuar un paquete a medio armar (acceso desde la barra de navegación).
       this.loadFlightAndContext();
@@ -112,6 +131,11 @@ export class PackageBuilderComponent implements OnInit {
 
   back() {
     this.router.navigate([this.searchRoute()]);
+  }
+
+  /** Carga el destino cuando se entra sin vuelo (US-005 CA7). */
+  private loadDestination() {
+    this.api.get<any>(`destinations/${this.state.destinationId()}`).subscribe(d => this.destination.set(d));
   }
 
   private loadFlightAndContext() {

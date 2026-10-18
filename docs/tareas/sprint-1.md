@@ -534,3 +534,18 @@ Acceso: armar es público; confirmar y pagar exige sesión.
 ## Fichas de cierre
 
 Cada tarea terminada agrega aquí su ficha, en el mismo PR, con el formato de [README.md](README.md).
+
+
+### US-005: Explorar destinos sin cuenta - Renzo
+
+git commit -m "feat: completa la exploracion publica de destinos (US-005)"
+
+Completé la exploración pública de destinos. El backend calcula el precio mínimo de los vuelos futuros, activos y con plazas disponibles para cada destino, y muestra los vuelos de llegada ordenados por precio. El frontend permite explorar el catálogo, buscar y filtrar destinos, consultar sus hoteles, actividades y festividades, y comenzar a armar un paquete sin iniciar sesión. El destino seleccionado se conserva al navegar entre el detalle, el armador y el buscador público. Cuando no hay imagen disponible se utiliza una presentación alternativa. Se verificaron 43 pruebas del backend, las compilaciones del backend y frontend, y el recorrido principal de exploración sin autenticación.
+
+Archivos:
+- `backend/src/destinations/destinations.controller.ts`: documentación de los endpoints de destinos.
+- `backend/src/destinations/destinations.service.ts`: precio mínimo y vuelos que llegan al destino.
+- `backend/src/destinations/destinations.service.spec.ts`: pruebas del servicio.
+- `frontend/src/app/features/search/search.component.ts`: catálogo público, filtros, precios y búsqueda de vuelos.
+- `frontend/src/app/features/destinations/destination-detail.component.ts`: detalle público y navegación al armador.
+- `frontend/src/app/features/packages/package-builder.component.ts`: acceso al armador con destino preseleccionado y navegación al buscador público.

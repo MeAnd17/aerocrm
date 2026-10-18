@@ -8,7 +8,10 @@ export class DestinationsController {
   constructor(private destinationsService: DestinationsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Lista destinos activos (no requiere sesión)' })
+  @ApiOperation({
+    summary: 'Lista destinos activos con precio «desde» (no requiere sesión)',
+    description: 'Cada destino incluye priceFrom: el precio del vuelo más barato que llega al destino con plazas disponibles y fecha futura, o null si no hay vuelos disponibles.',
+  })
   @ApiQuery({ name: 'type', required: false, enum: ['PLAYA', 'CIUDAD', 'AVENTURA', 'CULTURA'] })
   @ApiQuery({ name: 'search', required: false, description: 'Texto a buscar en nombre, ciudad o país' })
   findAll(@Query() query: any) {
@@ -16,7 +19,10 @@ export class DestinationsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Detalle del destino con hoteles, actividades y festividades' })
+  @ApiOperation({
+    summary: 'Detalle del destino con hoteles, actividades, festividades y vuelos de llegada',
+    description: 'Incluye arrivingFlights: los 5 vuelos más baratos que llegan al destino con plazas disponibles y fecha futura, ordenados por precio. Si no hay ninguno, el arreglo viene vacío.',
+  })
   @ApiNotFoundResponse({ description: 'Destino no encontrado' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.destinationsService.findOne(id);
