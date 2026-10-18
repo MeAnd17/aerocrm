@@ -3,11 +3,12 @@ import { LabelPipe } from '../../shared/pipes/label.pipe';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
+import { ActivityListComponent } from '../../shared/components/activity-list/activity-list.component';
 
 @Component({
   selector: 'app-destination-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, LabelPipe],
+  imports: [CommonModule, RouterLink, LabelPipe, ActivityListComponent],
   template: `
     <div class="space-y-5">
       @if (destination()) {
@@ -56,19 +57,11 @@ import { ApiService } from '../../core/services/api.service';
           </div>
         }
 
-        <!-- Actividades -->
+        <!-- Actividades (US-008) -->
         @if (destination().activities?.length) {
           <div class="bg-white rounded-xl border shadow-sm p-5">
             <h2 class="font-semibold text-gray-800 mb-3">🎯 Actividades</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              @for (act of destination().activities; track act.id) {
-                <div class="p-3 border rounded-lg">
-                  <p class="font-medium text-sm text-gray-800">{{ act.name }}</p>
-                  <p class="text-xs text-gray-500 mt-0.5">{{ act.type | etiqueta }} · {{ act.durationHours }}h</p>
-                  <p class="text-sm font-bold text-blue-900 mt-1">S/. {{ act.price }}</p>
-                </div>
-              }
-            </div>
+            <app-activity-list [activities]="destination().activities" />
           </div>
         }
 

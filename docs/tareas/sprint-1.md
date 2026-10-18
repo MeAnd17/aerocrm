@@ -534,3 +534,16 @@ Acceso: armar es público; confirmar y pagar exige sesión.
 ## Fichas de cierre
 
 Cada tarea terminada agrega aquí su ficha, en el mismo PR, con el formato de [README.md](README.md).
+
+### US-008: Filtrar las actividades de un destino
+
+git commit -m "feat: agrega filtros de tipo y precio a la lista de actividades (US-008)"
+
+Creé una lista de actividades con filtros que se usa igual en el detalle del destino y en el paso 4 del armador, en lugar de las dos listas escritas a mano que había. Se puede filtrar por tipo de actividad (varios a la vez) y por rango de precio por persona; solo se ofrecen los tipos que el destino realmente tiene, y si nada coincide avisa "No hay actividades de ese tipo en este destino". Cada actividad muestra nombre, tipo, duración y precio por persona, ordenadas de menor a mayor precio. En el armador se pueden marcar varias, como antes. Los filtros se aplican en el navegador sobre las actividades que ya trae `GET /api/destinations/:id`, así que no se tocó el backend.
+
+Archivos:
+- `frontend/src/app/shared/components/activity-list/activity-list.component.ts`: componente nuevo con los filtros y el estado vacío.
+- `frontend/src/app/features/packages/steps/step-activities.component.ts`: el paso 4 usa el componente; los botones quedan igual.
+- `frontend/src/app/features/destinations/destination-detail.component.ts`: la sección de actividades usa el componente.
+
+PR: #
