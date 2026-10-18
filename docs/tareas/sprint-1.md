@@ -546,4 +546,4 @@ Archivos:
 - `backend/src/destinations/destinations.service.spec.ts`: pruebas de festividades que cruzan de año y del clima de un viaje lejano.
 - `frontend/src/app/features/packages/steps/step-context.component.ts`: el paso 2 muestra el rótulo del clima.
 
-PR: #
+PR: #5
