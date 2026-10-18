@@ -3,6 +3,35 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 
+const DAY = 86_400_000;
+/** Días que cubre el pronóstico gratuito de OpenWeatherMap (5 días en bloques de 3 horas). */
+const FORECAST_DAYS = 5;
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+/**
+ * ¿La festividad cae dentro del viaje? (TS-019)
+ * La festividad se guarda como día/mes y puede cruzar de año (ej. 20/12 al 06/01), igual que el viaje.
+ * Se prueba en cada año que toca el viaje, empezando el anterior por si la festividad empezó en diciembre.
+ */
+export function festivityInTrip(
+  f: { startMonth: number; startDay: number; endMonth: number; endDay: number },
+  dep: Date,
+  ret: Date,
+): boolean {
+  const crossesYear = f.endMonth < f.startMonth || (f.endMonth === f.startMonth && f.endDay < f.startDay);
+  for (let year = dep.getUTCFullYear() - 1; year <= ret.getUTCFullYear(); year++) {
+    const start = Date.UTC(year, f.startMonth - 1, f.startDay);
+    const end = Date.UTC(crossesYear ? year + 1 : year, f.endMonth - 1, f.endDay);
+    if (start <= ret.getTime() && end >= dep.getTime()) return true;
+  }
+  return false;
+}
+
+/** ¿El viaje empieza dentro de la ventana que cubre el pronóstico? (TS-019) */
+export function isWithinForecast(dep: Date, now = Date.now()): boolean {
+  return dep.getTime() < now + FORECAST_DAYS * DAY;
+}
+
 @Injectable()
 export class DestinationsService {
   constructor(private prisma: PrismaService, private config: ConfigService) {}
@@ -38,35 +67,43 @@ export class DestinationsService {
     const dep = new Date(departureDate);
     const ret = new Date(returnDate);
 
-    // Festividades que coinciden con las fechas del viaje
-    const matchingFestivities = destination.festivities.filter(f => {
-      const festStart = new Date(dep.getFullYear(), f.startMonth - 1, f.startDay);
-      const festEnd = new Date(dep.getFullYear(), f.endMonth - 1, f.endDay);
-      return festStart <= ret && festEnd >= dep;
-    });
+    // Festividades que coinciden con las fechas del viaje, también si cruzan de año (TS-019).
+    const matchingFestivities = destination.festivities.filter(f => festivityInTrip(f, dep, ret));
 
-    // Clima via OpenWeatherMap
+    // Clima (TS-019): pronóstico real solo si el viaje empieza dentro de la ventana del pronóstico;
+    // si no, el clima promedio del destino en el mes del viaje.
+    const nearTrip = isWithinForecast(dep);
     let weather = null;
-    try {
-      const apiKey = this.config.get('OPENWEATHER_API_KEY');
-      if (apiKey && apiKey !== 'your-openweather-key') {
-        const res = await axios.get(
-          `https://api.openweathermap.org/data/2.5/forecast?q=${destination.city},${destination.countryCode}&appid=${apiKey}&units=metric&lang=es&cnt=5`
-        );
-        weather = {
-          source: 'pronostico',
-          city: res.data.city.name,
-          forecast: res.data.list.slice(0, 3).map((item: any) => ({
-            description: item.weather[0].description,
-            temp_min: Math.round(item.main.temp_min),
-            temp_max: Math.round(item.main.temp_max),
-          })),
-        };
-      }
-    } catch { weather = null; }
+    if (nearTrip) {
+      try {
+        const apiKey = this.config.get('OPENWEATHER_API_KEY');
+        if (apiKey && apiKey !== 'your-openweather-key') {
+          const res = await axios.get(
+            `https://api.openweathermap.org/data/2.5/forecast?q=${destination.city},${destination.countryCode}&appid=${apiKey}&units=metric&lang=es`
+          );
+          // Solo los bloques que caen entre la salida y el regreso, no los de hoy.
+          const items = res.data.list.filter((item: any) => {
+            const t = item.dt * 1000;
+            return t >= dep.getTime() && t < ret.getTime() + DAY;
+          });
+          if (items.length) {
+            weather = {
+              source: 'pronostico',
+              label: 'Pronóstico para tus fechas',
+              city: res.data.city.name,
+              forecast: items.slice(0, 3).map((item: any) => ({
+                description: item.weather[0].description,
+                temp_min: Math.round(item.main.temp_min),
+                temp_max: Math.round(item.main.temp_max),
+              })),
+            };
+          }
+        }
+      } catch { weather = null; }
+    }
 
-    // Respaldo (M7): sin API o si falla, clima promedio del mes guardado en la base.
-    if (!weather) weather = await this.fallbackWeather(destination.id, destination.city, dep);
+    // Viaje lejano, o pronóstico no disponible: clima promedio del mes guardado en la base.
+    if (!weather) weather = await this.fallbackWeather(destination.id, destination.city, dep, nearTrip);
 
     // Feriados via Calendarific
     let holidays = [];
@@ -141,18 +178,24 @@ export class DestinationsService {
         || Number(a.pricePerPerson) - Number(b.pricePerPerson));
   }
 
-  /** Clima promedio del mes de salida, con la misma forma que la respuesta de OpenWeatherMap. */
-  private async fallbackWeather(destinationId: number, city: string, dep: Date) {
+  /**
+   * Clima promedio del mes de salida, con la misma forma que la respuesta de OpenWeatherMap.
+   * Viaje lejano: "Clima promedio de [mes]". Viaje cercano sin pronóstico: además, "Dato referencial".
+   */
+  private async fallbackWeather(destinationId: number, city: string, dep: Date, nearTrip = false) {
+    const month = dep.getUTCMonth() + 1;
     const climate = await this.prisma.destinationClimate.findUnique({
-      where: { destinationId_month: { destinationId, month: dep.getUTCMonth() + 1 } },
+      where: { destinationId_month: { destinationId, month } },
     });
     if (!climate) return null;
+    const label = `Clima promedio de ${MESES[month - 1]}`;
     return {
       source: 'promedio',
+      label: nearTrip ? `Dato referencial · ${label}` : label,
       city,
       forecast: [
         {
-          description: `${climate.summary} (promedio del mes)`,
+          description: climate.summary,
           temp_min: Math.round(Number(climate.minTempC)),
           temp_max: Math.round(Number(climate.maxTempC)),
         },

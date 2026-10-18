@@ -534,3 +534,16 @@ Acceso: armar es público; confirmar y pagar exige sesión.
 ## Fichas de cierre
 
 Cada tarea terminada agrega aquí su ficha, en el mismo PR, con el formato de [README.md](README.md).
+
+### TS-019: Clima esperado y festividades correctas
+
+git commit -m "fix: muestra el clima de las fechas del viaje y las festividades que cruzan de año (TS-019)"
+
+El contexto del destino ya no muestra el pronóstico de esta semana para cualquier viaje. Si el viaje empieza dentro de los cinco días que cubre el pronóstico, se toman solo los bloques entre la salida y el regreso; si es más lejano, o el pronóstico no responde, se muestra el clima promedio del destino en el mes de salida con su mínima, su máxima y la condición, rotulado "Clima promedio de [mes]" (y "Dato referencial" delante cuando el pronóstico debía estar y no llegó). Las festividades se comparan en cada año que toca el viaje y las que terminan en un mes anterior al de inicio se tratan como de fin de año, así que una festividad de diciembre a enero y un viaje que cruza de año coinciden. El regreso del viaje sigue siendo la salida más siete días hasta que el armador tenga vuelo de regreso (US-012). El guardado de respuestas externas con vencimiento queda para TS-013, porque necesita una tabla nueva.
+
+Archivos:
+- `backend/src/destinations/destinations.service.ts`: `festivityInTrip`, `isWithinForecast` y el clima por fechas del viaje en `getContext`.
+- `backend/src/destinations/destinations.service.spec.ts`: pruebas de festividades que cruzan de año y del clima de un viaje lejano.
+- `frontend/src/app/features/packages/steps/step-context.component.ts`: el paso 2 muestra el rótulo del clima.
+
+PR: #

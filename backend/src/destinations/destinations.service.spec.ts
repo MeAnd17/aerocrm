@@ -1,6 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import { DestinationsService } from './destinations.service';
+import { DestinationsService, festivityInTrip, isWithinForecast } from './destinations.service';
 
 describe('DestinationsService.searchFlights', () => {
   const DAY = 86_400_000;
@@ -44,5 +44,60 @@ describe('DestinationsService.searchFlights', () => {
     const wide = setup();
     await wide.service.searchFlights('LIM', 1, requested, 1, 30);
     expect(wide.range().lt.getTime()).toBe(requestedMs + 8 * DAY);
+  });
+});
+
+describe('festivityInTrip (TS-019)', () => {
+  const d = (iso: string) => new Date(`${iso}T00:00:00Z`);
+  const anoNuevo = { startMonth: 12, startDay: 28, endMonth: 1, endDay: 3 };
+
+  it('una festividad que cruza de año coincide con un viaje en diciembre', () => {
+    expect(festivityInTrip(anoNuevo, d('2026-12-29'), d('2026-12-31'))).toBe(true);
+  });
+
+  it('una festividad que cruza de año coincide con un viaje en enero', () => {
+    expect(festivityInTrip(anoNuevo, d('2027-01-02'), d('2027-01-05'))).toBe(true);
+  });
+
+  it('un viaje que cruza de año coincide con una festividad de enero', () => {
+    const reyes = { startMonth: 1, startDay: 6, endMonth: 1, endDay: 6 };
+    expect(festivityInTrip(reyes, d('2026-12-30'), d('2027-01-07'))).toBe(true);
+  });
+
+  it('no coincide si el viaje no toca la festividad', () => {
+    expect(festivityInTrip(anoNuevo, d('2027-02-10'), d('2027-02-17'))).toBe(false);
+  });
+});
+
+describe('DestinationsService.getContext · clima (TS-019)', () => {
+  function setup() {
+    const prisma = {
+      destination: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 1, city: 'Cancún', countryCode: 'MX', festivities: [], hotels: [], activities: [],
+        }),
+      },
+      destinationClimate: {
+        findUnique: jest.fn().mockResolvedValue({ summary: 'Soleado y húmedo', minTempC: 22, maxTempC: 29 }),
+      },
+      holiday: { findMany: jest.fn().mockResolvedValue([]) },
+    };
+    const config = { get: jest.fn().mockReturnValue(undefined) } as unknown as ConfigService;
+    const service = new DestinationsService(prisma as unknown as PrismaService, config);
+    return { service, prisma };
+  }
+
+  it('un viaje lejano muestra el clima promedio del mes del viaje, no el de hoy', async () => {
+    const { service, prisma } = setup();
+    const ctx: any = await service.getContext(1, '2099-12-20', '2099-12-27');
+    expect(prisma.destinationClimate.findUnique.mock.calls[0][0].where.destinationId_month.month).toBe(12);
+    expect(ctx.weather.label).toBe('Clima promedio de diciembre');
+    expect(ctx.weather.forecast[0]).toEqual({ description: 'Soleado y húmedo', temp_min: 22, temp_max: 29 });
+  });
+
+  it('isWithinForecast: solo los viajes que empiezan en los próximos 5 días', () => {
+    const now = Date.parse('2026-10-18T12:00:00Z');
+    expect(isWithinForecast(new Date('2026-10-20T00:00:00Z'), now)).toBe(true);
+    expect(isWithinForecast(new Date('2026-12-20T00:00:00Z'), now)).toBe(false);
   });
 });

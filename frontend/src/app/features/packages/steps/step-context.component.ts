@@ -21,7 +21,10 @@ import { PackageBuilderState } from '../package-builder.state';
         }
       }
       @if (state.context()?.weather) {
-        <p class="text-sm text-gray-600 mt-1">🌤️ {{ state.context()?.weather?.forecast?.[0]?.description }}, {{ state.context()?.weather?.forecast?.[0]?.temp_min }}°C - {{ state.context()?.weather?.forecast?.[0]?.temp_max }}°C</p>
+        <p class="text-sm text-gray-600 mt-1">
+          🌤️ @if (state.context()?.weather?.label) { <span class="font-medium">{{ state.context()?.weather?.label }}:</span> }
+          {{ state.context()?.weather?.forecast?.[0]?.description }}, {{ state.context()?.weather?.forecast?.[0]?.temp_min }}°C - {{ state.context()?.weather?.forecast?.[0]?.temp_max }}°C
+        </p>
       }
     </div>
     <button (click)="state.goTo(3)" class="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition">
