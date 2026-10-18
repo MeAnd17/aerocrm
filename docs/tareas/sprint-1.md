@@ -559,4 +559,4 @@ Base de datos: migración `20261018183235_client_budget_preference` — agrega c
 
 Pendiente: la confirmación de eliminación de viajero usa `confirm()` nativo. Si el equipo prefiere un modal propio de la UI, requiere un componente nuevo en `shared/ui/` (historia separada).
 
-PR: #PENDIENTE
+PR: #3
