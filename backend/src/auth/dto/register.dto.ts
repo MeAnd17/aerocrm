@@ -33,4 +33,8 @@ export class RegisterDto {
   @IsOptional()
   @IsEnum(DestinationType)
   destinationType?: DestinationType;
+
+  @IsOptional()
+  @IsString()
+  budget?: string;
 }

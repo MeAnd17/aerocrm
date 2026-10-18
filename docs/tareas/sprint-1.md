@@ -534,3 +534,29 @@ Acceso: armar es público; confirmar y pagar exige sesión.
 ## Fichas de cierre
 
 Cada tarea terminada agrega aquí su ficha, en el mismo PR, con el formato de [README.md](README.md).
+
+### US-009: Mantener mis datos y mis viajeros frecuentes
+
+git commit -m "feat: completa edicion de perfil y viajeros frecuentes (US-009)"
+
+Implementé la edición completa de perfil y viajeros frecuentes. El cliente puede editar teléfono, nacionalidad, fecha de nacimiento, número de documento y las tres preferencias de viaje (cómo viaja, qué destino prefiere y rango de presupuesto), con todos los campos precargados desde la API. Los viajeros frecuentes se pueden agregar, editar en línea y eliminar; antes de eliminar aparece la confirmación exacta requerida. La validación de documento duplicado vive en el servicio del backend y devuelve el mensaje exacto. El registro también recibió las validaciones de contraseña en el paso 1 (antes de avanzar), el botón «Volver» y la corrección del botón «Omitir», que ahora limpia las preferencias y evita dobles clics. El campo `budget` se persiste en el registro y en el perfil con los mismos valores y etiquetas en ambas pantallas.
+
+Archivos:
+- `frontend/src/app/features/profile/profile.component.ts`: pantalla completa con shared/ui, ToastService, edición inline de viajeros, confirmación de eliminación y carga de valores actuales.
+- `frontend/src/app/features/auth/register/register.component.ts`: validación de contraseña en paso 1, botón «Volver», tercera pregunta de presupuesto y botón «Omitir» corregido.
+- `backend/src/clients/clients.service.ts`: método `updateTraveler` con validación de pertenencia y de documento duplicado; `createTraveler` con validación de duplicado.
+- `backend/src/clients/clients.controller.ts`: endpoint `PATCH /me/travelers/:id` con Swagger.
+- `backend/src/clients/dto/update-traveler.dto.ts`: DTO nuevo para editar viajero.
+- `backend/src/clients/dto/update-client.dto.ts`: agrega `budget` y `@ApiPropertyOptional`.
+- `backend/src/clients/dto/create-traveler.dto.ts`: agrega `@ApiProperty`.
+- `backend/src/clients/clients.service.spec.ts`: 10 pruebas (updateProfile, createTraveler con duplicado, updateTraveler 4 casos, deleteTraveler con aislamiento).
+- `backend/src/auth/auth.service.ts`: pasa `budget` al crear el cliente; corrige `getMe` para leer `budget` de `user.client`.
+- `backend/src/auth/auth.service.spec.ts`: 4 pruebas de registro y getMe con campo `budget`.
+- `backend/src/common/validation.ts`: agrega `budget` a `FIELD_LABELS`.
+- `backend/src/auth/dto/register.dto.ts`: campo `budget` opcional.
+
+Base de datos: migración `20261018183235_client_budget_preference` — agrega columna `budget` (String, nullable) a la tabla `Client`. Los datos de demostración en `seed-data/users.ts` y `seed.ts` ya incluyen `budget`.
+
+Pendiente: la confirmación de eliminación de viajero usa `confirm()` nativo. Si el equipo prefiere un modal propio de la UI, requiere un componente nuevo en `shared/ui/` (historia separada).
+
+PR: #PENDIENTE

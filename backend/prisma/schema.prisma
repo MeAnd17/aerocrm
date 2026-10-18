@@ -39,6 +39,7 @@ model Client {
   // Preferencias opcionales del registro
   travelStyle        TravelStyle?   // SOLO, PAREJA, FAMILIA, GRUPO
   destinationType    DestinationType? // PLAYA, CIUDAD, AVENTURA, CULTURA
+  budget             String?
 
   // Programa de fidelización
   totalPoints        Int       @default(0)

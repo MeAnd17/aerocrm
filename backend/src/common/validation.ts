@@ -30,6 +30,7 @@ const FIELD_LABELS: Record<string, string> = {
   pointsToRedeem: 'puntos a canjear',
   packageTotal: 'total del paquete',
   notes: 'notas',
+  budget: 'presupuesto',
   flights: 'vuelos',
   hotels: 'hoteles',
   activities: 'actividades',

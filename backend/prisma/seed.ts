@@ -144,6 +144,7 @@ async function seedDemoClients(): Promise<Map<string, { userId: number; clientId
       documentNumber: c.documentNumber,
       travelStyle: c.travelStyle,
       destinationType: c.destinationType,
+      budget: c.budget,
     };
     const client = await prisma.client.upsert({
       where: { userId: user.id },

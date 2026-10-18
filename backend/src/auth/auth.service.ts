@@ -60,6 +60,7 @@ export class AuthService {
             dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
             travelStyle: dto.travelStyle ?? null,
             destinationType: dto.destinationType ?? null,
+            budget: dto.budget ?? null,
           },
         },
       },
@@ -99,6 +100,7 @@ export class AuthService {
       completedTrips: user.client?.completedTrips ?? 0,
       travelStyle: user.client?.travelStyle ?? null,
       destinationType: user.client?.destinationType ?? null,
+      budget: user.client?.budget ?? null,
     };
   }
 }

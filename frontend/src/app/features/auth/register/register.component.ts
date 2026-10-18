@@ -42,6 +42,9 @@ import { AuthService } from '../../../core/services/auth.service';
               <input type="password" [(ngModel)]="form.password" name="password" required
                 class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Mín. 8 caracteres, 1 mayúscula, 1 número" />
+              @if (passwordError()) {
+                <p class="mt-1 text-xs text-red-600">{{ passwordError() }}</p>
+              }
             </div>
             <button type="submit"
               class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition">
@@ -79,18 +82,37 @@ import { AuthService } from '../../../core/services/auth.service';
                 }
               </div>
             </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">¿Cuánto sueles gastar por viaje?</label>
+              <div class="grid grid-cols-2 gap-2">
+                @for (option of budgetOptions; track option.value) {
+                  <button type="button" (click)="form.budget = option.value"
+                    [class.ring-2]="form.budget === option.value"
+                    [class.ring-blue-500]="form.budget === option.value"
+                    class="border border-gray-200 rounded-lg py-2.5 text-sm hover:border-blue-400 transition text-center">
+                    {{ option.label }}
+                  </button>
+                }
+              </div>
+            </div>
 
             @if (error()) {
               <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">{{ error() }}</div>
             }
 
             <div class="flex gap-3">
+              <button (click)="step.set(1)" type="button"
+                class="px-4 py-3 rounded-lg border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition">
+                ← Volver
+              </button>
               <button (click)="submit()" [disabled]="loading()"
                 class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50">
                 {{ loading() ? 'Creando cuenta...' : 'Crear cuenta' }}
               </button>
-              <button (click)="submit()" class="text-sm text-gray-400 hover:text-gray-600 px-3">Omitir</button>
             </div>
+            <button (click)="skipAndSubmit()" type="button" [disabled]="loading()" class="w-full text-sm text-gray-400 hover:text-gray-600 text-center disabled:opacity-50">
+              Omitir preferencias y crear cuenta
+            </button>
           </div>
         }
 
@@ -105,8 +127,9 @@ export class RegisterComponent {
   step = signal(1);
   loading = signal(false);
   error = signal('');
+  passwordError = signal('');
 
-  form: any = { firstName: '', lastName: '', email: '', password: '', travelStyle: null, destinationType: null };
+  form: any = { firstName: '', lastName: '', email: '', password: '', travelStyle: null, destinationType: null, budget: null };
 
   travelOptions = [
     { value: 'SOLO', label: '🧍 Solo' },
@@ -122,14 +145,36 @@ export class RegisterComponent {
     { value: 'CULTURA', label: '🏛️ Cultura' },
   ];
 
+  budgetOptions = [
+    { value: '500', label: 'Menos de S/ 500' },
+    { value: '1500', label: 'S/ 500 – S/ 1500' },
+    { value: '3000', label: 'S/ 1500 – S/ 3000' },
+    { value: '5000', label: 'Más de S/ 3000' },
+  ];
+
   constructor(private auth: AuthService, private router: Router, private route: ActivatedRoute) {}
+
+  /** Mismos requisitos que el backend (auth.service.ts). */
+  private validatePassword(pw: string): string {
+    if (!pw || pw.length < 8) return 'La contraseña debe tener al menos 8 caracteres, una mayúscula y un número';
+    if (!/[A-Z]/.test(pw)) return 'La contraseña debe tener al menos una mayúscula';
+    if (!/[0-9]/.test(pw)) return 'La contraseña debe tener al menos un número';
+    return '';
+  }
 
   nextStep() {
     if (!this.form.firstName || !this.form.lastName || !this.form.email || !this.form.password) return;
+    const pwErr = this.validatePassword(this.form.password);
+    if (pwErr) {
+      this.passwordError.set(pwErr);
+      return;
+    }
+    this.passwordError.set('');
     this.step.set(2);
   }
 
   submit() {
+    if (this.loading()) return;   // evita doble clic
     this.loading.set(true);
     this.error.set('');
     this.auth.register(this.form).subscribe({
@@ -139,5 +184,13 @@ export class RegisterComponent {
         this.loading.set(false);
       },
     });
+  }
+
+  /** Descarta las preferencias opcionales y registra. */
+  skipAndSubmit() {
+    this.form.travelStyle = null;
+    this.form.destinationType = null;
+    this.form.budget = null;
+    this.submit();
   }
 }

@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiNotFoundResponse, ApiOperation, ApiTags, ApiUnauthori
 import { ClientsService } from './clients.service';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { CreateTravelerDto } from './dto/create-traveler.dto';
+import { UpdateTravelerDto } from './dto/update-traveler.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Clientes')
@@ -42,6 +43,13 @@ export class ClientsController {
   @ApiOperation({ summary: 'Guarda un viajero frecuente' })
   createTraveler(@Request() req, @Body() dto: CreateTravelerDto) {
     return this.clientsService.createTraveler(req.user.sub, dto);
+  }
+
+  @Patch('me/travelers/:id')
+  @ApiOperation({ summary: 'Actualiza un viajero frecuente' })
+  @ApiNotFoundResponse({ description: 'Viajero no encontrado' })
+  updateTraveler(@Request() req, @Param('id', ParseIntPipe) id: number, @Body() dto: UpdateTravelerDto) {
+    return this.clientsService.updateTraveler(req.user.sub, id, dto);
   }
 
   @Delete('me/travelers/:id')

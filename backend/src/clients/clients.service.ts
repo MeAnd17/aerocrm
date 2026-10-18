@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { CreateTravelerDto } from './dto/create-traveler.dto';
+import { UpdateTravelerDto } from './dto/update-traveler.dto';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 
 @Injectable()
@@ -115,9 +116,40 @@ export class ClientsService {
   async createTraveler(userId: number, dto: CreateTravelerDto) {
     const user = await this.prisma.user.findUnique({ where: { id: userId }, include: { client: true } });
     if (!user?.client) throw new NotFoundException('Perfil no encontrado');
+
+    // CA3: documento duplicado entre los viajeros de este cliente
+    const duplicate = await this.prisma.traveler.findFirst({
+      where: { clientId: user.client.id, documentNumber: dto.documentNumber },
+    });
+    if (duplicate) throw new BadRequestException('Ya tienes un viajero con ese documento');
+
     return this.prisma.traveler.create({
       data: { ...dto, dateOfBirth: new Date(dto.dateOfBirth), clientId: user.client.id },
     });
+  }
+
+  async updateTraveler(userId: number, travelerId: number, dto: UpdateTravelerDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, include: { client: true } });
+    if (!user?.client) throw new NotFoundException('Perfil no encontrado');
+
+    // CA6: el viajero debe pertenecer al cliente autenticado
+    const traveler = await this.prisma.traveler.findFirst({
+      where: { id: travelerId, clientId: user.client.id },
+    });
+    if (!traveler) throw new NotFoundException('Viajero no encontrado');
+
+    // CA3: documento duplicado (excluye al propio viajero)
+    if (dto.documentNumber && dto.documentNumber !== traveler.documentNumber) {
+      const duplicate = await this.prisma.traveler.findFirst({
+        where: { clientId: user.client.id, documentNumber: dto.documentNumber, NOT: { id: travelerId } },
+      });
+      if (duplicate) throw new BadRequestException('Ya tienes un viajero con ese documento');
+    }
+
+    const data: any = { ...dto };
+    if (dto.dateOfBirth) data.dateOfBirth = new Date(dto.dateOfBirth);
+
+    return this.prisma.traveler.update({ where: { id: travelerId }, data });
   }
 
   async deleteTraveler(userId: number, travelerId: number) {
