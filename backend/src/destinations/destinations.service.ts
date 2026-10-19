@@ -6,6 +6,8 @@ import axios from 'axios';
 const DAY = 86_400_000;
 /** Días que cubre el pronóstico gratuito de OpenWeatherMap (5 días en bloques de 3 horas). */
 const FORECAST_DAYS = 5;
+/** Lo que se usa de cada bloque del pronóstico de OpenWeatherMap. */
+type ForecastItem = { dt: number; weather: { description: string }[]; main: { temp_min: number; temp_max: number } };
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
 /**
@@ -82,7 +84,8 @@ export class DestinationsService {
             `https://api.openweathermap.org/data/2.5/forecast?q=${destination.city},${destination.countryCode}&appid=${apiKey}&units=metric&lang=es`
           );
           // Solo los bloques que caen entre la salida y el regreso, no los de hoy.
-          const items = res.data.list.filter((item: any) => {
+          const list: ForecastItem[] = res.data.list;
+          const items = list.filter((item) => {
             const t = item.dt * 1000;
             return t >= dep.getTime() && t < ret.getTime() + DAY;
           });
@@ -91,7 +94,7 @@ export class DestinationsService {
               source: 'pronostico',
               label: 'Pronóstico para tus fechas',
               city: res.data.city.name,
-              forecast: items.slice(0, 3).map((item: any) => ({
+              forecast: items.slice(0, 3).map((item) => ({
                 description: item.weather[0].description,
                 temp_min: Math.round(item.main.temp_min),
                 temp_max: Math.round(item.main.temp_max),

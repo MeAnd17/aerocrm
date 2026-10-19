@@ -89,10 +89,10 @@ describe('DestinationsService.getContext · clima (TS-019)', () => {
 
   it('un viaje lejano muestra el clima promedio del mes del viaje, no el de hoy', async () => {
     const { service, prisma } = setup();
-    const ctx: any = await service.getContext(1, '2099-12-20', '2099-12-27');
+    const ctx = await service.getContext(1, '2099-12-20', '2099-12-27');
     expect(prisma.destinationClimate.findUnique.mock.calls[0][0].where.destinationId_month.month).toBe(12);
-    expect(ctx.weather.label).toBe('Clima promedio de diciembre');
-    expect(ctx.weather.forecast[0]).toEqual({ description: 'Soleado y húmedo', temp_min: 22, temp_max: 29 });
+    expect(ctx.weather?.label).toBe('Clima promedio de diciembre');
+    expect(ctx.weather?.forecast[0]).toEqual({ description: 'Soleado y húmedo', temp_min: 22, temp_max: 29 });
   });
 
   it('isWithinForecast: solo los viajes que empiezan en los próximos 5 días', () => {
