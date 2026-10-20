@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-profile',
@@ -42,7 +43,6 @@ import { AuthService } from '../../core/services/auth.service';
             class="mt-4 bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50">
             {{ saving() ? 'Guardando...' : 'Guardar cambios' }}
           </button>
-          @if (saved()) { <span class="ml-3 text-green-600 text-sm">✓ Guardado</span> }
         </div>
 
         <!-- Preferencias -->
@@ -127,7 +127,6 @@ export class ProfileComponent implements OnInit {
   profile = signal<any>(null);
   travelers = signal<any[]>([]);
   saving = signal(false);
-  saved = signal(false);
   showAddTraveler = signal(false);
   editForm: any = {};
   newTraveler: any = {};
@@ -141,7 +140,7 @@ export class ProfileComponent implements OnInit {
     { value: 'AVENTURA', label: '🏔️ Aventura' }, { value: 'CULTURA', label: '🏛️ Cultura' },
   ];
 
-  constructor(private api: ApiService, public auth: AuthService) {}
+  constructor(private api: ApiService, public auth: AuthService, private toast: ToastService) {}
 
   ngOnInit() {
     this.api.get<any>('clients/me').subscribe(p => {
@@ -154,7 +153,7 @@ export class ProfileComponent implements OnInit {
   saveProfile() {
     this.saving.set(true);
     this.api.patch<any>('clients/me', this.editForm).subscribe({
-      next: () => { this.saving.set(false); this.saved.set(true); setTimeout(() => this.saved.set(false), 3000); },
+      next: () => { this.saving.set(false); this.toast.success('Datos actualizados'); },
       error: () => this.saving.set(false),
     });
   }
@@ -168,8 +167,13 @@ export class ProfileComponent implements OnInit {
   }
 
   deleteTraveler(id: number) {
-    this.api.delete(`clients/me/travelers/${id}`).subscribe(() => {
-      this.travelers.update(list => list.filter(t => t.id !== id));
+    const traveler = this.travelers().find(t => t.id === id);
+    if (!traveler) return;
+    const confirmed = confirm(`¿Eliminar a ${traveler.firstName} ${traveler.lastName} de tus viajeros?`);
+    if (!confirmed) return;
+    this.api.delete(`clients/me/travelers/${id}`).subscribe({
+      next: () => this.travelers.update(list => list.filter(t => t.id !== id)),
+      error: () => this.toast.error('No se pudo eliminar el viajero'),
     });
   }
 }

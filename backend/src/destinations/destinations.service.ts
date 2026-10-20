@@ -26,7 +26,7 @@ export class DestinationsService {
         hotels: { where: { isActive: true }, orderBy: { stars: 'desc' } },
         activities: { where: { isActive: true }, orderBy: { type: 'asc' } },
         festivities: { where: { isActive: true } },
-        departingFlights: { where: { isActive: true }, orderBy: { pricePerPerson: 'asc' } },
+        arrivingFlights: { where: { isActive: true }, orderBy: { pricePerPerson: 'asc' } },
       },
     });
     if (!destination) throw new NotFoundException('Destino no encontrado');

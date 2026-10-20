@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { CreateTravelerDto } from './dto/create-traveler.dto';
@@ -115,6 +115,10 @@ export class ClientsService {
   async createTraveler(userId: number, dto: CreateTravelerDto) {
     const user = await this.prisma.user.findUnique({ where: { id: userId }, include: { client: true } });
     if (!user?.client) throw new NotFoundException('Perfil no encontrado');
+    const existing = await this.prisma.traveler.findFirst({
+      where: { clientId: user.client.id, documentNumber: dto.documentNumber },
+    });
+    if (existing) throw new BadRequestException('Ya tienes un viajero con ese documento');
     return this.prisma.traveler.create({
       data: { ...dto, dateOfBirth: new Date(dto.dateOfBirth), clientId: user.client.id },
     });
