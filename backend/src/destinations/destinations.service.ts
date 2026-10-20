@@ -16,7 +16,18 @@ export class DestinationsService {
       { country: { contains: search, mode: 'insensitive' } },
       { city: { contains: search, mode: 'insensitive' } },
     ];
-    return this.prisma.destination.findMany({ where, orderBy: { name: 'asc' } });
+    const destinations = await this.prisma.destination.findMany({ where, orderBy: { name: 'asc' } });
+    const withFromPrice = await Promise.all(
+      destinations.map(async (dest) => {
+        const cheapestFlight = await this.prisma.flight.findFirst({
+          where: { destinationId: dest.id, isActive: true },
+          orderBy: { pricePerPerson: 'asc' },
+          select: { pricePerPerson: true },
+        });
+        return { ...dest, fromPrice: cheapestFlight ? Number(cheapestFlight.pricePerPerson) : null };
+      }),
+    );
+    return withFromPrice;
   }
 
   async findOne(id: number) {

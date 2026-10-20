@@ -1,13 +1,13 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { LabelPipe } from '../../shared/pipes/label.pipe';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 
 @Component({
   selector: 'app-destination-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, LabelPipe],
+  imports: [CommonModule, LabelPipe],
   template: `
     <div class="space-y-5">
       @if (destination()) {
@@ -72,9 +72,12 @@ import { ApiService } from '../../core/services/api.service';
           </div>
         }
 
-        <a routerLink="/search" class="block text-center bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition">
-          Buscar vuelos a {{ destination().city }} →
-        </a>
+        <button
+          (click)="goToBuilder()"
+          class="block w-full text-center bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition"
+        >
+          Armar mi viaje a {{ destination().city }} →
+        </button>
       }
     </div>
   `,
@@ -82,10 +85,15 @@ import { ApiService } from '../../core/services/api.service';
 export class DestinationDetailComponent implements OnInit {
   destination = signal<any>(null);
 
-  constructor(private api: ApiService, private route: ActivatedRoute) {}
+  constructor(private api: ApiService, private route: ActivatedRoute, private router: Router) {}
 
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
     this.api.get<any>(`destinations/${id}`).subscribe(data => this.destination.set(data));
+  }
+
+  goToBuilder() {
+    const id = this.destination()?.id;
+    this.router.navigate(['/packages/new'], { queryParams: { destinationId: id } });
   }
 }
