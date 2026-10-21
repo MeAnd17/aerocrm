@@ -22,6 +22,7 @@ const FIELD_LABELS: Record<string, string> = {
   documentNumber: 'número de documento',
   travelStyle: 'forma de viajar',
   destinationType: 'tipo de destino',
+  spendingRange: 'rango de gasto',
   relation: 'parentesco',
   name: 'nombre',
   subject: 'asunto',
