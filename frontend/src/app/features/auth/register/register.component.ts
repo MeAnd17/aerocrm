@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { safeReturnUrl } from '../../../core/guards/auth.guard';
 import { apiErrorMessage } from '../../../core/services/api-error';
 import { CommonModule } from '@angular/common';
@@ -42,8 +42,8 @@ import { AuthService } from '../../../core/services/auth.service';
               <input type="password" [(ngModel)]="form.password" name="password" required
                 class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Mín. 8 caracteres, 1 mayúscula, 1 número" />
-              @if (passwordError()) {
-                <p class="text-red-600 text-xs mt-1">{{ passwordError() }}</p>
+              @if (form.password && passwordIsWeak()) {
+                <p class="text-red-600 text-xs mt-1">La contraseña debe tener al menos 8 caracteres, una mayúscula y un número</p>
               }
             </div>
             <div>
@@ -151,7 +151,6 @@ export class RegisterComponent {
   step = signal(1);
   loading = signal(false);
   error = signal('');
-  passwordError = signal('');
 
   form: any = {
     firstName: '',
@@ -198,16 +197,8 @@ export class RegisterComponent {
   }
 
   nextStep() {
-    this.passwordError.set('');
     if (!this.form.firstName || !this.form.lastName || !this.form.email || !this.form.password) return;
-    const pwOk =
-      this.form.password.length >= 8 &&
-      /[A-Z]/.test(this.form.password) &&
-      /[0-9]/.test(this.form.password);
-    if (!pwOk) {
-      this.passwordError.set('La contraseña debe tener al menos 8 caracteres, una mayúscula y un número');
-      return;
-    }
+    if (this.passwordIsWeak()) return;
     if (this.form.password !== this.form.confirmPassword) return;
     this.step.set(2);
   }
