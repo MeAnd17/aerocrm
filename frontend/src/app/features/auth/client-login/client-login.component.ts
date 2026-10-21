@@ -112,8 +112,7 @@ export class ClientLoginComponent {
     this.loading.set(true); this.errorMsg.set('');
     this.auth.login(this.email, this.password).subscribe({
       next: (res) => {
-        if (res.userType === 'STAFF') { this.loading.set(false); this.errorMsg.set('Esta cuenta es del personal. Por favor usa el portal de Operaciones.'); return; }
-        this.router.navigate(['/client']);
+        this.router.navigate(res.user.role === 'ADMIN' ? ['/admin'] : ['/home']);
       },
       error: (err) => { this.loading.set(false); this.errorMsg.set(err?.error?.message || 'Correo o contraseña incorrectos'); },
     });

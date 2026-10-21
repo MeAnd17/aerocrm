@@ -54,6 +54,27 @@ export class AuthService {
     }
   }
 
+  /** Alias para compatibilidad con componentes heredados */
+  registerClient(data: any) {
+    return this.register(data);
+  }
+
+  changePassword(currentPassword: string, newPassword: string) {
+    return this.http.patch(
+      `${environment.apiUrl}/auth/change-password`,
+      { currentPassword, newPassword }
+    );
+  }
+
+  /**
+   * Compatibilidad con código heredado que usaba permisos granulares.
+   * El sistema ahora usa roles (ADMIN / CLIENT); esta función siempre devuelve
+   * true para no bloquear navegación mientras se migran los componentes del panel.
+   */
+  hasPermission(_permission: string): boolean {
+    return this.isAuthenticated();
+  }
+
   getToken(): string | null { return localStorage.getItem(this.TOKEN_KEY); }
 
   isAuthenticated(): boolean {
