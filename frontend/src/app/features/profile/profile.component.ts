@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
+import { apiErrorMessage } from '../../core/services/api-error';
 
 @Component({
   selector: 'app-profile',
@@ -159,10 +160,13 @@ export class ProfileComponent implements OnInit {
   }
 
   addTraveler() {
-    this.api.post<any>('clients/me/travelers', this.newTraveler).subscribe(t => {
-      this.travelers.update(list => [...list, t]);
-      this.newTraveler = {};
-      this.showAddTraveler.set(false);
+    this.api.post<any>('clients/me/travelers', this.newTraveler).subscribe({
+      next: (t) => {
+        this.travelers.update(list => [...list, t]);
+        this.newTraveler = {};
+        this.showAddTraveler.set(false);
+      },
+      error: (err) => this.toast.error(apiErrorMessage(err, 'No se pudo guardar el viajero')),
     });
   }
 

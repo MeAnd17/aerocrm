@@ -2,6 +2,8 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
+import { ToastService } from '../../core/services/toast.service';
+import { apiErrorMessage } from '../../core/services/api-error';
 import { LabelPipe } from '../../shared/pipes/label.pipe';
 import { EmptyStateComponent, LoadingStateComponent } from '../../shared/ui/index';
 
@@ -140,7 +142,7 @@ export class DestinationsListComponent implements OnInit {
     });
   });
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private toast: ToastService) {}
 
   onSearchInput(event: Event) {
     this.searchText.set((event.target as HTMLInputElement).value);
@@ -153,8 +155,9 @@ export class DestinationsListComponent implements OnInit {
         this.destinations.set(data);
         this.loading.set(false);
       },
-      error: () => {
+      error: (err) => {
         this.loading.set(false);
+        this.toast.error(apiErrorMessage(err, 'No pudimos cargar los destinos'));
       },
     });
   }

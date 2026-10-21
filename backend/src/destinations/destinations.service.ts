@@ -49,11 +49,18 @@ export class DestinationsService {
     const dep = new Date(departureDate);
     const ret = new Date(returnDate);
 
-    // Festividades que coinciden con las fechas del viaje
+    // Festividades que coinciden con las fechas del viaje.
+    // Iteramos el rango de años del viaje para que festividades que cruzan de año
+    // (ej. 24 dic → 6 ene) coincidan correctamente con viajes dic → ene.
     const matchingFestivities = destination.festivities.filter(f => {
-      const festStart = new Date(dep.getFullYear(), f.startMonth - 1, f.startDay);
-      const festEnd = new Date(dep.getFullYear(), f.endMonth - 1, f.endDay);
-      return festStart <= ret && festEnd >= dep;
+      for (let year = dep.getUTCFullYear(); year <= ret.getUTCFullYear(); year++) {
+        const festStart = new Date(Date.UTC(year, f.startMonth - 1, f.startDay));
+        // Si la festividad cruza de año (endMonth < startMonth), el final cae en el año siguiente.
+        const endYear = f.endMonth < f.startMonth ? year + 1 : year;
+        const festEnd = new Date(Date.UTC(endYear, f.endMonth - 1, f.endDay));
+        if (festStart <= ret && festEnd >= dep) return true;
+      }
+      return false;
     });
 
     // Clima via OpenWeatherMap
