@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ToastService } from '../../core/services/toast.service';
+import { apiErrorMessage } from '../../core/services/api-error';
 
 @Component({
   selector: 'app-profile',
@@ -42,7 +44,6 @@ import { AuthService } from '../../core/services/auth.service';
             class="mt-4 bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50">
             {{ saving() ? 'Guardando...' : 'Guardar cambios' }}
           </button>
-          @if (saved()) { <span class="ml-3 text-green-600 text-sm">✓ Guardado</span> }
         </div>
 
         <!-- Preferencias -->
@@ -78,20 +79,72 @@ import { AuthService } from '../../core/services/auth.service';
         <div class="bg-white rounded-xl border shadow-sm p-5">
           <div class="flex items-center justify-between mb-3">
             <h2 class="font-semibold text-gray-800">Viajeros frecuentes</h2>
-            <button (click)="showAddTraveler.set(!showAddTraveler())" class="text-sm text-blue-600 hover:underline">+ Agregar</button>
+            <button (click)="openAddTraveler()" class="text-sm text-blue-600 hover:underline">+ Agregar</button>
           </div>
           @if (travelers().length === 0) {
             <p class="text-sm text-gray-400">No tienes viajeros guardados aún.</p>
           }
           @for (t of travelers(); track t.id) {
-            <div class="flex items-center justify-between py-2 border-b last:border-0">
-              <div>
-                <p class="text-sm font-medium">{{ t.firstName }} {{ t.lastName }}</p>
-                <p class="text-xs text-gray-500">{{ t.relation }} · Doc: {{ t.documentNumber }}</p>
-              </div>
-              <button (click)="deleteTraveler(t.id)" class="text-red-400 hover:text-red-600 text-xs">Eliminar</button>
+            <div class="border-b last:border-0">
+              <!-- Normal row -->
+              @if (editingTravelerId() !== t.id && deletingTravelerId() !== t.id) {
+                <div class="flex items-center justify-between py-2">
+                  <div>
+                    <p class="text-sm font-medium">{{ t.firstName }} {{ t.lastName }}</p>
+                    <p class="text-xs text-gray-500">{{ t.relation }} · Doc: {{ t.documentNumber }}</p>
+                  </div>
+                  <div class="flex gap-3">
+                    <button (click)="startEditTraveler(t)" class="text-blue-500 hover:text-blue-700 text-xs">Editar</button>
+                    <button (click)="startDeleteTraveler(t.id)" class="text-red-400 hover:text-red-600 text-xs">Eliminar</button>
+                  </div>
+                </div>
+              }
+              <!-- Inline delete confirmation -->
+              @if (deletingTravelerId() === t.id) {
+                <div class="flex items-center justify-between py-2 bg-red-50 rounded-lg px-3 my-1">
+                  <p class="text-sm text-gray-700">¿Eliminar a {{ t.firstName }} {{ t.lastName }} de tus viajeros?</p>
+                  <div class="flex gap-2 ml-3 shrink-0">
+                    <button (click)="confirmDeleteTraveler(t.id)"
+                      class="bg-red-600 text-white px-3 py-1 rounded text-xs font-medium hover:bg-red-700 transition">
+                      Eliminar
+                    </button>
+                    <button (click)="cancelDeleteTraveler()"
+                      class="border border-gray-300 text-gray-600 px-3 py-1 rounded text-xs hover:bg-gray-100 transition">
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              }
+              <!-- Inline edit form -->
+              @if (editingTravelerId() === t.id) {
+                <div class="py-3 space-y-2">
+                  <div class="grid grid-cols-2 gap-2">
+                    <input type="text" [(ngModel)]="editTravelerForm.firstName" placeholder="Nombre"
+                      class="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                    <input type="text" [(ngModel)]="editTravelerForm.lastName" placeholder="Apellido"
+                      class="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                    <input type="text" [(ngModel)]="editTravelerForm.documentNumber" placeholder="Documento"
+                      class="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                    <input type="date" [(ngModel)]="editTravelerForm.dateOfBirth"
+                      class="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                    <input type="text" [(ngModel)]="editTravelerForm.relation" placeholder="Relación (pareja, hijo...)"
+                      class="border rounded px-3 py-2 text-sm col-span-2 focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                  </div>
+                  <div class="flex gap-2">
+                    <button (click)="saveEditTraveler(t.id)"
+                      class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition">
+                      Guardar
+                    </button>
+                    <button (click)="cancelEditTraveler()"
+                      class="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-100 transition">
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              }
             </div>
           }
+          <!-- Add traveler form -->
           @if (showAddTraveler()) {
             <div class="mt-3 space-y-2 border-t pt-3">
               <div class="grid grid-cols-2 gap-2">
@@ -106,10 +159,16 @@ import { AuthService } from '../../core/services/auth.service';
                 <input type="text" [(ngModel)]="newTraveler.relation" placeholder="Relación (pareja, hijo...)"
                   class="border rounded px-3 py-2 text-sm col-span-2 focus:outline-none focus:ring-1 focus:ring-blue-400" />
               </div>
-              <button (click)="addTraveler()"
-                class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition">
-                Guardar viajero
-              </button>
+              <div class="flex gap-2">
+                <button (click)="addTraveler()"
+                  class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition">
+                  Guardar viajero
+                </button>
+                <button (click)="showAddTraveler.set(false)"
+                  class="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-100 transition">
+                  Cancelar
+                </button>
+              </div>
             </div>
           }
         </div>
@@ -127,10 +186,12 @@ export class ProfileComponent implements OnInit {
   profile = signal<any>(null);
   travelers = signal<any[]>([]);
   saving = signal(false);
-  saved = signal(false);
   showAddTraveler = signal(false);
+  editingTravelerId = signal<number | null>(null);
+  deletingTravelerId = signal<number | null>(null);
   editForm: any = {};
   newTraveler: any = {};
+  editTravelerForm: any = {};
 
   travelOptions = [
     { value: 'SOLO', label: '🧍 Solo' }, { value: 'PAREJA', label: '👫 Pareja' },
@@ -141,7 +202,7 @@ export class ProfileComponent implements OnInit {
     { value: 'AVENTURA', label: '🏔️ Aventura' }, { value: 'CULTURA', label: '🏛️ Cultura' },
   ];
 
-  constructor(private api: ApiService, public auth: AuthService) {}
+  constructor(private api: ApiService, public auth: AuthService, private toast: ToastService) {}
 
   ngOnInit() {
     this.api.get<any>('clients/me').subscribe(p => {
@@ -154,22 +215,69 @@ export class ProfileComponent implements OnInit {
   saveProfile() {
     this.saving.set(true);
     this.api.patch<any>('clients/me', this.editForm).subscribe({
-      next: () => { this.saving.set(false); this.saved.set(true); setTimeout(() => this.saved.set(false), 3000); },
+      next: () => { this.saving.set(false); this.toast.success('Datos actualizados'); },
       error: () => this.saving.set(false),
     });
   }
 
+  openAddTraveler() {
+    this.showAddTraveler.set(true);
+    this.cancelEditTraveler();
+    this.cancelDeleteTraveler();
+  }
+
   addTraveler() {
-    this.api.post<any>('clients/me/travelers', this.newTraveler).subscribe(t => {
-      this.travelers.update(list => [...list, t]);
-      this.newTraveler = {};
-      this.showAddTraveler.set(false);
+    this.api.post<any>('clients/me/travelers', this.newTraveler).subscribe({
+      next: (t) => {
+        this.travelers.update(list => [...list, t]);
+        this.newTraveler = {};
+        this.showAddTraveler.set(false);
+      },
+      error: (err) => this.toast.error(apiErrorMessage(err, 'No se pudo guardar el viajero')),
     });
   }
 
-  deleteTraveler(id: number) {
-    this.api.delete(`clients/me/travelers/${id}`).subscribe(() => {
-      this.travelers.update(list => list.filter(t => t.id !== id));
+  startEditTraveler(t: any) {
+    this.cancelDeleteTraveler();
+    this.showAddTraveler.set(false);
+    this.editingTravelerId.set(t.id);
+    const dob = t.dateOfBirth ? new Date(t.dateOfBirth).toISOString().split('T')[0] : '';
+    this.editTravelerForm = { firstName: t.firstName, lastName: t.lastName, documentNumber: t.documentNumber, dateOfBirth: dob, relation: t.relation };
+  }
+
+  cancelEditTraveler() {
+    this.editingTravelerId.set(null);
+    this.editTravelerForm = {};
+  }
+
+  saveEditTraveler(id: number) {
+    this.api.patch<any>(`clients/me/travelers/${id}`, this.editTravelerForm).subscribe({
+      next: (updated) => {
+        this.travelers.update(list => list.map(t => t.id === id ? updated : t));
+        this.cancelEditTraveler();
+        this.toast.success('Datos actualizados');
+      },
+      error: (err) => this.toast.error(apiErrorMessage(err, 'No se pudo actualizar el viajero')),
+    });
+  }
+
+  startDeleteTraveler(id: number) {
+    this.cancelEditTraveler();
+    this.showAddTraveler.set(false);
+    this.deletingTravelerId.set(id);
+  }
+
+  cancelDeleteTraveler() {
+    this.deletingTravelerId.set(null);
+  }
+
+  confirmDeleteTraveler(id: number) {
+    this.api.delete(`clients/me/travelers/${id}`).subscribe({
+      next: () => {
+        this.travelers.update(list => list.filter(t => t.id !== id));
+        this.deletingTravelerId.set(null);
+      },
+      error: () => this.toast.error('No se pudo eliminar el viajero'),
     });
   }
 }
