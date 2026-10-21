@@ -13,6 +13,7 @@ export interface AuthUser {
   membershipLevel: string | null;
   availablePoints: number;
   completedTrips: number;
+  role: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -48,7 +49,7 @@ export class AuthService {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
     this.currentUser.set(null);
-    this.router.navigate(['/login']);
+    this.router.navigate(['/explore']);
   }
 
   getToken(): string | null { return localStorage.getItem(this.TOKEN_KEY); }

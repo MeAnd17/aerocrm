@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { safeReturnUrl } from '../../../core/guards/auth.guard';
 import { apiErrorMessage } from '../../../core/services/api-error';
 import { CommonModule } from '@angular/common';
@@ -17,6 +17,12 @@ import { AuthService } from '../../../core/services/auth.service';
           <h1 class="text-3xl font-bold text-blue-900">✈️ AeroCRM</h1>
           <p class="text-gray-500 mt-2">Inicia sesión en tu cuenta</p>
         </div>
+
+        @if (sessionExpiredMsg()) {
+          <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-4 py-3 text-sm mb-4">
+            {{ sessionExpiredMsg() }}
+          </div>
+        }
 
         <form (ngSubmit)="onSubmit()" #form="ngForm" class="space-y-5">
           <div>
@@ -55,20 +61,35 @@ import { AuthService } from '../../../core/services/auth.service';
     </div>
   `,
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   email = '';
   password = '';
   loading = signal(false);
   error = signal('');
+  sessionExpiredMsg = signal('');
 
   constructor(private auth: AuthService, private router: Router, private route: ActivatedRoute) {}
+
+  ngOnInit() {
+    if (sessionStorage.getItem('sessionExpired') === 'true') {
+      this.sessionExpiredMsg.set('Tu sesión expiró, vuelve a iniciar sesión');
+      sessionStorage.removeItem('sessionExpired');
+    }
+  }
 
   onSubmit() {
     if (!this.email || !this.password) return;
     this.loading.set(true);
     this.error.set('');
     this.auth.login(this.email, this.password).subscribe({
-      next: () => this.router.navigateByUrl(safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl'))),
+      next: (res) => {
+        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+        if (returnUrl) {
+          this.router.navigateByUrl(safeReturnUrl(returnUrl));
+        } else {
+          this.router.navigate(res.user.role === 'ADMIN' ? ['/admin'] : ['/home']);
+        }
+      },
       error: (err) => {
         this.error.set(apiErrorMessage(err, 'Correo o contraseña incorrectos'));
         this.loading.set(false);
