@@ -73,7 +73,10 @@ import { AuthService } from '../../../core/services/auth.service';
                 class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <button type="submit"
-              [disabled]="!!(form.confirmPassword && form.password !== form.confirmPassword)"
+              [disabled]="!!(
+                (form.confirmPassword && form.password !== form.confirmPassword) ||
+                passwordIsWeak()
+              )"
               class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
               Continuar →
             </button>
@@ -186,6 +189,13 @@ export class RegisterComponent {
   ];
 
   constructor(private auth: AuthService, private router: Router, private route: ActivatedRoute) {}
+
+  /** Returns true when the current password does not meet complexity rules. */
+  passwordIsWeak(): boolean {
+    const pw: string = this.form.password;
+    if (!pw) return false;
+    return pw.length < 8 || !/[A-Z]/.test(pw) || !/[0-9]/.test(pw);
+  }
 
   nextStep() {
     this.passwordError.set('');
