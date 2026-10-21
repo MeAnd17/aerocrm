@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { CreateTravelerDto } from './dto/create-traveler.dto';
+import { UpdateTravelerDto } from './dto/update-traveler.dto';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 
 @Injectable()
@@ -121,6 +122,27 @@ export class ClientsService {
     if (existing) throw new BadRequestException('Ya tienes un viajero con ese documento');
     return this.prisma.traveler.create({
       data: { ...dto, dateOfBirth: new Date(dto.dateOfBirth), clientId: user.client.id },
+    });
+  }
+
+  async updateTraveler(userId: number, travelerId: number, dto: UpdateTravelerDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, include: { client: true } });
+    if (!user?.client) throw new NotFoundException('Perfil no encontrado');
+
+    // Check for duplicate document on update (only when documentNumber changes)
+    if (dto.documentNumber) {
+      const existing = await this.prisma.traveler.findFirst({
+        where: { clientId: user.client.id, documentNumber: dto.documentNumber, NOT: { id: travelerId } },
+      });
+      if (existing) throw new BadRequestException('Ya tienes un viajero con ese documento');
+    }
+
+    const data: any = { ...dto };
+    if (dto.dateOfBirth) data.dateOfBirth = new Date(dto.dateOfBirth);
+
+    return this.prisma.traveler.update({
+      where: { id: travelerId, clientId: user.client.id },
+      data,
     });
   }
 

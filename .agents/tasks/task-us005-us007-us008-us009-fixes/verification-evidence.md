@@ -1,68 +1,62 @@
-# Evidencia de verificación — Iteración 2 (post-CHANGES_REQUESTED)
+# Verification Evidence — Iteration 2 (post-review fixes)
 
-Fecha: 2025-10-21  
-Rama: `feat/us005-us007-us008-us009-fixes`  
-Commit: `3bbe1c8`
+## Findings addressed
 
----
+1. **`confirm()` nativo en deleteTraveler** — Reemplazado por un estado inline `deletingTravelerId` (signal). Al presionar "Eliminar" aparece en el propio componente el texto `¿Eliminar a {nombre} de tus viajeros?` con botones "Eliminar" y "Cancelar". No hay ninguna llamada a `window.confirm` ni `alert`.
 
-## Hallazgos corregidos
-
-### 1. Festividades del destino no cruzan año (`destinations.service.ts`)
-`matchingFestivities` ahora itera el rango de años del viaje (igual que `fallbackHolidays`).
-Para festividades que cruzan de año (`endMonth < startMonth`), el año del final se incrementa en uno.
-Se usan fechas UTC (`Date.UTC`) para consistencia con el resto del servicio.
-
-### 2. Error de documento duplicado silencioso (`profile.component.ts`)
-`addTraveler` fue convertido de `.subscribe(fn)` a `.subscribe({ next, error })`.
-El handler de error llama a `this.toast.error(apiErrorMessage(err, 'No se pudo guardar el viajero'))`,
-mostrando el mensaje `Ya tienes un viajero con ese documento` que devuelve el backend en el 400.
-Se añadió el import de `apiErrorMessage` desde `../../core/services/api-error`.
-
-### 3. ToastService omitido en error de carga de destinos (`destinations-list.component.ts`)
-Se inyectó `ToastService` en el constructor y se añadió el import de `apiErrorMessage`.
-El bloque `error:` de `ngOnInit` ahora muestra
-`this.toast.error(apiErrorMessage(err, 'No pudimos cargar los destinos'))` además de apagar `loading`.
+2. **Edición de viajeros frecuentes ausente** — Agregados:
+   - `backend/src/clients/dto/update-traveler.dto.ts` — DTO con campos opcionales
+   - `ClientsService.updateTraveler()` — valida duplicado de documento (excluyendo el propio viajero), construye `dateOfBirth` como `Date`
+   - `PATCH /me/travelers/:id` en `ClientsController`
+   - UI en `profile.component.ts`: botón "Editar" por viajero, formulario inline pre-cargado con los datos existentes, señal `editingTravelerId`
 
 ---
 
-## Resultados de verificación
+## Backend
 
-### Backend lint
+### npm run lint
 ```
+> aerocrm-backend@1.0.0 lint
 > eslint "{src,test}/**/*.ts"
-✖ 12 problems (0 errors, 12 warnings)
-Exit Code: 0
-```
-(Todas las advertencias son `no-explicit-any` preexistentes, sin errores nuevos.)
 
-### Backend tests
+✖ 13 problems (0 errors, 13 warnings)
 ```
-> jest
+Exit code: 0 — sin errores.
+
+### npm test
+```
 Test Suites: 4 passed, 4 total
 Tests:       35 passed, 35 total
 Snapshots:   0 total
-Time:        1.903 s
-Exit Code: 0
+Time:        2.62 s
 ```
+Exit code: 0 — todos los tests pasan.
 
-### Backend build
+### npm run build
 ```
+> aerocrm-backend@1.0.0 build
 > nest build
-Exit Code: 0
 ```
-
-### Frontend build
-```
-> ng build --configuration production
-Application bundle generation complete. [3.334 seconds]
-Output location: frontend/dist/aerocrm
-Exit Code: 0
-```
+Exit code: 0 — build limpio.
 
 ---
 
-## Archivos modificados
-- `backend/src/destinations/destinations.service.ts`
-- `frontend/src/app/features/destinations/destinations-list.component.ts`
-- `frontend/src/app/features/profile/profile.component.ts`
+## Frontend
+
+### npm run build
+```
+Application bundle generation complete. [3.332 seconds]
+Output location: /Users/admin/Downloads/2026-2/Admin/aerocrm/frontend/dist/aerocrm
+```
+Exit code: 0 — build limpio, sin errores TypeScript.
+
+---
+
+## Archivos modificados en esta iteración
+
+| Archivo | Cambio |
+|---|---|
+| `backend/src/clients/dto/update-traveler.dto.ts` | Nuevo — DTO con campos opcionales para actualizar viajero |
+| `backend/src/clients/clients.service.ts` | Agrega import `UpdateTravelerDto` y método `updateTraveler` con validación de documento duplicado |
+| `backend/src/clients/clients.controller.ts` | Agrega import `UpdateTravelerDto` y endpoint `PATCH /me/travelers/:id` |
+| `frontend/src/app/features/profile/profile.component.ts` | Reemplaza `window.confirm` por confirmación inline; agrega edición inline de viajeros con `PATCH` al backend |
