@@ -15,13 +15,13 @@ export class AuthService {
       include: { client: true },
     });
 
-    if (!user || !user.isActive) throw new UnauthorizedException('Credenciales incorrectas');
+    if (!user || !user.isActive) throw new UnauthorizedException('Correo o contraseña incorrectos');
     const valid = await bcryptjs.compare(dto.password, user.password);
-    if (!valid) throw new UnauthorizedException('Credenciales incorrectas');
+    if (!valid) throw new UnauthorizedException('Correo o contraseña incorrectos');
 
     await this.prisma.user.update({ where: { id: user.id }, data: { updatedAt: new Date() } });
 
-    const payload = { sub: user.id, email: user.email, clientId: user.client?.id ?? null };
+    const payload = { sub: user.id, email: user.email, clientId: user.client?.id ?? null, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
       user: {
@@ -33,6 +33,7 @@ export class AuthService {
         membershipLevel: user.client?.membershipLevel ?? null,
         availablePoints: user.client?.availablePoints ?? 0,
         completedTrips: user.client?.completedTrips ?? 0,
+        role: user.role,
       },
     };
   }
@@ -41,9 +42,13 @@ export class AuthService {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Este correo ya está registrado');
 
-    if (dto.password.length < 8) throw new BadRequestException('La contraseña debe tener al menos 8 caracteres');
-    if (!/[A-Z]/.test(dto.password)) throw new BadRequestException('La contraseña debe tener al menos una mayúscula');
-    if (!/[0-9]/.test(dto.password)) throw new BadRequestException('La contraseña debe tener al menos un número');
+    const passwordValid =
+      dto.password.length >= 8 &&
+      /[A-Z]/.test(dto.password) &&
+      /[0-9]/.test(dto.password);
+    if (!passwordValid) {
+      throw new BadRequestException('La contraseña debe tener al menos 8 caracteres, una mayúscula y un número');
+    }
 
     const hashed = await bcryptjs.hash(dto.password, 10);
 
@@ -53,6 +58,7 @@ export class AuthService {
         password: hashed,
         firstName: dto.firstName,
         lastName: dto.lastName,
+        role: 'CLIENT',
         client: {
           create: {
             phone: dto.phone,
@@ -60,13 +66,14 @@ export class AuthService {
             dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
             travelStyle: dto.travelStyle ?? null,
             destinationType: dto.destinationType ?? null,
+            spendingRange: dto.spendingRange ?? null,
           },
         },
       },
       include: { client: true },
     });
 
-    const payload = { sub: user.id, email: user.email, clientId: user.client?.id ?? null };
+    const payload = { sub: user.id, email: user.email, clientId: user.client?.id ?? null, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
       user: {
@@ -78,6 +85,7 @@ export class AuthService {
         membershipLevel: user.client?.membershipLevel ?? 'EXPLORADOR',
         availablePoints: 0,
         completedTrips: 0,
+        role: user.role,
       },
     };
   }
@@ -99,6 +107,7 @@ export class AuthService {
       completedTrips: user.client?.completedTrips ?? 0,
       travelStyle: user.client?.travelStyle ?? null,
       destinationType: user.client?.destinationType ?? null,
+      role: user.role,
     };
   }
 }

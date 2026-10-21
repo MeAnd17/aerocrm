@@ -12,7 +12,7 @@ Backend NestJS 10 + Prisma 5 en `backend/` (prefijo global `/api`). Base Postgre
 
     backend/src/<modulo>/          <modulo>.controller.ts · <modulo>.service.ts · <modulo>.module.ts · dto/
     backend/src/prisma/            PrismaService (único cliente de base)
-    backend/src/auth/              JwtAuthGuard, PermissionsGuard, @RequirePermission, @CurrentUser
+    backend/src/auth/              JwtAuthGuard, RolesGuard, @Roles, @CurrentUser
     backend/prisma/                schema.prisma · migrations/ · seed.ts
     backend/test/                  pruebas de flujo completo (e2e)
     frontend/src/app/core/         guards · interceptors · layout · services (singleton, providedIn: 'root')
@@ -49,7 +49,7 @@ Ningún agente inventa otro comando. Si un comando no existe o falla, se reporta
 - B1. La lógica vive en el service. El controller solo valida, autoriza y delega. Un controller que usa `prisma` se devuelve.
 - B2. Toda entrada pasa por un DTO con `class-validator`. Nunca se lee `req.body` a mano.
 - B3. El acceso a datos pasa por `PrismaService`. Nunca se crea otro `PrismaClient`.
-- B4. Rutas protegidas: `JwtAuthGuard`; si además exigen un permiso, `PermissionsGuard` + `@RequirePermission`. Nunca una comprobación de rol escrita dentro del método.
+- B4. Rutas protegidas: `JwtAuthGuard`; si además exigen un rol, `RolesGuard` + `@Roles`. Nunca una comprobación de rol escrita dentro del método.
 - B5. Dinero con `Prisma.Decimal` o enteros de céntimos. Jamás `number` con decimales para calcular dinero; `Number()` solo para mostrar o serializar un resultado ya calculado.
 - B6. El precio de un paquete se calcula siempre en el servidor. El frontend solo lo muestra.
 - B7. Puntos, niveles y canje se calculan solo en el motor de fidelización (`backend/src/loyalty/loyalty.rules.ts`). Ninguna de sus constantes se escribe en otro lugar, tampoco en el frontend: el frontend recibe los valores ya calculados por la API.
