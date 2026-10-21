@@ -107,6 +107,7 @@ export class AuthService {
       completedTrips: user.client?.completedTrips ?? 0,
       travelStyle: user.client?.travelStyle ?? null,
       destinationType: user.client?.destinationType ?? null,
+      spendingRange: user.client?.spendingRange ?? null,
       role: user.role,
     };
   }

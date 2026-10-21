@@ -18,7 +18,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       // 401 en cualquier servicio = sesión vencida. En el login es solo contraseña incorrecta.
       if (err.status === 401 && !req.url.includes('/auth/login')) {
         sessionStorage.setItem('sessionExpired', 'true');
-        auth.logout();
+        auth.logout(true);
         router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
       }
       return throwError(() => err);

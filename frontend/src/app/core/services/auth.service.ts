@@ -45,11 +45,13 @@ export class AuthService {
     }));
   }
 
-  logout() {
+  logout(skipNavigate = false) {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
     this.currentUser.set(null);
-    this.router.navigate(['/explore']);
+    if (!skipNavigate) {
+      this.router.navigate(['/explore']);
+    }
   }
 
   getToken(): string | null { return localStorage.getItem(this.TOKEN_KEY); }
