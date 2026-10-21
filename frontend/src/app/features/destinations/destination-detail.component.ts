@@ -64,7 +64,7 @@ import { ApiService } from '../../core/services/api.service';
               @for (act of destination().activities; track act.id) {
                 <div class="p-3 border rounded-lg">
                   <p class="font-medium text-sm text-gray-800">{{ act.name }}</p>
-                  <p class="text-xs text-gray-500 mt-0.5">{{ act.type | etiqueta }} · {{ act.durationHours }}h</p>
+                  <p class="text-xs text-gray-500 mt-0.5">{{ act.type | label }} · {{ act.durationHours }}h</p>
                   <p class="text-sm font-bold text-blue-900 mt-1">S/. {{ act.price }}</p>
                 </div>
               }

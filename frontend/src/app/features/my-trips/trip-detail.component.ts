@@ -28,7 +28,7 @@ import { ApiService } from '../../core/services/api.service';
                 'bg-gray-100 text-gray-700': booking().status === 'COMPLETADO',
                 'bg-red-100 text-red-600': booking().status === 'CANCELADO'
               }">
-              {{ booking().status | etiqueta }}
+              {{ booking().status | label }}
             </span>
           </div>
         </div>
@@ -73,7 +73,7 @@ import { ApiService } from '../../core/services/api.service';
             <h3 class="font-semibold text-gray-800 mb-2">➕ Extras</h3>
             @for (be of booking().bookingExtras; track be.id) {
               <div class="flex justify-between py-1.5 border-b last:border-0 text-sm">
-                <span>{{ be.type | etiqueta }}</span>
+                <span>{{ be.type | label }}</span>
                 <span class="font-semibold">S/. {{ be.price | number:'1.2-2' }}</span>
               </div>
             }

@@ -19,7 +19,7 @@ import { PackageBuilderState } from '../package-builder.state';
             class="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:border-blue-300 transition">
             <div>
               <p class="font-medium text-sm">{{ act.name }}</p>
-              <p class="text-xs text-gray-500">{{ act.type | etiqueta }} · {{ act.durationHours }}h</p>
+              <p class="text-xs text-gray-500">{{ act.type | label }} · {{ act.durationHours }}h</p>
             </div>
             <div class="text-right">
               <p class="font-bold text-blue-900 text-sm">S/. {{ act.price }}</p>

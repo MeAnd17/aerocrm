@@ -2,7 +2,7 @@ import { Pipe, PipeTransform } from '@angular/core';
 
 /**
  * Muestra en español los valores de enum que llegan de la API (ECONOMY, EN_CURSO, AVENTURA...).
- *   {{ flight.classType | etiqueta }}  →  Económica
+ *   {{ flight.classType | label }}  →  Económica
  * Si llega un valor que no está en la lista, se muestra con mayúscula inicial.
  */
 const LABELS: Record<string, string> = {
@@ -50,7 +50,7 @@ const LABELS: Record<string, string> = {
   NACIONAL: 'Nacional',
 };
 
-@Pipe({ name: 'etiqueta', standalone: true })
+@Pipe({ name: 'label', standalone: true })
 export class LabelPipe implements PipeTransform {
   transform(value: string | null | undefined): string {
     if (!value) return '';
