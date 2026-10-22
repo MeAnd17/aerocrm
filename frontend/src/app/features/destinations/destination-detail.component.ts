@@ -1,13 +1,15 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { LabelPipe } from '../../shared/pipes/label.pipe';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
+import { HotelListComponent } from '../../shared/ui/hotel-list.component';
+import { ActivityListComponent } from '../../shared/ui/activity-list.component';
 
 @Component({
   selector: 'app-destination-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, LabelPipe],
+  imports: [CommonModule, LabelPipe, HotelListComponent, ActivityListComponent],
   template: `
     <div class="space-y-5">
       @if (destination()) {
@@ -42,17 +44,7 @@ import { ApiService } from '../../core/services/api.service';
         @if (destination().hotels?.length) {
           <div class="bg-white rounded-xl border shadow-sm p-5">
             <h2 class="font-semibold text-gray-800 mb-3">🏨 Hoteles disponibles</h2>
-            <div class="space-y-2">
-              @for (hotel of destination().hotels; track hotel.id) {
-                <div class="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p class="font-medium text-gray-800">{{ hotel.name }}</p>
-                    <p class="text-xs text-gray-500">{{ hotel.zone }} · {{ '⭐'.repeat(hotel.stars) }}</p>
-                  </div>
-                  <p class="font-bold text-blue-900">S/. {{ hotel.pricePerNight }}<span class="text-xs text-gray-400">/noche</span></p>
-                </div>
-              }
-            </div>
+            <app-hotel-list [hotels]="destination().hotels ?? []" />
           </div>
         }
 
@@ -60,21 +52,16 @@ import { ApiService } from '../../core/services/api.service';
         @if (destination().activities?.length) {
           <div class="bg-white rounded-xl border shadow-sm p-5">
             <h2 class="font-semibold text-gray-800 mb-3">🎯 Actividades</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              @for (act of destination().activities; track act.id) {
-                <div class="p-3 border rounded-lg">
-                  <p class="font-medium text-sm text-gray-800">{{ act.name }}</p>
-                  <p class="text-xs text-gray-500 mt-0.5">{{ act.type | label }} · {{ act.durationHours }}h</p>
-                  <p class="text-sm font-bold text-blue-900 mt-1">S/. {{ act.price }}</p>
-                </div>
-              }
-            </div>
+            <app-activity-list [activities]="destination().activities ?? []" />
           </div>
         }
 
-        <a routerLink="/search" class="block text-center bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition">
-          Buscar vuelos a {{ destination().city }} →
-        </a>
+        <button
+          (click)="goToBuilder()"
+          class="block w-full text-center bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition"
+        >
+          Armar mi viaje a {{ destination().city }} →
+        </button>
       }
     </div>
   `,
@@ -82,10 +69,15 @@ import { ApiService } from '../../core/services/api.service';
 export class DestinationDetailComponent implements OnInit {
   destination = signal<any>(null);
 
-  constructor(private api: ApiService, private route: ActivatedRoute) {}
+  constructor(private api: ApiService, private route: ActivatedRoute, private router: Router) {}
 
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
     this.api.get<any>(`destinations/${id}`).subscribe(data => this.destination.set(data));
+  }
+
+  goToBuilder() {
+    const id = this.destination()?.id;
+    this.router.navigate(['/packages/new'], { queryParams: { destinationId: id } });
   }
 }

@@ -16,7 +16,18 @@ export class DestinationsService {
       { country: { contains: search, mode: 'insensitive' } },
       { city: { contains: search, mode: 'insensitive' } },
     ];
-    return this.prisma.destination.findMany({ where, orderBy: { name: 'asc' } });
+    const destinations = await this.prisma.destination.findMany({ where, orderBy: { name: 'asc' } });
+    const withFromPrice = await Promise.all(
+      destinations.map(async (dest) => {
+        const cheapestFlight = await this.prisma.flight.findFirst({
+          where: { destinationId: dest.id, isActive: true },
+          orderBy: { pricePerPerson: 'asc' },
+          select: { pricePerPerson: true },
+        });
+        return { ...dest, fromPrice: cheapestFlight ? Number(cheapestFlight.pricePerPerson) : null };
+      }),
+    );
+    return withFromPrice;
   }
 
   async findOne(id: number) {
@@ -26,7 +37,7 @@ export class DestinationsService {
         hotels: { where: { isActive: true }, orderBy: { stars: 'desc' } },
         activities: { where: { isActive: true }, orderBy: { type: 'asc' } },
         festivities: { where: { isActive: true } },
-        departingFlights: { where: { isActive: true }, orderBy: { pricePerPerson: 'asc' } },
+        arrivingFlights: { where: { isActive: true }, orderBy: { pricePerPerson: 'asc' } },
       },
     });
     if (!destination) throw new NotFoundException('Destino no encontrado');
@@ -38,11 +49,18 @@ export class DestinationsService {
     const dep = new Date(departureDate);
     const ret = new Date(returnDate);
 
-    // Festividades que coinciden con las fechas del viaje
+    // Festividades que coinciden con las fechas del viaje.
+    // Iteramos el rango de años del viaje para que festividades que cruzan de año
+    // (ej. 24 dic → 6 ene) coincidan correctamente con viajes dic → ene.
     const matchingFestivities = destination.festivities.filter(f => {
-      const festStart = new Date(dep.getFullYear(), f.startMonth - 1, f.startDay);
-      const festEnd = new Date(dep.getFullYear(), f.endMonth - 1, f.endDay);
-      return festStart <= ret && festEnd >= dep;
+      for (let year = dep.getUTCFullYear(); year <= ret.getUTCFullYear(); year++) {
+        const festStart = new Date(Date.UTC(year, f.startMonth - 1, f.startDay));
+        // Si la festividad cruza de año (endMonth < startMonth), el final cae en el año siguiente.
+        const endYear = f.endMonth < f.startMonth ? year + 1 : year;
+        const festEnd = new Date(Date.UTC(endYear, f.endMonth - 1, f.endDay));
+        if (festStart <= ret && festEnd >= dep) return true;
+      }
+      return false;
     });
 
     // Clima via OpenWeatherMap
