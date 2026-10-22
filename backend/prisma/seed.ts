@@ -49,6 +49,21 @@ function addMinutes(d: Date, minutes: number): Date {
 
 // ── Secciones ─────────────────────────────────────────────────────────────────
 
+async function seedAdminUser() {
+  const hashed = await bcrypt.hash('Admin1234!', 10);
+  await prisma.user.upsert({
+    where: { email: 'admin@aerocrm.com' },
+    update: { password: hashed, role: 'ADMIN', isActive: true },
+    create: {
+      email: 'admin@aerocrm.com',
+      password: hashed,
+      firstName: 'Admin',
+      lastName: 'AeroCRM',
+      role: 'ADMIN',
+    },
+  });
+}
+
 async function seedDestinations(): Promise<Map<string, number>> {
   const ids = new Map<string, number>();
   for (const d of DESTINATIONS) {
@@ -344,6 +359,7 @@ async function main() {
   const ref = referenceDate();
   console.log(`Carga de arranque · fecha de referencia ${ref.toISOString().slice(0, 10)}`);
 
+  await seedAdminUser();
   const ids = await seedDestinations();
   await seedHotels(ids);
   await seedActivities(ids);
@@ -372,6 +388,7 @@ async function main() {
     const client = await prisma.client.findFirst({ where: { user: { email: c.email } } });
     console.log(`  ${c.email.padEnd(26)} ${client?.membershipLevel} · ${client?.completedTrips} viajes · ${client?.availablePoints} puntos`);
   }
+  console.log(`  admin@aerocrm.com          Admin1234! (administrador)`);
 }
 
 main()

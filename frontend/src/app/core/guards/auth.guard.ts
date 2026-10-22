@@ -12,10 +12,26 @@ export const authGuard: CanActivateFn = (_route, state) => {
   return true;
 };
 
+/** Solo para la ruta /admin: requiere sesión activa y rol ADMIN. */
+export const adminGuard: CanActivateFn = (_route, state) => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  if (!auth.isAuthenticated()) {
+    return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
+  }
+  if (auth.currentUser()?.role !== 'ADMIN') {
+    return router.createUrlTree(['/home']);
+  }
+  return true;
+};
+
 export const noAuthGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  if (auth.isAuthenticated()) return router.createUrlTree(['/home']);
+  if (auth.isAuthenticated()) {
+    const role = auth.currentUser()?.role;
+    return router.createUrlTree([role === 'ADMIN' ? '/admin' : '/home']);
+  }
   return true;
 };
 

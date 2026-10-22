@@ -128,7 +128,7 @@ export class StaffLoginComponent {
     if (!this.email || !this.password) return;
     this.loading.set(true); this.errorMsg.set('');
     this.auth.login(this.email, this.password).subscribe({
-      next: (res) => { res.mustChangePassword ? this.router.navigate(['/staff/change-password']) : this.router.navigate(['/dashboard']); },
+      next: (res) => { this.router.navigate(res.user.role === 'ADMIN' ? ['/admin'] : ['/dashboard']); },
       error: (err) => { this.loading.set(false); this.errorMsg.set(err?.error?.message || 'Correo o contraseña incorrectos'); },
     });
   }

@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, noAuthGuard } from './core/guards/auth.guard';
+import { authGuard, adminGuard, noAuthGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   // ── Públicas ───────────────────────────────────────────────────────────────
@@ -34,6 +34,11 @@ export const routes: Routes = [
     path: 'home',
     loadComponent: () => import('./features/home/home.component').then(m => m.HomeComponent),
     canActivate: [authGuard],
+  },
+  {
+    path: 'admin',
+    loadComponent: () => import('./features/home/home.component').then(m => m.HomeComponent),
+    canActivate: [adminGuard],
   },
   {
     path: 'search',

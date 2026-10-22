@@ -28,7 +28,7 @@ import { AuthService } from '../../core/services/auth.service';
               'bg-yellow-100 text-yellow-700': home()?.membership?.level === 'FRECUENTE',
               'bg-purple-100 text-purple-700': home()?.membership?.level === 'ELITE'
             }">
-            {{ home()?.membership?.level | etiqueta }}
+            {{ home()?.membership?.level | label }}
           </span>
         </div>
         <div class="flex items-center gap-6">
@@ -45,7 +45,7 @@ import { AuthService } from '../../core/services/auth.service';
             <div class="flex-1">
               <p class="text-xs text-gray-500 mb-1">
                 Faltan {{ home()?.membership?.nextLevel?.tripsNeeded }} viajes para
-                <span class="font-semibold">{{ home()?.membership?.nextLevel?.level | etiqueta }}</span>
+                <span class="font-semibold">{{ home()?.membership?.nextLevel?.level | label }}</span>
               </p>
               <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
                 <div class="h-full bg-blue-500 rounded-full transition-all" [style.width.%]="levelProgress()"></div>
@@ -73,7 +73,7 @@ import { AuthService } from '../../core/services/auth.service';
               </div>
             }
             <span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-              {{ home()?.nextBooking?.status | etiqueta }}
+              {{ home()?.nextBooking?.status | label }}
             </span>
           </div>
           <a [routerLink]="['/my-trips', home()?.nextBooking?.id]"

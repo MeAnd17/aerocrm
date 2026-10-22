@@ -61,7 +61,7 @@ import { ApiService } from '../../core/services/api.service';
                     'bg-gray-100 text-gray-700': booking.status === 'COMPLETADO',
                     'bg-red-100 text-red-600': booking.status === 'CANCELADO'
                   }">
-                  {{ booking.status | etiqueta }}
+                  {{ booking.status | label }}
                 </span>
               </div>
 

@@ -15,7 +15,7 @@ import { ApiService } from '../../core/services/api.service';
         <!-- Nivel actual -->
         <div class="bg-gradient-to-r from-blue-900 to-blue-700 rounded-2xl p-6 text-white">
           <p class="text-blue-200 text-sm mb-1">Tu nivel actual</p>
-          <h2 class="text-3xl font-bold">{{ status()?.level | etiqueta }}</h2>
+          <h2 class="text-3xl font-bold">{{ status()?.level | label }}</h2>
 
           <!-- Lo que el cliente puede usar va primero y grande; el total histórico, chico (no se canjea). -->
           <div class="mt-4 rounded-xl bg-white/10 p-4 text-center">
@@ -47,7 +47,7 @@ import { ApiService } from '../../core/services/api.service';
           <div class="bg-white rounded-xl border shadow-sm p-5">
             <p class="text-sm text-gray-600 mb-2">
               Te faltan <strong>{{ status()?.nextLevel?.tripsNeeded }} viajes</strong>
-              para alcanzar el nivel <strong>{{ status()?.nextLevel?.level | etiqueta }}</strong>
+              para alcanzar el nivel <strong>{{ status()?.nextLevel?.level | label }}</strong>
               y obtener {{ status()?.nextLevel?.discount }}% de descuento al canjear
             </p>
             <div class="h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -73,7 +73,7 @@ import { ApiService } from '../../core/services/api.service';
                   {{ level.level === 'EXPLORADOR' ? '🌱' : level.level === 'VIAJERO' ? '✈️' : level.level === 'FRECUENTE' ? '⭐' : '👑' }}
                 </span>
                 <div class="flex-1">
-                  <p class="font-medium text-gray-800">{{ level.level | etiqueta }}</p>
+                  <p class="font-medium text-gray-800">{{ level.level | label }}</p>
                   <p class="text-xs text-gray-500">Desde {{ level.minTrips }} viajes</p>
                 </div>
                 <span class="text-sm font-semibold text-blue-700">+{{ level.discount }}%</span>

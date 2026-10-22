@@ -1,5 +1,5 @@
 import { IsEmail, IsString, MinLength, IsOptional, IsEnum } from 'class-validator';
-import { TravelStyle, DestinationType } from '@prisma/client';
+import { TravelStyle, DestinationType, SpendingRange } from '@prisma/client';
 
 export class RegisterDto {
   @IsEmail()
@@ -33,4 +33,8 @@ export class RegisterDto {
   @IsOptional()
   @IsEnum(DestinationType)
   destinationType?: DestinationType;
+
+  @IsOptional()
+  @IsEnum(SpendingRange)
+  spendingRange?: SpendingRange;
 }

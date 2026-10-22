@@ -13,6 +13,7 @@ export interface AuthUser {
   membershipLevel: string | null;
   availablePoints: number;
   completedTrips: number;
+  role: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -44,11 +45,34 @@ export class AuthService {
     }));
   }
 
-  logout() {
+  logout(skipNavigate = false) {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
     this.currentUser.set(null);
-    this.router.navigate(['/login']);
+    if (!skipNavigate) {
+      this.router.navigate(['/explore']);
+    }
+  }
+
+  /** Alias para compatibilidad con componentes heredados */
+  registerClient(data: any) {
+    return this.register(data);
+  }
+
+  changePassword(currentPassword: string, newPassword: string) {
+    return this.http.patch(
+      `${environment.apiUrl}/auth/change-password`,
+      { currentPassword, newPassword }
+    );
+  }
+
+  /**
+   * Compatibilidad con código heredado que usaba permisos granulares.
+   * El sistema ahora usa roles (ADMIN / CLIENT); esta función siempre devuelve
+   * true para no bloquear navegación mientras se migran los componentes del panel.
+   */
+  hasPermission(_permission: string): boolean {
+    return this.isAuthenticated();
   }
 
   getToken(): string | null { return localStorage.getItem(this.TOKEN_KEY); }

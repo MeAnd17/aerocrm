@@ -42,9 +42,42 @@ import { AuthService } from '../../../core/services/auth.service';
               <input type="password" [(ngModel)]="form.password" name="password" required
                 class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Mín. 8 caracteres, 1 mayúscula, 1 número" />
+              @if (form.password && passwordIsWeak()) {
+                <p class="text-red-600 text-xs mt-1">La contraseña debe tener al menos 8 caracteres, una mayúscula y un número</p>
+              }
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Confirmar contraseña</label>
+              <input type="password" [(ngModel)]="form.confirmPassword" name="confirmPassword"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Repite tu contraseña" />
+              @if (form.confirmPassword && form.password !== form.confirmPassword) {
+                <p class="text-red-600 text-xs mt-1">Las contraseñas no coinciden</p>
+              }
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono <span class="text-gray-400 font-normal">(Opcional)</span></label>
+              <input type="tel" [(ngModel)]="form.phone" name="phone"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="+51 999 999 999" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Nacionalidad <span class="text-gray-400 font-normal">(Opcional)</span></label>
+              <input type="text" [(ngModel)]="form.nationality" name="nationality"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Ej. Peruana" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de nacimiento <span class="text-gray-400 font-normal">(Opcional)</span></label>
+              <input type="date" [(ngModel)]="form.dateOfBirth" name="dateOfBirth"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <button type="submit"
-              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition">
+              [disabled]="!!(
+                (form.confirmPassword && form.password !== form.confirmPassword) ||
+                passwordIsWeak()
+              )"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
               Continuar →
             </button>
           </form>
@@ -79,6 +112,19 @@ import { AuthService } from '../../../core/services/auth.service';
                 }
               </div>
             </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">¿Cuánto sueles gastar por viaje?</label>
+              <div class="grid grid-cols-2 gap-2">
+                @for (option of spendingOptions; track option.value) {
+                  <button type="button" (click)="form.spendingRange = option.value"
+                    [class.ring-2]="form.spendingRange === option.value"
+                    [class.ring-blue-500]="form.spendingRange === option.value"
+                    class="border border-gray-200 rounded-lg py-2.5 text-sm hover:border-blue-400 transition text-center">
+                    {{ option.label }}
+                  </button>
+                }
+              </div>
+            </div>
 
             @if (error()) {
               <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">{{ error() }}</div>
@@ -106,7 +152,19 @@ export class RegisterComponent {
   loading = signal(false);
   error = signal('');
 
-  form: any = { firstName: '', lastName: '', email: '', password: '', travelStyle: null, destinationType: null };
+  form: any = {
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    phone: '',
+    nationality: '',
+    dateOfBirth: '',
+    travelStyle: null,
+    destinationType: null,
+    spendingRange: null,
+  };
 
   travelOptions = [
     { value: 'SOLO', label: '🧍 Solo' },
@@ -122,17 +180,34 @@ export class RegisterComponent {
     { value: 'CULTURA', label: '🏛️ Cultura' },
   ];
 
+  spendingOptions = [
+    { value: 'LESS_500', label: '💸 Menos de S/ 500' },
+    { value: 'RANGE_500_1500', label: '💳 S/ 500 – 1 500' },
+    { value: 'RANGE_1500_3000', label: '🧳 S/ 1 500 – 3 000' },
+    { value: 'MORE_3000', label: '✈️ Más de S/ 3 000' },
+  ];
+
   constructor(private auth: AuthService, private router: Router, private route: ActivatedRoute) {}
+
+  /** Returns true when the current password does not meet complexity rules. */
+  passwordIsWeak(): boolean {
+    const pw: string = this.form.password;
+    if (!pw) return false;
+    return pw.length < 8 || !/[A-Z]/.test(pw) || !/[0-9]/.test(pw);
+  }
 
   nextStep() {
     if (!this.form.firstName || !this.form.lastName || !this.form.email || !this.form.password) return;
+    if (this.passwordIsWeak()) return;
+    if (this.form.password !== this.form.confirmPassword) return;
     this.step.set(2);
   }
 
   submit() {
     this.loading.set(true);
     this.error.set('');
-    this.auth.register(this.form).subscribe({
+    const { confirmPassword, ...payload } = this.form;
+    this.auth.register(payload).subscribe({
       next: () => this.router.navigateByUrl(safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl'))),
       error: (err) => {
         this.error.set(apiErrorMessage(err, 'No pudimos crear la cuenta'));
