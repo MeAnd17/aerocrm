@@ -68,7 +68,7 @@ export class BookingsController {
   @ApiQuery({ name: 'status', required: false, enum: ['PENDIENTE', 'CONFIRMADO', 'EN_CURSO', 'COMPLETADO', 'CANCELADO'] })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
-  findAll(@Request() req, @Query() query: any) {
+  findAll(@Request() req, @Query() query: { status?: string; page?: number | string; limit?: number | string }) {
     return this.bookingsService.findAll(req.user.sub, query);
   }
 

@@ -1,7 +1,49 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { DestinationType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+
+// ── Interfaces para respuestas de APIs externas ────────────────────────────────
+
+interface WeatherForecastItem {
+  weather: { description: string }[];
+  main: { temp_min: number; temp_max: number };
+}
+
+interface WeatherApiResponse {
+  city: { name: string };
+  list: WeatherForecastItem[];
+}
+
+interface HolidayItem {
+  name: string;
+  date: { iso: string };
+  type: string[];
+}
+
+interface HolidayApiResponse {
+  response: { holidays: HolidayItem[] };
+}
+
+export interface CachedHoliday {
+  name: string;
+  date: string;
+  type: string;
+  isReferential: boolean;
+}
+
+export interface CachedWeather {
+  source: string;
+  isReferential: boolean;
+  city: string;
+  forecast: { description: string; temp_min: number; temp_max: number }[];
+}
+
+interface DestinationQuery {
+  type?: string;
+  search?: string;
+}
 
 // TTLs de caché en milisegundos
 const TTL_HOLIDAYS_MS = 30 * 24 * 60 * 60 * 1000; // 30 días
@@ -11,15 +53,19 @@ const TTL_WEATHER_MS  =  3 * 60 * 60 * 1000;       //  3 horas
 export class DestinationsService {
   constructor(private prisma: PrismaService, private config: ConfigService) {}
 
-  async findAll(query: any) {
+  async findAll(query: DestinationQuery) {
     const { type, search } = query;
-    const where: any = { isActive: true };
-    if (type) where.type = type;
-    if (search) where.OR = [
-      { name: { contains: search, mode: 'insensitive' } },
-      { country: { contains: search, mode: 'insensitive' } },
-      { city: { contains: search, mode: 'insensitive' } },
-    ];
+    const where: Prisma.DestinationWhereInput = {
+      isActive: true,
+      ...(type ? { type: type as DestinationType } : {}),
+      ...(search ? {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { country: { contains: search, mode: 'insensitive' } },
+          { city: { contains: search, mode: 'insensitive' } },
+        ],
+      } : {}),
+    };
     const destinations = await this.prisma.destination.findMany({ where, orderBy: { name: 'asc' } });
     const withFromPrice = await Promise.all(
       destinations.map(async (dest) => {
@@ -146,8 +192,8 @@ export class DestinationsService {
     const expiresAt = new Date(now.getTime() + ttlMs);
     await this.prisma.externalApiCache.upsert({
       where: { cacheKey: key },
-      update: { data: data as any, fetchedAt: now, expiresAt },
-      create: { cacheKey: key, data: data as any, fetchedAt: now, expiresAt },
+      update: { data: data as Prisma.InputJsonValue, fetchedAt: now, expiresAt },
+      create: { cacheKey: key, data: data as Prisma.InputJsonValue, fetchedAt: now, expiresAt },
     });
   }
 
@@ -164,7 +210,7 @@ export class DestinationsService {
     const cacheKey = `weather:${city}:${year}-${month}`;
 
     // 1. Caché vigente
-    const cached = await this.readCache<any>(cacheKey);
+    const cached = await this.readCache<CachedWeather>(cacheKey);
     if (cached) return cached;
 
     // 2. API externa (solo si hay credencial real)
@@ -172,15 +218,15 @@ export class DestinationsService {
     const hasKey = apiKey && apiKey !== 'your-openweather-key';
     if (hasKey) {
       try {
-        const res = await axios.get(
+        const res = await axios.get<WeatherApiResponse>(
           `https://api.openweathermap.org/data/2.5/forecast?q=${city},${countryCode}&appid=${apiKey}&units=metric&lang=es&cnt=5`,
           { timeout: 5000 },
         );
-        const live = {
+        const live: CachedWeather = {
           source: 'pronostico',
           isReferential: false,
           city: res.data.city.name,
-          forecast: res.data.list.slice(0, 3).map((item: any) => ({
+          forecast: res.data.list.slice(0, 3).map((item: WeatherForecastItem) => ({
             description: item.weather[0].description,
             temp_min: Math.round(item.main.temp_min),
             temp_max: Math.round(item.main.temp_max),
@@ -194,7 +240,7 @@ export class DestinationsService {
     }
 
     // 3. Caché vencido (mejor que nada si la API falló)
-    const stale = await this.readCache<any>(cacheKey, true);
+    const stale = await this.readCache<CachedWeather>(cacheKey, true);
     if (stale) return { ...stale, isReferential: true };
 
     // 4. Dato de respaldo de la base
@@ -211,7 +257,7 @@ export class DestinationsService {
     const cacheKey = `holidays:${countryCode}:${year}`;
 
     // 1. Caché vigente
-    const cached = await this.readCache<any[]>(cacheKey);
+    const cached = await this.readCache<CachedHoliday[]>(cacheKey);
     if (cached) {
       // El caché guarda todos los feriados del año; filtramos por rango de fechas aquí.
       return this.filterHolidaysByRange(cached, dep, ret);
@@ -222,11 +268,11 @@ export class DestinationsService {
     const hasKey = apiKey && apiKey !== 'your-calendarific-key';
     if (hasKey) {
       try {
-        const res = await axios.get(
+        const res = await axios.get<HolidayApiResponse>(
           `https://calendarific.com/api/v2/holidays?api_key=${apiKey}&country=${countryCode}&year=${year}`,
           { timeout: 5000 },
         );
-        const allHolidays: any[] = res.data.response.holidays.map((h: any) => ({
+        const allHolidays: CachedHoliday[] = res.data.response.holidays.map((h: HolidayItem) => ({
           name: h.name,
           date: h.date.iso.slice(0, 10),
           type: h.type[0],
@@ -240,7 +286,7 @@ export class DestinationsService {
     }
 
     // 3. Caché vencido
-    const stale = await this.readCache<any[]>(cacheKey, true);
+    const stale = await this.readCache<CachedHoliday[]>(cacheKey, true);
     if (stale) {
       const filtered = this.filterHolidaysByRange(stale, dep, ret);
       return filtered.map(h => ({ ...h, isReferential: true }));
@@ -251,7 +297,7 @@ export class DestinationsService {
   }
 
   /** Filtra una lista de feriados (con campo `date` en YYYY-MM-DD) por el rango dep–ret. */
-  private filterHolidaysByRange(holidays: any[], dep: Date, ret: Date) {
+  private filterHolidaysByRange(holidays: CachedHoliday[], dep: Date, ret: Date) {
     return holidays.filter(h => {
       const d = new Date(`${h.date}T00:00:00Z`);
       return d >= dep && d <= ret;

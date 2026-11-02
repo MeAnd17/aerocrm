@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { BookingStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { QuoteDto, QuoteResponseDto } from './dto/quote.dto';
@@ -58,13 +58,13 @@ export class BookingsService {
 
   // ─── Métodos públicos ───────────────────────────────────────────────────────
 
-  async findAll(userId: number, query: any) {
+  async findAll(userId: number, query: { status?: string; page?: number | string; limit?: number | string }) {
     const { status, page = 1, limit = 10 } = query;
     const user = await this.prisma.user.findUnique({ where: { id: userId }, include: { client: true } });
     if (!user?.client) throw new NotFoundException('Cliente no encontrado');
 
-    const where: any = { clientId: user.client.id };
-    if (status) where.status = status;
+    const where: Prisma.BookingWhereInput = { clientId: user.client.id };
+    if (status) where.status = status as BookingStatus;
 
     const skip = (Number(page) - 1) * Number(limit);
     const [data, total] = await Promise.all([
