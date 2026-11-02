@@ -13,6 +13,7 @@ const prismaFalso = {
   $connect: jest.fn(),
   $disconnect: jest.fn(),
   $queryRaw: jest.fn().mockResolvedValue([{ ok: 1 }]),
+  $transaction: jest.fn(),
   user: {
     findUnique: jest.fn(),
     create: jest.fn(),
@@ -20,6 +21,25 @@ const prismaFalso = {
   },
   flight: {
     findUnique: jest.fn(),
+  },
+  booking: {
+    findFirst: jest.fn(),
+    create: jest.fn(),
+  },
+  client: {
+    update: jest.fn().mockResolvedValue({}),
+  },
+  pointsHistory: {
+    create: jest.fn().mockResolvedValue({}),
+  },
+  hotel: {
+    findUnique: jest.fn(),
+  },
+  activity: {
+    findUnique: jest.fn(),
+  },
+  extraOption: {
+    findFirst: jest.fn(),
   },
 };
 
@@ -210,5 +230,77 @@ describe('API (e2e)', () => {
     expect(res.body.breakdown.outboundFlight).toBeDefined();
     expect(res.body.breakdown.returnFlight).toBeDefined();
     expect(res.body.breakdown.total).toBeGreaterThan(0);
+  });
+
+  it('POST /api/bookings rechaza lista de pasajeros vacía con 400', async () => {
+    // JwtStrategy.validate llama findUnique para verificar el token.
+    const usuarioBase = { id: 99, email: 'usuario@test.pe', isActive: true, role: 'CLIENT', client: { id: 5 } };
+    prismaFalso.user.findUnique.mockResolvedValueOnce(usuarioBase);
+    const token = jwtService.sign({ sub: 99, email: 'usuario@test.pe', clientId: 5, role: 'CLIENT' });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/bookings')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        passengers: [],
+        flights: [{ flightId: 1 }, { flightId: 2 }],
+      });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('POST /api/bookings crea reserva con pasajeros y devuelve bookingPassengers', async () => {
+    const vueloIda = {
+      id: 1, flightNumber: 'LA501', airline: 'LATAM',
+      departureDate: new Date('2025-08-10T08:00:00Z'),
+      pricePerPerson: new Prisma.Decimal('350.00'),
+      isActive: true, destinationId: 3,
+      origin: { id: 1, name: 'Lima' }, destination: { id: 3, name: 'Cusco' },
+    };
+    const vueloVuelta = { ...vueloIda, id: 2, flightNumber: 'LA502' };
+    const clienteFalso = {
+      id: 5, availablePoints: 0, completedTrips: 0,
+      membershipLevel: 'EXPLORADOR',
+    };
+    const usuarioFalso = {
+      id: 99, email: 'usuario@test.pe', isActive: true,
+      role: 'CLIENT', client: clienteFalso,
+    };
+    const reservaCreada = {
+      id: 'cld123', confirmationCode: 'VJ-ABC123',
+      status: 'CONFIRMADO', totalPrice: new Prisma.Decimal('700.00'),
+      passengers: 1, bookingFlights: [], bookingHotels: [],
+      bookingActivities: [], bookingExtras: [],
+      bookingPassengers: [
+        { id: 1, bookingId: 'cld123', firstName: 'Ana', lastName: 'López',
+          documentNumber: '70000001', birthDate: new Date('1990-01-01'), isHolder: true },
+      ],
+    };
+
+    // Llamada 1: JwtStrategy.validate. Llamada 2: BookingsService.create (include: { client: true }).
+    prismaFalso.user.findUnique
+      .mockResolvedValueOnce(usuarioFalso)
+      .mockResolvedValueOnce(usuarioFalso);
+    prismaFalso.flight.findUnique
+      .mockResolvedValueOnce(vueloIda)
+      .mockResolvedValueOnce(vueloVuelta);
+    prismaFalso.booking.findFirst.mockResolvedValueOnce(null);
+    prismaFalso.$transaction.mockImplementationOnce(async (fn: (tx: typeof prismaFalso) => Promise<typeof reservaCreada>) => fn(prismaFalso));
+    prismaFalso.booking.create.mockResolvedValueOnce(reservaCreada);
+
+    const token = jwtService.sign({ sub: 99, email: 'usuario@test.pe', clientId: 5, role: 'CLIENT' });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/bookings')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        passengers: [{ firstName: 'Ana', lastName: 'López', documentNumber: '70000001', birthDate: '1990-01-01', isHolder: true }],
+        flights: [{ flightId: 1 }, { flightId: 2 }],
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.bookingPassengers).toBeDefined();
+    expect(res.body.bookingPassengers).toHaveLength(1);
+    expect(res.body.bookingPassengers[0].isHolder).toBe(true);
   });
 });

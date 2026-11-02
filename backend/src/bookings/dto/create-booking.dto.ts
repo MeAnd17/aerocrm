@@ -1,4 +1,4 @@
-import { IsNumber, IsOptional, IsString, IsArray, ArrayMinSize, ValidateNested, IsEnum, Min, IsInt } from 'class-validator';
+import { IsNumber, IsOptional, IsString, IsArray, ArrayMinSize, ValidateNested, IsEnum, Min, IsInt, IsISO8601, IsBoolean, MinLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ExtraType } from '@prisma/client';
@@ -54,13 +54,41 @@ export class BookingExtraDto {
   details?: string;
 }
 
+export class BookingPassengerDto {
+  @ApiProperty({ description: 'Nombre del pasajero', example: 'Ana' })
+  @IsString()
+  @MinLength(1)
+  firstName: string;
+
+  @ApiProperty({ description: 'Apellido del pasajero', example: 'López' })
+  @IsString()
+  @MinLength(1)
+  lastName: string;
+
+  @ApiProperty({ description: 'Número de documento', example: '70000001' })
+  @IsString()
+  @MinLength(1)
+  documentNumber: string;
+
+  @ApiProperty({ description: 'Fecha de nacimiento (ISO 8601)', example: '1990-05-12' })
+  @IsISO8601()
+  birthDate: string;
+
+  @ApiPropertyOptional({ description: '¿Es el titular de la reserva?', example: true })
+  @IsBoolean()
+  @IsOptional()
+  isHolder?: boolean;
+}
+
 // ── DTO principal de creación ─────────────────────────────────────────────────
 
 export class CreateBookingDto {
-  @ApiProperty({ description: 'Número de pasajeros', example: 2, minimum: 1 })
-  @IsInt()
-  @Min(1)
-  passengers: number;
+  @ApiProperty({ description: 'Lista de pasajeros (al menos uno)', type: [BookingPassengerDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => BookingPassengerDto)
+  passengers: BookingPassengerDto[];
 
   @ApiPropertyOptional({ description: 'Puntos a canjear (mínimo 500)', example: 500 })
   @IsOptional()

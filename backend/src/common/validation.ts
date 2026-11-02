@@ -48,6 +48,9 @@ const FIELD_LABELS: Record<string, string> = {
   details: 'detalle',
   // Campos del DTO de cotización (QuoteDto)
   returnFlightId: 'vuelo de regreso',
+  // Campos de BookingPassengerDto
+  birthDate: 'fecha de nacimiento',
+  isHolder: 'titular',
 };
 
 /** Los mensajes por defecto de class-validator están en inglés y contienen "must" o "should". */

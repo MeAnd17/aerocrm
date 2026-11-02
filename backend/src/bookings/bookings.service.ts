@@ -76,6 +76,7 @@ export class BookingsService {
           bookingHotels: { include: { hotel: { include: { destination: true } } } },
           bookingActivities: { include: { activity: true } },
           bookingExtras: true,
+          bookingPassengers: true,
         },
       }),
       this.prisma.booking.count({ where }),
@@ -95,6 +96,7 @@ export class BookingsService {
         bookingHotels: { include: { hotel: { include: { destination: true } } } },
         bookingActivities: { include: { activity: true } },
         bookingExtras: true,
+        bookingPassengers: true,
       },
     });
     if (!booking) throw new NotFoundException('Reserva no encontrada');
@@ -295,6 +297,9 @@ export class BookingsService {
     if (!user?.client) throw new NotFoundException('Cliente no encontrado');
     const client = user.client;
 
+    // ── Validar que la cantidad de pasajeros en el array cuadre con el conteo ─
+    const cantidadPasajeros = dto.passengers.length;
+
     // ── Recalcular precio desde el catálogo ───────────────────────────────────
     // Vuelos
     const flightRecords = await Promise.all(
@@ -309,7 +314,7 @@ export class BookingsService {
     // Destino: lo determina el primer vuelo (vuelo de ida)
     const destinationId = flightRecords[0]!.destinationId;
 
-    const flightLineCents = flightRecords.map(f => toCents(f!.pricePerPerson) * dto.passengers);
+    const flightLineCents = flightRecords.map(f => toCents(f!.pricePerPerson) * cantidadPasajeros);
     const flightsTotalCents = flightLineCents.reduce((s, c) => s + c, 0);
 
     // Hotel
@@ -337,9 +342,9 @@ export class BookingsService {
       if (!activity || !activity.isActive || activity.destinationId !== destinationId) {
         throw new BadRequestException('Una de las actividades no pertenece al destino del vuelo');
       }
-      if (a.quantity < 1 || a.quantity > dto.passengers) {
+      if (a.quantity < 1 || a.quantity > cantidadPasajeros) {
         throw new BadRequestException(
-          `La cantidad de participantes en la actividad "${activity.name}" debe estar entre 1 y ${dto.passengers}`,
+          `La cantidad de participantes en la actividad "${activity.name}" debe estar entre 1 y ${cantidadPasajeros}`,
         );
       }
       const lineCents = toCents(activity.price) * a.quantity;
@@ -358,7 +363,7 @@ export class BookingsService {
       }
       const lineCents =
         extra.pricing === 'POR_PASAJERO'
-          ? toCents(extra.price) * dto.passengers
+          ? toCents(extra.price) * cantidadPasajeros
           : toCents(extra.price);
       extrasTotalCents += lineCents;
       extraLineCents.push(lineCents);
@@ -404,7 +409,7 @@ export class BookingsService {
           pointsEarned,
           pointsUsed,
           discountAmount,
-          passengers: dto.passengers,
+          passengers: cantidadPasajeros,
           notes: dto.notes,
           status: 'CONFIRMADO',
           bookingFlights: {
@@ -436,12 +441,22 @@ export class BookingsService {
               details: e.details,
             })),
           },
+          bookingPassengers: {
+            create: dto.passengers.map((p) => ({
+              firstName: p.firstName,
+              lastName: p.lastName,
+              documentNumber: p.documentNumber,
+              birthDate: new Date(p.birthDate),
+              isHolder: p.isHolder ?? false,
+            })),
+          },
         },
         include: {
           bookingFlights: { include: { flight: { include: { origin: true, destination: true } } } },
           bookingHotels: { include: { hotel: true } },
           bookingActivities: { include: { activity: true } },
           bookingExtras: true,
+          bookingPassengers: true,
         },
       });
 

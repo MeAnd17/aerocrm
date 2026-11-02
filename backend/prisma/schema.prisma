@@ -257,10 +257,11 @@ model Booking {
 
   user              User          @relation(fields: [userId], references: [id])
   client            Client        @relation(fields: [clientId], references: [id])
-  bookingFlights    BookingFlight[]
-  bookingHotels     BookingHotel[]
-  bookingActivities BookingActivity[]
-  bookingExtras     BookingExtra[]
+  bookingFlights     BookingFlight[]
+  bookingHotels      BookingHotel[]
+  bookingActivities  BookingActivity[]
+  bookingExtras      BookingExtra[]
+  bookingPassengers  BookingPassenger[]
 }
 
 enum BookingStatus {
@@ -313,6 +314,18 @@ model BookingExtra {
   details   String?
 
   booking   Booking    @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+model BookingPassenger {
+  id             Int      @id @default(autoincrement())
+  bookingId      String
+  firstName      String
+  lastName       String
+  documentNumber String
+  birthDate      DateTime
+  isHolder       Boolean  @default(false)
+
+  booking        Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
 
 enum ExtraType {
