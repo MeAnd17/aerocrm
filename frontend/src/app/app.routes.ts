@@ -45,6 +45,14 @@ export const routes: Routes = [
         path: 'dashboard',
         loadComponent: () => import('./features/admin/admin-dashboard.component').then(m => m.AdminDashboardComponent),
       },
+      {
+        path: 'destinations',
+        loadComponent: () => import('./features/admin/destinations/admin-destinations.component').then(m => m.AdminDestinationsComponent),
+      },
+      {
+        path: 'destinations/:id/inventory',
+        loadComponent: () => import('./features/admin/destinations/admin-inventory.component').then(m => m.AdminInventoryComponent),
+      },
     ],
   },
   {

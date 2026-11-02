@@ -55,6 +55,27 @@ const FIELD_LABELS: Record<string, string> = {
   method: 'método de pago',
   status: 'estado',
   reason: 'motivo',
+  // Campos de DTOs de destinos e inventario (US-027)
+  country: 'país',
+  countryCode: 'código de país',
+  city: 'ciudad',
+  iataCode: 'código IATA',
+  imageUrl: 'imagen',
+  airline: 'aerolínea',
+  flightNumber: 'número de vuelo',
+  departureDate: 'fecha de salida',
+  arrivalDate: 'fecha de llegada',
+  durationMinutes: 'duración en minutos',
+  stops: 'escalas',
+  classType: 'clase',
+  pricePerPerson: 'precio por persona',
+  seatsAvailable: 'asientos disponibles',
+  originId: 'origen',
+  stars: 'estrellas',
+  zone: 'zona',
+  pricePerNight: 'precio por noche',
+  durationHours: 'duración en horas',
+  pricing: 'tipo de cobro',
 };
 
 /** Los mensajes por defecto de class-validator están en inglés y contienen "must" o "should". */
