@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import * as request from 'supertest';
 import * as bcryptjs from 'bcryptjs';
+import { Prisma } from '@prisma/client';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
@@ -14,7 +15,11 @@ const prismaFalso = {
   $queryRaw: jest.fn().mockResolvedValue([{ ok: 1 }]),
   user: {
     findUnique: jest.fn(),
+    create: jest.fn(),
     update: jest.fn().mockResolvedValue({}),
+  },
+  flight: {
+    findUnique: jest.fn(),
   },
 };
 
@@ -107,5 +112,103 @@ describe('API (e2e)', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe('Contraseña actualizada');
+  });
+
+  it('POST /api/auth/register responde 201 con token y role CLIENT', async () => {
+    const nuevoUsuario = {
+      id: 10,
+      email: 'nuevo@test.pe',
+      firstName: 'Ana',
+      lastName: 'López',
+      role: 'CLIENT',
+      client: { id: 5, membershipLevel: 'EXPLORADOR', availablePoints: 0, completedTrips: 0 },
+    };
+    // findUnique retorna null: el correo no existe aún.
+    prismaFalso.user.findUnique.mockResolvedValueOnce(null);
+    // create retorna el usuario con su cliente anidado.
+    prismaFalso.user.create.mockResolvedValueOnce(nuevoUsuario);
+
+    const res = await request(app.getHttpServer())
+      .post('/api/auth/register')
+      .send({
+        email: 'nuevo@test.pe',
+        password: 'Segura123',
+        firstName: 'Ana',
+        lastName: 'López',
+        phone: '987654321',
+        nationality: 'PE',
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.access_token).toBeDefined();
+    expect(res.body.user.role).toBe('CLIENT');
+  });
+
+  it('POST /api/auth/login responde 401 con credenciales incorrectas', async () => {
+    // findUnique retorna null: el usuario no existe.
+    prismaFalso.user.findUnique.mockResolvedValueOnce(null);
+
+    const res = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email: 'noexiste@test.pe', password: 'Cualquiera1' });
+
+    expect(res.status).toBe(401);
+  });
+
+  it('POST /api/auth/login responde 201 con token para credenciales válidas', async () => {
+    const hash = await bcryptjs.hash('Valida123', 10);
+    const usuarioActivo = {
+      id: 20,
+      email: 'activo@test.pe',
+      password: hash,
+      firstName: 'Luis',
+      lastName: 'Vera',
+      isActive: true,
+      role: 'CLIENT',
+      client: { id: 8, membershipLevel: 'EXPLORADOR', availablePoints: 0, completedTrips: 0 },
+    };
+    // JwtStrategy.validate y AuthService.login comparten la misma llamada a findUnique.
+    prismaFalso.user.findUnique.mockResolvedValueOnce(usuarioActivo);
+
+    const res = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email: 'activo@test.pe', password: 'Valida123' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.access_token).toBeDefined();
+  });
+
+  it('POST /api/bookings/quote responde 201 con desglose para vuelo de ida y regreso', async () => {
+    const vueloBase = {
+      id: 1,
+      flightNumber: 'LA501',
+      airline: 'LATAM',
+      departureDate: new Date('2025-06-01T08:00:00Z'),
+      pricePerPerson: new Prisma.Decimal('350.00'),
+      isActive: true,
+      destinationId: 3,
+      origin: { id: 1, name: 'Lima' },
+      destination: { id: 3, name: 'Cusco' },
+    };
+    const vueloRegreso = {
+      ...vueloBase,
+      id: 2,
+      flightNumber: 'LA502',
+      departureDate: new Date('2025-06-08T16:00:00Z'),
+    };
+    // Primer findUnique: vuelo de ida. Segundo: vuelo de regreso.
+    prismaFalso.flight.findUnique
+      .mockResolvedValueOnce(vueloBase)
+      .mockResolvedValueOnce(vueloRegreso);
+
+    const res = await request(app.getHttpServer())
+      .post('/api/bookings/quote')
+      .send({ flightId: 1, returnFlightId: 2, passengers: 2 });
+
+    expect(res.status).toBe(201);
+    expect(res.body.breakdown).toBeDefined();
+    expect(res.body.breakdown.outboundFlight).toBeDefined();
+    expect(res.body.breakdown.returnFlight).toBeDefined();
+    expect(res.body.breakdown.total).toBeGreaterThan(0);
   });
 });
