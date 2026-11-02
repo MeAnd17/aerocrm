@@ -3,6 +3,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 
+// TTLs de caché en milisegundos
+const TTL_HOLIDAYS_MS = 30 * 24 * 60 * 60 * 1000; // 30 días
+const TTL_WEATHER_MS  =  3 * 60 * 60 * 1000;       //  3 horas
+
 @Injectable()
 export class DestinationsService {
   constructor(private prisma: PrismaService, private config: ConfigService) {}
@@ -63,47 +67,11 @@ export class DestinationsService {
       return false;
     });
 
-    // Clima via OpenWeatherMap
-    let weather = null;
-    try {
-      const apiKey = this.config.get('OPENWEATHER_API_KEY');
-      if (apiKey && apiKey !== 'your-openweather-key') {
-        const res = await axios.get(
-          `https://api.openweathermap.org/data/2.5/forecast?q=${destination.city},${destination.countryCode}&appid=${apiKey}&units=metric&lang=es&cnt=5`
-        );
-        weather = {
-          source: 'pronostico',
-          city: res.data.city.name,
-          forecast: res.data.list.slice(0, 3).map((item: any) => ({
-            description: item.weather[0].description,
-            temp_min: Math.round(item.main.temp_min),
-            temp_max: Math.round(item.main.temp_max),
-          })),
-        };
-      }
-    } catch { weather = null; }
+    // Clima via OpenWeatherMap (con caché de 3 horas)
+    const weather = await this.getWeather(destination.id, destination.city, destination.countryCode, dep);
 
-    // Respaldo (M7): sin API o si falla, clima promedio del mes guardado en la base.
-    if (!weather) weather = await this.fallbackWeather(destination.id, destination.city, dep);
-
-    // Feriados via Calendarific
-    let holidays = [];
-    try {
-      const apiKey = this.config.get('CALENDARIFIC_API_KEY');
-      if (apiKey && apiKey !== 'your-calendarific-key') {
-        const year = dep.getFullYear();
-        const res = await axios.get(
-          `https://calendarific.com/api/v2/holidays?api_key=${apiKey}&country=${destination.countryCode}&year=${year}`
-        );
-        holidays = res.data.response.holidays.filter((h: any) => {
-          const hDate = new Date(h.date.iso);
-          return hDate >= dep && hDate <= ret;
-        }).map((h: any) => ({ name: h.name, date: h.date.iso, type: h.type[0] }));
-      }
-    } catch { holidays = []; }
-
-    // Respaldo (M7): feriados nacionales de fecha fija guardados en la base.
-    if (!holidays.length) holidays = await this.fallbackHolidays(destination.countryCode, dep, ret);
+    // Feriados via Calendarific (con caché de 30 días)
+    const holidays = await this.getHolidays(destination.countryCode, dep, ret);
 
     return {
       destination,
@@ -159,6 +127,139 @@ export class DestinationsService {
         || Number(a.pricePerPerson) - Number(b.pricePerPerson));
   }
 
+  // ── Cache genérico ──────────────────────────────────────────────────────────
+
+  /**
+   * Lee una entrada del caché. Devuelve `null` si no existe o si está vencida
+   * y `allowStale` es false. Con `allowStale: true` devuelve incluso datos vencidos.
+   */
+  private async readCache<T>(key: string, allowStale = false): Promise<T | null> {
+    const entry = await this.prisma.externalApiCache.findUnique({ where: { cacheKey: key } });
+    if (!entry) return null;
+    if (!allowStale && entry.expiresAt <= new Date()) return null;
+    return entry.data as T;
+  }
+
+  /** Guarda o actualiza una entrada del caché con el TTL indicado. */
+  private async writeCache(key: string, data: unknown, ttlMs: number): Promise<void> {
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + ttlMs);
+    await this.prisma.externalApiCache.upsert({
+      where: { cacheKey: key },
+      update: { data: data as any, fetchedAt: now, expiresAt },
+      create: { cacheKey: key, data: data as any, fetchedAt: now, expiresAt },
+    });
+  }
+
+  // ── Clima ───────────────────────────────────────────────────────────────────
+
+  /**
+   * Devuelve el clima para la ciudad en el mes de salida.
+   * Orden: caché vigente → OpenWeatherMap (si hay clave) → caché vencido → dato de respaldo.
+   * La propiedad `isReferential` indica si el dato proviene del respaldo de la base.
+   */
+  private async getWeather(destinationId: number, city: string, countryCode: string, dep: Date) {
+    const year  = dep.getUTCFullYear();
+    const month = String(dep.getUTCMonth() + 1).padStart(2, '0');
+    const cacheKey = `weather:${city}:${year}-${month}`;
+
+    // 1. Caché vigente
+    const cached = await this.readCache<any>(cacheKey);
+    if (cached) return cached;
+
+    // 2. API externa (solo si hay credencial real)
+    const apiKey = this.config.get<string>('OPENWEATHER_API_KEY');
+    const hasKey = apiKey && apiKey !== 'your-openweather-key';
+    if (hasKey) {
+      try {
+        const res = await axios.get(
+          `https://api.openweathermap.org/data/2.5/forecast?q=${city},${countryCode}&appid=${apiKey}&units=metric&lang=es&cnt=5`,
+          { timeout: 5000 },
+        );
+        const live = {
+          source: 'pronostico',
+          isReferential: false,
+          city: res.data.city.name,
+          forecast: res.data.list.slice(0, 3).map((item: any) => ({
+            description: item.weather[0].description,
+            temp_min: Math.round(item.main.temp_min),
+            temp_max: Math.round(item.main.temp_max),
+          })),
+        };
+        await this.writeCache(cacheKey, live, TTL_WEATHER_MS);
+        return live;
+      } catch {
+        // Continúa al respaldo
+      }
+    }
+
+    // 3. Caché vencido (mejor que nada si la API falló)
+    const stale = await this.readCache<any>(cacheKey, true);
+    if (stale) return { ...stale, isReferential: true };
+
+    // 4. Dato de respaldo de la base
+    return this.fallbackWeather(destinationId, city, dep);
+  }
+
+  /**
+   * Devuelve los feriados del país entre las dos fechas.
+   * Orden: caché vigente → Calendarific (si hay clave) → caché vencido → dato de respaldo.
+   * `isReferential: true` cuando el dato no es de la API en tiempo real.
+   */
+  private async getHolidays(countryCode: string, dep: Date, ret: Date) {
+    const year = dep.getUTCFullYear();
+    const cacheKey = `holidays:${countryCode}:${year}`;
+
+    // 1. Caché vigente
+    const cached = await this.readCache<any[]>(cacheKey);
+    if (cached) {
+      // El caché guarda todos los feriados del año; filtramos por rango de fechas aquí.
+      return this.filterHolidaysByRange(cached, dep, ret);
+    }
+
+    // 2. API externa (solo si hay credencial real)
+    const apiKey = this.config.get<string>('CALENDARIFIC_API_KEY');
+    const hasKey = apiKey && apiKey !== 'your-calendarific-key';
+    if (hasKey) {
+      try {
+        const res = await axios.get(
+          `https://calendarific.com/api/v2/holidays?api_key=${apiKey}&country=${countryCode}&year=${year}`,
+          { timeout: 5000 },
+        );
+        const allHolidays: any[] = res.data.response.holidays.map((h: any) => ({
+          name: h.name,
+          date: h.date.iso.slice(0, 10),
+          type: h.type[0],
+          isReferential: false,
+        }));
+        await this.writeCache(cacheKey, allHolidays, TTL_HOLIDAYS_MS);
+        return this.filterHolidaysByRange(allHolidays, dep, ret);
+      } catch {
+        // Continúa al respaldo
+      }
+    }
+
+    // 3. Caché vencido
+    const stale = await this.readCache<any[]>(cacheKey, true);
+    if (stale) {
+      const filtered = this.filterHolidaysByRange(stale, dep, ret);
+      return filtered.map(h => ({ ...h, isReferential: true }));
+    }
+
+    // 4. Dato de respaldo de la base
+    return this.fallbackHolidays(countryCode, dep, ret);
+  }
+
+  /** Filtra una lista de feriados (con campo `date` en YYYY-MM-DD) por el rango dep–ret. */
+  private filterHolidaysByRange(holidays: any[], dep: Date, ret: Date) {
+    return holidays.filter(h => {
+      const d = new Date(`${h.date}T00:00:00Z`);
+      return d >= dep && d <= ret;
+    });
+  }
+
+  // ── Respaldos de base ───────────────────────────────────────────────────────
+
   /** Clima promedio del mes de salida, con la misma forma que la respuesta de OpenWeatherMap. */
   private async fallbackWeather(destinationId: number, city: string, dep: Date) {
     const climate = await this.prisma.destinationClimate.findUnique({
@@ -167,10 +268,11 @@ export class DestinationsService {
     if (!climate) return null;
     return {
       source: 'promedio',
+      isReferential: true,
       city,
       forecast: [
         {
-          description: `${climate.summary} (promedio del mes)`,
+          description: climate.summary,
           temp_min: Math.round(Number(climate.minTempC)),
           temp_max: Math.round(Number(climate.maxTempC)),
         },
@@ -181,12 +283,12 @@ export class DestinationsService {
   /** Feriados de fecha fija del país entre la salida y el regreso (incluye viajes que cruzan de año). */
   private async fallbackHolidays(countryCode: string, dep: Date, ret: Date) {
     const rows = await this.prisma.holiday.findMany({ where: { countryCode } });
-    const result: { name: string; date: string; type: string }[] = [];
+    const result: { name: string; date: string; type: string; isReferential: boolean }[] = [];
     for (let year = dep.getUTCFullYear(); year <= ret.getUTCFullYear(); year++) {
       for (const h of rows) {
         const date = new Date(Date.UTC(year, h.month - 1, h.day));
         if (date >= dep && date <= ret) {
-          result.push({ name: h.name, date: date.toISOString().slice(0, 10), type: 'Feriado nacional' });
+          result.push({ name: h.name, date: date.toISOString().slice(0, 10), type: 'Feriado nacional', isReferential: true });
         }
       }
     }

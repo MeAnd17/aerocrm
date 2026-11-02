@@ -381,6 +381,7 @@ async function main() {
     extras: await prisma.extraOption.count(),
     climaMensual: await prisma.destinationClimate.count(),
     feriados: await prisma.holiday.count(),
+    cacheApiExternas: await prisma.externalApiCache.count(),
   };
   console.log('Registros:', JSON.stringify(counts));
   console.log(`Credenciales de demostración (contraseña ${DEMO_PASSWORD}):`);

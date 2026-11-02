@@ -1,9 +1,11 @@
-import { Controller, Post, Get, Body, UseGuards, Request } from '@nestjs/common';
-import { ApiBadRequestResponse, ApiBearerAuth, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { Controller, Post, Get, Patch, Body, UseGuards, Request } from '@nestjs/common';
+import { ApiBadRequestResponse, ApiBearerAuth, ApiOperation, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { CurrentUser } from './decorators/current-user.decorator';
 
 @ApiTags('Autenticación')
 @Controller('auth')
@@ -31,5 +33,16 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: 'Token ausente o vencido' })
   getMe(@Request() req) {
     return this.authService.getMe(req.user.sub);
+  }
+
+  @Patch('change-password')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cambiar contraseña del usuario autenticado' })
+  @ApiResponse({ status: 200, description: 'Contraseña actualizada correctamente', schema: { example: { message: 'Contraseña actualizada' } } })
+  @ApiBadRequestResponse({ description: 'Contraseña actual incorrecta, nueva igual a la actual, o no cumple los requisitos de fortaleza' })
+  @ApiUnauthorizedResponse({ description: 'Token ausente o vencido' })
+  changePassword(@CurrentUser() user: any, @Body() dto: ChangePasswordDto) {
+    return this.authService.changePassword(user.sub, dto);
   }
 }

@@ -1,56 +1,57 @@
 import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
+import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
-
-const DRAFT_KEY = 'aerocrm.paquete';
+import { PackageDraftService } from './package-draft.service';
 
 /**
- * Lugar único donde vive lo que el cliente va eligiendo en el armador (TS-009).
+ * Lugar único donde vive lo que el cliente va eligiendo en el armador (TS-009, TS-010).
  * Los pasos leen y escriben aquí; ninguno guarda su propia copia (AGENTS.md F8).
- * El estado se puede convertir a texto (serialize) y restaurar (restore) para guardarlo.
+ *
+ * En localStorage se persisten SOLO IDs, fechas y cantidades — nunca objetos completos
+ * con precios (TS-010). Los objetos completos (flight, hotel, activities, extras) viven
+ * únicamente en memoria. Si hay un ID en el draft pero no el objeto en memoria, el
+ * contenedor (PackageBuilderComponent) los recupera del servidor.
  *
  * Los totales que se muestran aquí son solo una vista previa: el precio que vale
  * es el que calcula el servidor al confirmar (AGENTS.md B6).
  */
-export interface PackageDraft {
-  version: 2;
-  /** Usuario dueño del paquete; null si lo armó un visitante. */
-  ownerId: number | null;
-  step: number;
-  destinationId: number | null;
-  flightId: number | null;
-  departureDate: string;
-  passengers: number;
-  flight: any;
-  hotel: any;
-  hotelCheckIn: string;
-  hotelCheckOut: string;
-  activities: any[];
-  extras: any[];
-  usePoints: boolean;
-}
-
 @Injectable({ providedIn: 'root' })
 export class PackageBuilderState {
   private readonly auth = inject(AuthService);
+  private readonly draftService = inject(PackageDraftService);
+  private readonly api = inject(ApiService);
 
   /** Dueño del paquete en curso: null mientras lo arma un visitante. */
   readonly ownerId = signal<number | null>(null);
 
-  // ── Lo que el cliente elige ─────────────────────────────────────────────────
+  // ── Elecciones del cliente (IDs y valores simples) ───────────────────────────
   readonly step = signal(1);
   readonly destinationId = signal<number | null>(null);
   readonly flightId = signal<number | null>(null);
+  readonly returnFlightId = signal<number | null>(null);
   readonly departureDate = signal('');
   readonly passengers = signal(1);
-  readonly flight = signal<any>(null);
-  readonly hotel = signal<any>(null);
+  readonly hotelId = signal<number | null>(null);
   readonly hotelCheckIn = signal('');
   readonly hotelCheckOut = signal('');
-  readonly activities = signal<any[]>([]);
-  readonly extras = signal<any[]>([]);
+  /** Actividades: ID + cantidad. Se sincroniza con activitySelections. */
+  readonly activitySelections = signal<{ activityId: number; quantity: number }[]>([]);
+  /** IDs (tipos) de extras elegidos. */
+  readonly extraIds = signal<string[]>([]);
+  readonly pointsToRedeem = signal(0);
   readonly usePoints = signal(false);
 
-  // ── Datos de apoyo que trae el contenedor (no son elecciones) ───────────────
+  // ── Objetos completos en memoria (nunca van a localStorage) ─────────────────
+  readonly flight = signal<any>(null);
+  /** Objeto completo del vuelo de regreso (nunca va a localStorage). */
+  readonly returnFlight = signal<any>(null);
+  readonly hotel = signal<any>(null);
+  /** Actividades completas (con nombre, precio, etc.) para mostrar en UI. */
+  readonly activities = signal<any[]>([]);
+  /** Extras completos (con label y precio) para mostrar en UI. */
+  readonly extras = signal<any[]>([]);
+
+  // ── Datos de apoyo que trae el contenedor ────────────────────────────────────
   readonly context = signal<any>(null);
   readonly loyalty = signal<any>(null);
   readonly redemption = signal<any>(null);
@@ -64,9 +65,23 @@ export class PackageBuilderState {
     return Math.max(1, Math.round((new Date(outDate).getTime() - new Date(inDate).getTime()) / 86400000));
   });
   readonly hotelTotal = computed(() => Number(this.hotel()?.pricePerNight ?? 0) * Math.max(1, this.hotelNights()));
-  /** Las actividades se cobran por pasajero. */
-  readonly activitiesTotal = computed(() => this.activities().reduce((s, a) => s + Number(a.price), 0) * this.passengers());
-  readonly extrasTotal = computed(() => this.extras().reduce((s, e) => s + e.price, 0));
+  /** Las actividades se cobran según la cantidad elegida por actividad (US-014). Vista previa local; el precio real viene del servidor (B6). */
+  readonly activitiesTotal = computed(() => {
+    const selections = this.activitySelections();
+    return this.activities().reduce((sum, a) => {
+      const sel = selections.find(s => s.activityId === a.id);
+      const qty = sel?.quantity ?? this.passengers();
+      return sum + Number(a.price) * qty;
+    }, 0);
+  });
+  readonly extrasTotal = computed(() =>
+    this.extras().reduce((s, e) => {
+      const lineTotal = e.pricing === 'POR_PASAJERO'
+        ? Number(e.price) * this.passengers()
+        : Number(e.price);
+      return s + lineTotal;
+    }, 0),
+  );
   readonly totalPrice = computed(() => this.flightTotal() + this.hotelTotal() + this.activitiesTotal() + this.extrasTotal());
   /** El descuento lo calcula el motor de fidelización del backend (AGENTS.md B7). */
   readonly pointsDiscount = computed(() => Number(this.redemption()?.totalDiscount ?? 0));
@@ -74,19 +89,41 @@ export class PackageBuilderState {
   /** Hay un paquete a medio armar (la barra de navegación ofrece continuarlo). */
   readonly hasDraft = computed(() => this.flightId() !== null);
 
+  /** Indica si el objeto completo del vuelo aún no está en memoria pero hay un ID guardado. */
+  readonly needsFlightReload = computed(() => this.flightId() !== null && this.flight() === null);
+
   constructor() {
-    // El paquete a medio armar se guarda en el navegador para no perderlo (modo explorador, M2).
-    const saved = readDraft();
-    if (saved) this.restore(saved);
-    // El paquete pertenece a quien lo armó (ver syncOwner).
+    // Restaurar desde localStorage (versión 3: solo IDs, sin precios)
+    const saved = this.draftService.load();
+    if (saved) this._restoreFromDraft(saved);
+
+    // Sincronizar dueño cuando cambia la sesión
     effect(() => {
       const userId = this.auth.currentUser()?.id ?? null;
-      untracked(() => this.syncOwner(userId));
+      untracked(() => this._syncOwner(userId));
     });
+
+    // Persistir en localStorage solo IDs/fechas/cantidades (sin precios)
     effect(() => {
-      const text = this.serialize();
-      if (this.flightId() === null) removeDraft();
-      else writeDraft(text);
+      if (this.flightId() === null) {
+        this.draftService.clear();
+      } else {
+        this.draftService.save({
+          ownerId: this.ownerId(),
+          step: this.step(),
+          destinationId: this.destinationId(),
+          flightId: this.flightId(),
+          returnFlightId: this.returnFlightId(),
+          departureDate: this.departureDate(),
+          passengers: this.passengers(),
+          hotelId: this.hotelId(),
+          checkIn: this.hotelCheckIn(),
+          checkOut: this.hotelCheckOut(),
+          activitySelections: this.activitySelections(),
+          extraIds: this.extraIds(),
+          pointsToRedeem: this.pointsToRedeem(),
+        });
+      }
     });
   }
 
@@ -96,7 +133,7 @@ export class PackageBuilderState {
    * - el dueño cierra sesión → el paquete se descarta;
    * - entra otro usuario → el paquete del anterior se descarta.
    */
-  private syncOwner(userId: number | null) {
+  private _syncOwner(userId: number | null) {
     const owner = this.ownerId();
     if (this.flightId() === null) {
       this.ownerId.set(userId);
@@ -112,38 +149,90 @@ export class PackageBuilderState {
   }
 
   // ── Acciones ────────────────────────────────────────────────────────────────
+
   goTo(step: number) {
     this.step.set(step);
   }
 
   toggleHotel(hotel: any) {
-    this.hotel.set(this.hotel()?.id === hotel.id ? null : hotel);
-    if (this.hotel() && !this.hotelCheckIn()) this.prefillHotelDates();
+    const same = this.hotel()?.id === hotel.id;
+    this.hotel.set(same ? null : hotel);
+    this.hotelId.set(same ? null : hotel.id);
+    if (this.hotel() && !this.hotelCheckIn()) this._prefillHotelDates();
   }
 
-  /** Entrada = día de llegada del vuelo; salida = 7 noches después. El cliente puede cambiarlas. */
-  private prefillHotelDates() {
+  /** Entrada = día de llegada del vuelo de ida; salida = día de salida del vuelo de regreso. */
+  private _prefillHotelDates() {
     const arrival = this.flight()?.arrivalDate ?? this.flight()?.departureDate;
     if (!arrival) return;
     const entrada = new Date(arrival);
-    const salida = new Date(entrada);
-    salida.setDate(salida.getDate() + 7);
+    // La salida propuesta es la fecha de salida del vuelo de regreso; si no hay vuelo de
+    // regreso, se propone una noche después (mínimo válido).
+    const returnDep = this.returnFlight()?.departureDate;
+    const salida = returnDep ? new Date(returnDep) : (() => { const d = new Date(entrada); d.setDate(d.getDate() + 1); return d; })();
     this.hotelCheckIn.set(localDate(entrada));
     this.hotelCheckOut.set(localDate(salida));
   }
 
   toggleActivity(act: any) {
     const curr = this.activities();
-    this.activities.set(curr.some((a) => a.id === act.id) ? curr.filter((a) => a.id !== act.id) : [...curr, act]);
+    const currSelections = this.activitySelections();
+    if (curr.some((a) => a.id === act.id)) {
+      this.activities.set(curr.filter((a) => a.id !== act.id));
+      this.activitySelections.set(currSelections.filter((s) => s.activityId !== act.id));
+    } else {
+      this.activities.set([...curr, act]);
+      this.activitySelections.set([...currSelections, { activityId: act.id, quantity: this.passengers() }]);
+    }
   }
 
   isActivitySelected(id: number) {
     return this.activities().some((a) => a.id === id);
   }
 
+  /** Actualiza la cantidad de personas para una actividad ya seleccionada (US-014). */
+  setActivityQuantity(change: { activityId: number; quantity: number }) {
+    const curr = this.activitySelections();
+    const updated = curr.map(s =>
+      s.activityId === change.activityId ? { ...s, quantity: change.quantity } : s,
+    );
+    this.activitySelections.set(updated);
+  }
+
+  private static readonly TRASLADO_TYPES = ['TRASLADO_IDA', 'TRASLADO_VUELTA', 'TRASLADO_COMPLETO'];
+
+  /**
+   * Selecciona un traslado (excluyente: deselecciona los otros tres tipos de traslado).
+   * Si ya estaba seleccionado, lo deselecciona.
+   */
+  selectTransfer(extra: any) {
+    const curr = this.extras();
+    const currIds = this.extraIds();
+    const alreadySelected = curr.some(e => e.type === extra.type);
+    // Quitar cualquier traslado previo
+    const withoutTransfers = curr.filter(e => !PackageBuilderState.TRASLADO_TYPES.includes(e.type));
+    const idsWithoutTransfers = currIds.filter(id => !PackageBuilderState.TRASLADO_TYPES.includes(id));
+    if (alreadySelected) {
+      // Deseleccionar
+      this.extras.set(withoutTransfers);
+      this.extraIds.set(idsWithoutTransfers);
+    } else {
+      // Seleccionar el nuevo
+      this.extras.set([...withoutTransfers, extra]);
+      this.extraIds.set([...idsWithoutTransfers, extra.type]);
+    }
+  }
+
   toggleExtra(extra: any) {
     const curr = this.extras();
-    this.extras.set(curr.some((e) => e.type === extra.type) ? curr.filter((e) => e.type !== extra.type) : [...curr, extra]);
+    const currIds = this.extraIds();
+    if (curr.some((e) => e.type === extra.type)) {
+      this.extras.set(curr.filter((e) => e.type !== extra.type));
+      this.extraIds.set(currIds.filter((id) => id !== extra.type));
+    } else {
+      this.extras.set([...curr, extra]);
+      this.extraIds.set([...currIds, extra.type]);
+    }
   }
 
   isExtraSelected(type: string) {
@@ -164,92 +253,49 @@ export class PackageBuilderState {
     this.step.set(1);
     this.destinationId.set(null);
     this.flightId.set(null);
+    this.returnFlightId.set(null);
     this.departureDate.set('');
     this.passengers.set(1);
-    this.flight.set(null);
+    this.hotelId.set(null);
     this.hotel.set(null);
     this.hotelCheckIn.set('');
     this.hotelCheckOut.set('');
+    this.activitySelections.set([]);
     this.activities.set([]);
+    this.extraIds.set([]);
     this.extras.set([]);
+    this.pointsToRedeem.set(0);
     this.usePoints.set(false);
+    this.flight.set(null);
+    this.returnFlight.set(null);
     this.context.set(null);
     this.redemption.set(null);
   }
 
-  // ── Conversión a texto ──────────────────────────────────────────────────────
-  toDraft(): PackageDraft {
-    return {
-      version: 2,
-      ownerId: this.ownerId(),
-      step: this.step(),
-      destinationId: this.destinationId(),
-      flightId: this.flightId(),
-      departureDate: this.departureDate(),
-      passengers: this.passengers(),
-      flight: this.flight(),
-      hotel: this.hotel(),
-      hotelCheckIn: this.hotelCheckIn(),
-      hotelCheckOut: this.hotelCheckOut(),
-      activities: this.activities(),
-      extras: this.extras(),
-      usePoints: this.usePoints(),
-    };
-  }
+  // ── Restauración desde draft guardado ────────────────────────────────────────
 
-  serialize(): string {
-    return JSON.stringify(this.toDraft());
-  }
-
-  /** Restaura un paquete guardado con serialize(). Devuelve false si el texto no es válido. */
-  restore(text: string): boolean {
-    let draft: PackageDraft;
-    try {
-      draft = JSON.parse(text);
-    } catch {
-      return false;
-    }
-    if (!draft || draft.version !== 2) return false;
+  private _restoreFromDraft(draft: import('./package-draft.service').PackageDraft): void {
     this.ownerId.set(draft.ownerId ?? null);
     this.step.set(draft.step ?? 1);
     this.destinationId.set(draft.destinationId ?? null);
     this.flightId.set(draft.flightId ?? null);
+    this.returnFlightId.set(draft.returnFlightId ?? null);
     this.departureDate.set(draft.departureDate ?? '');
     this.passengers.set(draft.passengers ?? 1);
-    this.flight.set(draft.flight ?? null);
-    this.hotel.set(draft.hotel ?? null);
-    this.hotelCheckIn.set(draft.hotelCheckIn ?? '');
-    this.hotelCheckOut.set(draft.hotelCheckOut ?? '');
-    this.activities.set(draft.activities ?? []);
-    this.extras.set(draft.extras ?? []);
-    this.usePoints.set(!!draft.usePoints);
+    this.hotelId.set(draft.hotelId ?? null);
+    this.hotelCheckIn.set(draft.checkIn ?? '');
+    this.hotelCheckOut.set(draft.checkOut ?? '');
+    this.activitySelections.set(draft.activitySelections ?? []);
+    this.extraIds.set(draft.extraIds ?? []);
+    this.pointsToRedeem.set(draft.pointsToRedeem ?? 0);
+    // Los objetos completos (flight, hotel, activities, extras) NO están en el draft.
+    // El contenedor los carga del servidor cuando detecta needsFlightReload().
+    this.flight.set(null);
+    this.returnFlight.set(null);
+    this.hotel.set(null);
+    this.activities.set([]);
+    this.extras.set([]);
     this.redemption.set(null);
-    return true;
-  }
-}
-
-// El almacenamiento del navegador puede no estar disponible (modo privado): nunca debe romper el armador.
-function readDraft(): string | null {
-  try {
-    return localStorage.getItem(DRAFT_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function writeDraft(text: string) {
-  try {
-    localStorage.setItem(DRAFT_KEY, text);
-  } catch {
-    /* sin almacenamiento: el paquete vive solo mientras la pestaña esté abierta */
-  }
-}
-
-function removeDraft() {
-  try {
-    localStorage.removeItem(DRAFT_KEY);
-  } catch {
-    /* nada que limpiar */
   }
 }
 

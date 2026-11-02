@@ -1,0 +1,7 @@
+{
+  "verdict": "CHANGES_REQUESTED",
+  "findings": [
+    "`confirm()` nativo en deleteTraveler — profile.component.ts usa window.confirm() para la confirmación de eliminación de viajero. AGENTS.md F5 prohíbe alert; confirm produce el mismo bloqueo de UI. Reemplazar con un modal inline o paso de confirmación que use el sistema de UI del proyecto.",
+    "Edición de viajeros frecuentes ausente — US-009 exige agregar, editar y eliminar viajeros. No existe endpoint PATCH /me/travelers/:id en clients.controller.ts ni UI de edición en profile.component.ts. Agregar updateTraveler en service/controller y el formulario de edición en el componente."
+  ]
+}

@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import * as bcryptjs from 'bcryptjs';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -88,6 +89,33 @@ export class AuthService {
         role: user.role,
       },
     };
+  }
+
+  async changePassword(userId: number, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException();
+
+    const currentMatches = await bcryptjs.compare(dto.currentPassword, user.password);
+    if (!currentMatches) {
+      throw new BadRequestException('La contraseña actual no es correcta');
+    }
+
+    if (dto.newPassword === dto.currentPassword) {
+      throw new BadRequestException('La nueva contraseña debe ser distinta de la actual');
+    }
+
+    const passwordValid =
+      dto.newPassword.length >= 8 &&
+      /[A-Z]/.test(dto.newPassword) &&
+      /[0-9]/.test(dto.newPassword);
+    if (!passwordValid) {
+      throw new BadRequestException('La contraseña debe tener al menos 8 caracteres, una mayúscula y un número');
+    }
+
+    const hashed = await bcryptjs.hash(dto.newPassword, 10);
+    await this.prisma.user.update({ where: { id: userId }, data: { password: hashed } });
+
+    return { message: 'Contraseña actualizada' };
   }
 
   async getMe(userId: number) {

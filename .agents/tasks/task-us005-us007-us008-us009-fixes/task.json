@@ -1,0 +1,7 @@
+{
+  "task_id": "task-us005-us007-us008-us009-fixes",
+  "task_description": "Implementar fixes de US-009 (viajeros frecuentes), US-005 (explorar destinos), y crear componentes reutilizables de US-007 (filtros de hoteles) y US-008 (filtros de actividades). Backend NestJS + Prisma, frontend Angular 17 standalone + Tailwind. Rama: feat/us005-us007-us008-us009-fixes.",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}

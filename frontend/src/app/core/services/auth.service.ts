@@ -1,8 +1,9 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { PackageDraftService } from '../../features/packages/package-draft.service';
 
 export interface AuthUser {
   id: number;
@@ -21,6 +22,8 @@ export class AuthService {
   private readonly TOKEN_KEY = 'viajes_token';
   private readonly USER_KEY  = 'viajes_user';
 
+  private readonly draftService = inject(PackageDraftService);
+
   currentUser = signal<AuthUser | null>(this.loadUser());
 
   constructor(private http: HttpClient, private router: Router) {}
@@ -32,6 +35,7 @@ export class AuthService {
       localStorage.setItem(this.TOKEN_KEY, res.access_token);
       localStorage.setItem(this.USER_KEY, JSON.stringify(res.user));
       this.currentUser.set(res.user);
+      this._sendSearchSignals();
     }));
   }
 
@@ -42,6 +46,7 @@ export class AuthService {
       localStorage.setItem(this.TOKEN_KEY, res.access_token);
       localStorage.setItem(this.USER_KEY, JSON.stringify(res.user));
       this.currentUser.set(res.user);
+      this._sendSearchSignals();
     }));
   }
 
@@ -92,6 +97,22 @@ export class AuthService {
         localStorage.setItem(this.USER_KEY, JSON.stringify(user));
         this.currentUser.set(user);
       }));
+  }
+
+  /**
+   * Envía las señales de búsqueda acumuladas al backend para personalización (TS-010).
+   * Se llama justo después de login o register exitosos. Las señales son no críticas:
+   * si el envío falla, no se bloquea la sesión.
+   */
+  private _sendSearchSignals() {
+    const signals = this.draftService.getSearchSignals();
+    const hasSignals =
+      signals.viewedDestinationTypes.length > 0 || signals.priceRangeFilter !== null;
+    if (!hasSignals) return;
+    this.http.patch(
+      `${environment.apiUrl}/clients/me`,
+      { searchSignals: signals },
+    ).subscribe({ error: () => { /* señales no críticas: ignorar errores */ } });
   }
 
   private loadUser(): AuthUser | null {

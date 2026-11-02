@@ -1,0 +1,26 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "US-009 backend + frontend: (1) validación de documento duplicado en createTraveler, (2) confirmación al eliminar viajero, (3) mensaje de éxito 'Datos actualizados'. US-005 backend: reemplazar departingFlights por arrivingFlights en findOne. Estos son cambios quirúrgicos en archivos ya existentes; son independientes de FEAT-002 y FEAT-003.",
+  "status": "completed",
+  "steps": [
+    "1. backend/src/clients/clients.service.ts — método createTraveler: después de resolver user.client.id y antes de prisma.traveler.create, agregar una consulta prisma.traveler.findFirst({ where: { clientId: user.client.id, documentNumber: dto.documentNumber } }). Si hay resultado, lanzar new BadRequestException('Ya tienes un viajero con ese documento'). Agregar BadRequestException al import de @nestjs/common.",
+    "2. frontend/src/app/features/profile/profile.component.ts — método deleteTraveler(id: number): antes de llamar a this.api.delete, obtener el viajero de this.travelers() por id (const traveler = this.travelers().find(t => t.id === id)) y mostrar un confirm() con el texto exacto '¿Eliminar a [nombre] de tus viajeros?' donde [nombre] es `${traveler.firstName} ${traveler.lastName}`. Si el usuario cancela el confirm (devuelve false), retornar sin hacer nada. Agregar también manejo de error con ToastService importado en el componente.",
+    "3. frontend/src/app/features/profile/profile.component.ts — método saveProfile(): cambiar el feedback actual '@if (saved()) { <span ...>✓ Guardado</span> }' para que en el next handler se llame a this.toast.success('Datos actualizados') en lugar de usar la señal saved(). Eliminar la señal saved() y su @if del template. Inyectar ToastService (ya usado para deleteTraveler en paso 2) — hacerlo en el constructor junto con auth. Mantener la señal saving() para el disabled del botón.",
+    "4. backend/src/destinations/destinations.service.ts — método findOne: en el bloque include del prisma.destination.findUnique, cambiar la clave departingFlights por arrivingFlights. La relación arrivingFlights ya existe en el schema (es la inversa de Flight.destination). Dejar el mismo where y orderBy que tenía departingFlights."
+  ],
+  "acceptance_criteria": [
+    "POST /api/clients/me/travelers con documentNumber repetido devuelve HTTP 400 con message 'Ya tienes un viajero con ese documento'.",
+    "En el perfil, al pulsar Eliminar en un viajero, el navegador muestra un confirm con el texto exacto '¿Eliminar a [nombre] de tus viajeros?'.",
+    "Al guardar datos propios en el perfil, el toast muestra 'Datos actualizados' (no '✓ Guardado').",
+    "GET /api/destinations/:id devuelve la clave arrivingFlights (vuelos que llegan al destino), no departingFlights."
+  ],
+  "verification": [
+    "cd /Users/admin/Downloads/2026-2/Admin/aerocrm/backend && npm run lint — cero errores.",
+    "cd /Users/admin/Downloads/2026-2/Admin/aerocrm/backend && npm test — todos los tests en verde (incluyendo destinations.service.spec.ts).",
+    "cd /Users/admin/Downloads/2026-2/Admin/aerocrm/backend && npm run build — compila sin errores.",
+    "cd /Users/admin/Downloads/2026-2/Admin/aerocrm/frontend && npm run build — compila sin errores."
+  ],
+  "blocked_reason": null,
+  "findings": "1. destinations.service.ts ya tenía BadRequestException importado — no hubo conflicto. 2. La relación arrivingFlights existe en el schema de Prisma como inversa de Flight.destination; el cambio de departingFlights → arrivingFlights compila limpio. 3. La señal saved() y su @if fueron eliminados del template; el feedback ahora es exclusivamente via ToastService.success('Datos actualizados'). 4. frontend/node_modules estaba instalado para linux-arm64; se ejecutó npm ci para darwin-arm64 antes de ng build — los siguientes FEATs deben asumir que node_modules del frontend ya está listo para macOS. 5. npm run lint del backend arroja solo warnings preexistentes (no-explicit-any, no-unused-vars) — ninguno introducido por este FEAT."
+}
