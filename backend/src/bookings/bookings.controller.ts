@@ -2,6 +2,7 @@ import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Request } 
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -10,10 +11,15 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { QuoteDto, QuoteResponseDto } from './dto/quote.dto';
+import { PayBookingDto } from './dto/pay-booking.dto';
+import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 /** Forma de la respuesta de GET /bookings/extras */
 class ExtraOptionDto {
@@ -102,9 +108,39 @@ export class BookingsController {
   @ApiUnauthorizedResponse({ description: 'Token ausente o vencido' })
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Cancela una reserva propia' })
-  @ApiBadRequestResponse({ description: 'La reserva ya está cancelada o completada' })
+  @ApiBadRequestResponse({ description: 'La reserva está en un estado que no permite cancelación' })
   @ApiNotFoundResponse({ description: 'Reserva no encontrada' })
-  cancel(@Request() req, @Param('id') id: string) {
-    return this.bookingsService.cancel(req.user.sub, id);
+  cancelOwn(@Request() req, @Param('id') id: string) {
+    return this.bookingsService.cancelOwn(req.user.sub, id);
+  }
+
+  @Post(':id/pay')
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Token ausente o vencido' })
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Paga una reserva PENDIENTE (pago simulado)',
+    description: 'Confirma el pago de la reserva, la avanza a CONFIRMADO y registra los puntos de fidelización.',
+  })
+  @ApiBadRequestResponse({ description: 'La reserva no está en estado PENDIENTE o los puntos ya no son suficientes' })
+  @ApiNotFoundResponse({ description: 'Reserva no encontrada o no pertenece al cliente' })
+  pay(@Request() req, @Param('id') id: string, @Body() dto: PayBookingDto) {
+    return this.bookingsService.pay(req.user.sub, id, dto);
+  }
+
+  @Patch(':id/status')
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Token ausente o vencido' })
+  @ApiForbiddenResponse({ description: 'Solo los administradores pueden cambiar el estado' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Avanza el estado de una reserva (solo admin)',
+    description: 'Permite al administrador cambiar el estado siguiendo las transiciones válidas del ciclo de vida.',
+  })
+  @ApiBadRequestResponse({ description: 'Transición de estado no válida' })
+  @ApiNotFoundResponse({ description: 'Reserva no encontrada' })
+  advanceStatus(@Request() req, @Param('id') id: string, @Body() dto: UpdateBookingStatusDto) {
+    return this.bookingsService.advanceStatus(id, dto.status, req.user.email);
   }
 }

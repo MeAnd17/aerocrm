@@ -252,6 +252,8 @@ model Booking {
   discountAmount    Decimal       @default(0) @db.Decimal(10, 2)
   passengers        Int           @default(1)
   notes             String?
+  statusChangedAt   DateTime?
+  statusChangedBy   String?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
@@ -350,8 +352,10 @@ model PointsHistory {
 }
 
 enum PointsEventType {
-  EARNED    // ganados por compra
-  REDEEMED  // canjeados como descuento
+  EARNED          // ganados por compra
+  REDEEMED        // canjeados como descuento
+  EARNED_REFUND   // devuelve puntos ganados al cancelar una reserva confirmada
+  REDEEMED_REFUND // devuelve puntos canjeados al cancelar una reserva confirmada
 }
 
 // ─── SAVED DESTINATIONS ───────────────────────────────────────────────────────

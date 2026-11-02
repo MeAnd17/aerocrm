@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { BookingStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { LoyaltyService } from '../loyalty/loyalty.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { QuoteDto, QuoteResponseDto } from './dto/quote.dto';
+import { PayBookingDto } from './dto/pay-booking.dto';
 import {
   RedemptionError,
   computeRedemption,
@@ -52,9 +54,21 @@ function calcNights(checkIn: string, checkOut: string): number {
 
 // ── Lógica de cotización (reutilizada por quote y create) ─────────────────────
 
+// Transiciones de estado válidas para las reservas.
+const TRANSICIONES_VALIDAS: Record<BookingStatus, BookingStatus[]> = {
+  PENDIENTE:  [BookingStatus.CONFIRMADO, BookingStatus.CANCELADO],
+  CONFIRMADO: [BookingStatus.EN_CURSO,   BookingStatus.CANCELADO],
+  EN_CURSO:   [BookingStatus.COMPLETADO],
+  COMPLETADO: [],
+  CANCELADO:  [],
+};
+
 @Injectable()
 export class BookingsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private loyaltyService: LoyaltyService,
+  ) {}
 
   // ─── Métodos públicos ───────────────────────────────────────────────────────
 
@@ -508,14 +522,227 @@ export class BookingsService {
     });
   }
 
-  async cancel(userId: number, bookingId: string) {
-    const booking = await this.findOne(userId, bookingId);
-    if (booking.status === 'CANCELADO') throw new BadRequestException('Esta reserva ya está cancelada');
-    if (booking.status === 'COMPLETADO') throw new BadRequestException('No se puede cancelar una reserva completada');
+  // ─── Ciclo de vida ─────────────────────────────────────────────────────────
+
+  /** Avanza el estado de una reserva validando la transición. */
+  async advanceStatus(bookingId: string, newStatus: BookingStatus, by: string) {
+    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } });
+    if (!booking) throw new NotFoundException('Reserva no encontrada');
+
+    if (!TRANSICIONES_VALIDAS[booking.status].includes(newStatus)) {
+      throw new BadRequestException(
+        `Esta reserva no puede pasar de ${booking.status} a ${newStatus}`,
+      );
+    }
 
     return this.prisma.booking.update({
       where: { id: bookingId },
-      data: { status: 'CANCELADO' },
+      data: { status: newStatus, statusChangedAt: new Date(), statusChangedBy: by },
     });
+  }
+
+  /** Confirma el pago de una reserva PENDIENTE: avanza a CONFIRMADO y registra puntos. */
+  async pay(userId: number, bookingId: string, dto: PayBookingDto) {
+    // Silencia la variable para el registro contable futuro; el método la acepta como contrato.
+    void dto;
+
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { client: true, user: true },
+    });
+
+    if (!booking) throw new NotFoundException('Reserva no encontrada');
+    if (booking.userId !== userId) throw new NotFoundException('Reserva no encontrada');
+    if (booking.status !== 'PENDIENTE') {
+      throw new BadRequestException('Solo se puede pagar una reserva en estado PENDIENTE');
+    }
+
+    const { pointsEarned, pointsUsed } = booking;
+    const client = booking.client;
+    const MAX_REDEEM_PERCENT = 50;
+
+    // Revalidar puntos si hay canje
+    if (pointsUsed > 0) {
+      if (pointsUsed < 500) throw new BadRequestException('El canje mínimo es de 500 puntos');
+      if (client.availablePoints < pointsUsed) {
+        throw new BadRequestException('Tus puntos disponibles cambiaron, vuelve a revisar el resumen');
+      }
+      const maxDescuento = Math.floor(Number(booking.totalPrice) * MAX_REDEEM_PERCENT / 100);
+      const descuentoReal = pointsUsed * 0.1; // 1 punto = S/ 0.10
+      if (descuentoReal > maxDescuento) {
+        throw new BadRequestException('Tus puntos disponibles cambiaron, vuelve a revisar el resumen');
+      }
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // Avanzar estado
+      await tx.booking.update({
+        where: { id: bookingId },
+        data: {
+          status: 'CONFIRMADO',
+          statusChangedAt: new Date(),
+          statusChangedBy: booking.user.email,
+        },
+      });
+
+      // Actualizar puntos del cliente
+      await tx.client.update({
+        where: { id: client.id },
+        data: {
+          totalPoints:     { increment: pointsEarned },
+          availablePoints: { increment: pointsEarned - pointsUsed },
+        },
+      });
+
+      // Historial de puntos ganados
+      if (pointsEarned > 0) {
+        await tx.pointsHistory.create({
+          data: {
+            clientId:    client.id,
+            type:        'EARNED',
+            points:      pointsEarned,
+            description: `Puntos ganados por reserva ${booking.confirmationCode}`,
+            bookingId,
+          },
+        });
+      }
+      // Historial de puntos canjeados
+      if (pointsUsed > 0) {
+        await tx.pointsHistory.create({
+          data: {
+            clientId:    client.id,
+            type:        'REDEEMED',
+            points:      -pointsUsed,
+            description: `Puntos canjeados en reserva ${booking.confirmationCode}`,
+            bookingId,
+          },
+        });
+      }
+
+      return tx.booking.findUnique({
+        where: { id: bookingId },
+        include: {
+          bookingFlights:    { include: { flight: true } },
+          bookingPassengers: true,
+        },
+      });
+    });
+  }
+
+  /** Cancela una reserva PENDIENTE o CONFIRMADA, revirtiendo puntos si corresponde. */
+  async cancel(bookingId: string, cancelledBy: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { client: true },
+    });
+
+    if (!booking) throw new NotFoundException('Reserva no encontrada');
+    if (!['PENDIENTE', 'CONFIRMADO'].includes(booking.status)) {
+      throw new BadRequestException(`No se puede cancelar una reserva en estado ${booking.status}`);
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.booking.update({
+        where: { id: bookingId },
+        data: { status: 'CANCELADO', statusChangedAt: new Date(), statusChangedBy: cancelledBy },
+      });
+
+      // Solo se revierten puntos si la reserva ya estaba CONFIRMADA (puntos ya acreditados)
+      if (booking.status === 'CONFIRMADO') {
+        const { pointsEarned, pointsUsed, client } = booking;
+
+        if (pointsEarned > 0) {
+          await tx.client.update({
+            where: { id: client.id },
+            data: {
+              totalPoints:     { decrement: pointsEarned },
+              availablePoints: { decrement: pointsEarned },
+            },
+          });
+          await tx.pointsHistory.create({
+            data: {
+              clientId:    client.id,
+              type:        'EARNED_REFUND',
+              points:      pointsEarned,
+              description: `Reversión de puntos por cancelación de ${booking.confirmationCode}`,
+              bookingId,
+            },
+          });
+        }
+
+        if (pointsUsed > 0) {
+          await tx.client.update({
+            where: { id: client.id },
+            data: { availablePoints: { increment: pointsUsed } },
+          });
+          await tx.pointsHistory.create({
+            data: {
+              clientId:    client.id,
+              type:        'REDEEMED_REFUND',
+              points:      pointsUsed,
+              description: `Devolución de puntos canjeados por cancelación de ${booking.confirmationCode}`,
+              bookingId,
+            },
+          });
+        }
+      }
+      // Si era PENDIENTE: no hubo movimiento de puntos, no hay nada que revertir.
+
+      return tx.booking.findUnique({ where: { id: bookingId } });
+    });
+  }
+
+  /** Cancela la reserva propia de un cliente autenticado. */
+  async cancelOwn(userId: number, bookingId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, include: { client: true } });
+    if (!user?.client) throw new NotFoundException('Cliente no encontrado');
+
+    const booking = await this.prisma.booking.findFirst({
+      where: { id: bookingId, clientId: user.client.id },
+    });
+    if (!booking) throw new NotFoundException('Reserva no encontrada');
+
+    return this.cancel(bookingId, user.email);
+  }
+
+  /**
+   * Avance automático diario del estado de reservas.
+   * CONFIRMADO → EN_CURSO cuando la fecha de salida ya pasó.
+   * EN_CURSO → COMPLETADO cuando la fecha de regreso ya pasó; registra el viaje completado.
+   */
+  async runDailyAdvance() {
+    const ahora = new Date();
+
+    // CONFIRMADO → EN_CURSO: vuelo de salida ya ocurrió
+    const paraEnCurso = await this.prisma.booking.findMany({
+      where: {
+        status: 'CONFIRMADO',
+        bookingFlights: { some: { flight: { departureDate: { lte: ahora } } } },
+      },
+      include: { bookingFlights: { include: { flight: true } } },
+    });
+
+    for (const b of paraEnCurso) {
+      await this.advanceStatus(b.id, BookingStatus.EN_CURSO, 'sistema');
+    }
+
+    // EN_CURSO → COMPLETADO: el último vuelo de regreso ya llegó
+    const paraCompletar = await this.prisma.booking.findMany({
+      where: { status: 'EN_CURSO' },
+      include: {
+        bookingFlights: { include: { flight: true } },
+        client: { include: { user: true } },
+      },
+    });
+
+    for (const b of paraCompletar) {
+      const maxArrival = Math.max(
+        ...b.bookingFlights.map(bf => new Date(bf.flight.arrivalDate).getTime()),
+      );
+      if (maxArrival <= ahora.getTime()) {
+        await this.advanceStatus(b.id, BookingStatus.COMPLETADO, 'sistema');
+        await this.loyaltyService.onTripCompleted(b.clientId);
+      }
+    }
   }
 }

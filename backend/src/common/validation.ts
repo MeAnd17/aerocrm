@@ -51,6 +51,10 @@ const FIELD_LABELS: Record<string, string> = {
   // Campos de BookingPassengerDto
   birthDate: 'fecha de nacimiento',
   isHolder: 'titular',
+  // Campos de PayBookingDto y UpdateBookingStatusDto
+  method: 'método de pago',
+  status: 'estado',
+  reason: 'motivo',
 };
 
 /** Los mensajes por defecto de class-validator están en inglés y contienen "must" o "should". */

@@ -24,10 +24,14 @@ const prismaFalso = {
   },
   booking: {
     findFirst: jest.fn(),
+    findUnique: jest.fn(),
+    findMany: jest.fn().mockResolvedValue([]),
     create: jest.fn(),
+    update: jest.fn().mockResolvedValue({}),
   },
   client: {
     update: jest.fn().mockResolvedValue({}),
+    findUnique: jest.fn(),
   },
   pointsHistory: {
     create: jest.fn().mockResolvedValue({}),
@@ -302,5 +306,63 @@ describe('API (e2e)', () => {
     expect(res.body.bookingPassengers).toBeDefined();
     expect(res.body.bookingPassengers).toHaveLength(1);
     expect(res.body.bookingPassengers[0].isHolder).toBe(true);
+  });
+
+  it('PATCH /api/bookings/:id/status — admin no puede ir de PENDIENTE directo a COMPLETADO (400)', async () => {
+    const adminFalso = { id: 1, email: 'admin@aerocrm.com', isActive: true, role: 'ADMIN', client: null };
+    prismaFalso.user.findUnique.mockResolvedValueOnce(adminFalso);
+    const reservaPendiente = {
+      id: 'cld-test-1',
+      confirmationCode: 'VJ-TEST01',
+      status: 'PENDIENTE',
+      userId: 99,
+      clientId: 5,
+    };
+    prismaFalso.booking.findUnique.mockResolvedValueOnce(reservaPendiente);
+
+    const token = jwtService.sign({ sub: 1, email: 'admin@aerocrm.com', clientId: null, role: 'ADMIN' });
+    const res = await request(app.getHttpServer())
+      .patch('/api/bookings/cld-test-1/status')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'COMPLETADO' });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('PATCH /api/bookings/:id/cancel — cliente cancela reserva PENDIENTE (200)', async () => {
+    const usuarioCliente = { id: 99, email: 'cliente@test.pe', isActive: true, role: 'CLIENT', client: { id: 5 } };
+    const reservaPendiente = {
+      id: 'cld-test-2',
+      confirmationCode: 'VJ-TEST02',
+      status: 'PENDIENTE',
+      userId: 99,
+      clientId: 5,
+      client: { id: 5, availablePoints: 0 },
+      pointsEarned: 0,
+      pointsUsed: 0,
+    };
+
+    // JwtStrategy.validate
+    prismaFalso.user.findUnique.mockResolvedValueOnce(usuarioCliente);
+    // cancelOwn → user.findUnique para obtener client.id
+    prismaFalso.user.findUnique.mockResolvedValueOnce(usuarioCliente);
+    // cancelOwn → booking.findFirst (verifica que la reserva pertenece al cliente)
+    prismaFalso.booking.findFirst.mockResolvedValueOnce(reservaPendiente);
+    // cancel() → booking.findUnique (con include client) antes de la transacción
+    prismaFalso.booking.findUnique.mockResolvedValueOnce(reservaPendiente);
+    // Transacción
+    prismaFalso.$transaction.mockImplementationOnce(
+      async (fn: (tx: typeof prismaFalso) => Promise<unknown>) => fn(prismaFalso),
+    );
+    prismaFalso.booking.update.mockResolvedValueOnce({ ...reservaPendiente, status: 'CANCELADO' });
+    // cancel() → tx.booking.findUnique al final de la transacción
+    prismaFalso.booking.findUnique.mockResolvedValueOnce({ ...reservaPendiente, status: 'CANCELADO' });
+
+    const token = jwtService.sign({ sub: 99, email: 'cliente@test.pe', clientId: 5, role: 'CLIENT' });
+    const res = await request(app.getHttpServer())
+      .patch('/api/bookings/cld-test-2/cancel')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
   });
 });
