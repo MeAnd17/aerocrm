@@ -128,7 +128,7 @@ const TRASLADO_TYPES = ['TRASLADO_IDA', 'TRASLADO_VUELTA', 'TRASLADO_COMPLETO'] 
         <button
           (click)="state.goTo(6)"
           class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition text-sm">
-          Ver resumen
+          Continuar
         </button>
         <button
           (click)="skipExtras()"

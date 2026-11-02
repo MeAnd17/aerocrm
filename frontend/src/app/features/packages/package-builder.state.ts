@@ -4,6 +4,22 @@ import { AuthService } from '../../core/services/auth.service';
 import { PackageDraftService } from './package-draft.service';
 
 /**
+ * Datos de un pasajero mientras se arma el paquete (US-010).
+ * No se persisten en localStorage: se rellenan de nuevo en el paso 6 si se recarga.
+ */
+export interface PassengerDraft {
+  firstName: string;
+  lastName: string;
+  documentNumber: string;
+  /** Fecha de nacimiento en formato ISO AAAA-MM-DD. */
+  birthDate: string;
+  /** El primer pasajero es el titular; sus datos vienen del usuario autenticado. */
+  isHolder: boolean;
+  /** Solo UI: si está marcado, se llama POST /clients/me/travelers al continuar. */
+  saveAsTraveler?: boolean;
+}
+
+/**
  * Lugar único donde vive lo que el cliente va eligiendo en el armador (TS-009, TS-010).
  * Los pasos leen y escriben aquí; ninguno guarda su propia copia (AGENTS.md F8).
  *
@@ -40,6 +56,8 @@ export class PackageBuilderState {
   readonly extraIds = signal<string[]>([]);
   readonly pointsToRedeem = signal(0);
   readonly usePoints = signal(false);
+  /** Datos de cada pasajero ingresados en el paso 6 (US-010). No se persisten en localStorage. */
+  readonly passengerDrafts = signal<PassengerDraft[]>([]);
 
   // ── Objetos completos en memoria (nunca van a localStorage) ─────────────────
   readonly flight = signal<any>(null);
@@ -266,6 +284,7 @@ export class PackageBuilderState {
     this.extras.set([]);
     this.pointsToRedeem.set(0);
     this.usePoints.set(false);
+    this.passengerDrafts.set([]);
     this.flight.set(null);
     this.returnFlight.set(null);
     this.context.set(null);
