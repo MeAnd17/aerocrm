@@ -329,6 +329,23 @@ describe('API (e2e)', () => {
     expect(res.status).toBe(400);
   });
 
+  it('GET /api/bookings/:id de otro usuario devuelve 404 con "Reserva no encontrada"', async () => {
+    const usuarioOtro = { id: 55, email: 'otro@test.pe', isActive: true, role: 'CLIENT', client: { id: 99 } };
+    // JwtStrategy.validate
+    prismaFalso.user.findUnique.mockResolvedValueOnce(usuarioOtro);
+    // findOne: busca por id + clientId del usuario que hace la petición; si no es suya devuelve null.
+    prismaFalso.user.findUnique.mockResolvedValueOnce(usuarioOtro);
+    prismaFalso.booking.findFirst.mockResolvedValueOnce(null);
+
+    const token = jwtService.sign({ sub: 55, email: 'otro@test.pe', clientId: 99, role: 'CLIENT' });
+    const res = await request(app.getHttpServer())
+      .get('/api/bookings/reserva-de-otro-usuario')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.message).toBe('Reserva no encontrada');
+  });
+
   it('PATCH /api/bookings/:id/cancel — cliente cancela reserva PENDIENTE (200)', async () => {
     const usuarioCliente = { id: 99, email: 'cliente@test.pe', isActive: true, role: 'CLIENT', client: { id: 5 } };
     const reservaPendiente = {
