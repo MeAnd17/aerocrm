@@ -23,10 +23,11 @@ model User {
   password           String
   firstName          String
   lastName           String
-  isActive           Boolean   @default(true)
-  role               UserRole  @default(CLIENT)
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  isActive            Boolean   @default(true)
+  role                UserRole  @default(CLIENT)
+  mustChangePassword  Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   client             Client?
   bookings           Booking[]

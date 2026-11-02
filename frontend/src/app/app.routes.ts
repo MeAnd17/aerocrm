@@ -53,6 +53,14 @@ export const routes: Routes = [
         path: 'destinations/:id/inventory',
         loadComponent: () => import('./features/admin/destinations/admin-inventory.component').then(m => m.AdminInventoryComponent),
       },
+      {
+        path: 'clients',
+        loadComponent: () => import('./features/admin/clients/admin-clients.component').then(m => m.AdminClientsComponent),
+      },
+      {
+        path: 'clients/:id',
+        loadComponent: () => import('./features/admin/clients/admin-client-detail.component').then(m => m.AdminClientDetailComponent),
+      },
     ],
   },
   {

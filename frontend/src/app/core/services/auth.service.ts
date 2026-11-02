@@ -15,6 +15,7 @@ export interface AuthUser {
   availablePoints: number;
   completedTrips: number;
   role: string;
+  mustChangePassword?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -36,6 +37,9 @@ export class AuthService {
       localStorage.setItem(this.USER_KEY, JSON.stringify(res.user));
       this.currentUser.set(res.user);
       this._sendSearchSignals();
+      if (res.user.mustChangePassword) {
+        this.router.navigate(['/profile/change-password']);
+      }
     }));
   }
 

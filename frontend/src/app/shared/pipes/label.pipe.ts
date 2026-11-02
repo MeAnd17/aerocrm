@@ -48,6 +48,11 @@ const LABELS: Record<string, string> = {
   MUSICAL: 'Musical',
   CARNAVAL: 'Carnaval',
   NACIONAL: 'Nacional',
+  // Historial de puntos
+  EARNED: 'Ganados',
+  REDEEMED: 'Canjeados',
+  EARNED_REFUND: 'Devolución ganados',
+  REDEEMED_REFUND: 'Devolución canjeados',
 };
 
 @Pipe({ name: 'label', standalone: true })

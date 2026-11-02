@@ -1,10 +1,14 @@
-import { Controller, Get, Patch, Post, Delete, Body, Param, ParseIntPipe, UseGuards, Request } from '@nestjs/common';
-import { ApiBearerAuth, ApiNotFoundResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { Controller, Get, Patch, Post, Delete, Body, Param, ParseIntPipe, Query, UseGuards, Request } from '@nestjs/common';
+import { ApiBearerAuth, ApiForbiddenResponse, ApiNotFoundResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
 import { ClientsService } from './clients.service';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { CreateTravelerDto } from './dto/create-traveler.dto';
 import { UpdateTravelerDto } from './dto/update-traveler.dto';
+import { AdminClientsQueryDto } from './dto/admin-clients-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('Clientes')
 @ApiBearerAuth()
@@ -69,5 +73,36 @@ export class ClientsController {
   @ApiOperation({ summary: 'Quita un destino de favoritos' })
   removeSavedDestination(@Request() req, @Param('destinationId', ParseIntPipe) destinationId: number) {
     return this.clientsService.removeSavedDestination(req.user.sub, destinationId);
+  }
+
+  // ── Admin ─────────────────────────────────────────────────────────────────
+
+  @Get('admin/all')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: '[Admin] Lista clientes con su estado de fidelización' })
+  @ApiForbiddenResponse({ description: 'Solo administradores' })
+  findAllAdmin(@Query() query: AdminClientsQueryDto) {
+    return this.clientsService.findAllAdmin(query);
+  }
+
+  @Get('admin/:id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: '[Admin] Perfil completo de un cliente con reservas e historial de puntos' })
+  @ApiNotFoundResponse({ description: 'Cliente no encontrado' })
+  @ApiForbiddenResponse({ description: 'Solo administradores' })
+  findOneAdmin(@Param('id', ParseIntPipe) id: number) {
+    return this.clientsService.findOneAdmin(id);
+  }
+
+  @Patch('admin/:id/reset-password')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: '[Admin] Restablece la contraseña de un cliente y genera una temporal' })
+  @ApiNotFoundResponse({ description: 'Cliente no encontrado' })
+  @ApiForbiddenResponse({ description: 'Solo administradores' })
+  resetPassword(@Param('id', ParseIntPipe) id: number) {
+    return this.clientsService.resetPassword(id);
   }
 }
