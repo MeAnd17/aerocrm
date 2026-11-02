@@ -7,8 +7,9 @@ import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { apiErrorMessage } from '../../../core/services/api-error';
 
+
 /**
- * Paso 6 · Resumen del paquete.
+ * Paso 7 · Resumen del paquete (US-016).
  *
  * Llama a POST /api/bookings/quote al entrar para obtener el desglose oficial
  * del servidor (AGENTS.md B6). No calcula ningún precio en pantalla.
@@ -16,9 +17,10 @@ import { apiErrorMessage } from '../../../core/services/api-error';
  * Detecta cambios de precio comparando el total de la cotización con el total
  * local previo (state.totalPrice). Si difieren, avisa al usuario.
  *
- * El botón "Confirmar y pagar" requiere sesión. Si el usuario no está autenticado,
+ * El botón "Continuar al pago" requiere sesión. Si el usuario no está autenticado,
  * se muestra un aviso con botones de registro e inicio de sesión; el resumen
- * sigue siendo visible (criterio 4).
+ * sigue siendo visible.
+ * La creación de la reserva ocurre en el paso siguiente (StepPaymentComponent).
  */
 @Component({
   selector: 'app-step-summary',
@@ -131,7 +133,7 @@ import { apiErrorMessage } from '../../../core/services/api-error';
           }
         </div>
 
-        <!-- Bloque de sesión o botón confirmar -->
+        <!-- Bloque de sesión o botón continuar -->
         @if (!isLoggedIn()) {
           <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
             <p class="text-sm font-semibold text-blue-800">
@@ -149,16 +151,9 @@ import { apiErrorMessage } from '../../../core/services/api-error';
             </div>
           </div>
         } @else {
-          @if (confirmError()) {
-            <p class="text-sm text-red-600 bg-red-50 rounded-lg p-3">{{ confirmError() }}</p>
-          }
-          <button (click)="confirmBooking()" [disabled]="loadingConfirm()"
-            class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold text-lg transition disabled:opacity-50">
-            @if (loadingConfirm()) {
-              Confirmando…
-            } @else {
-              ✅ Confirmar y pagar S/. {{ q.breakdown.total | number:'1.2-2' }}
-            }
+          <button (click)="irAlPago()"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold text-lg transition">
+            Continuar al pago →
           </button>
         }
       }
@@ -179,10 +174,6 @@ export class StepSummaryComponent implements OnInit {
 
   /** Indica si el total del servidor difiere del total local previo. */
   readonly priceChanged = signal(false);
-
-  /** Confirmación de la reserva. */
-  readonly loadingConfirm = signal(false);
-  readonly confirmError = signal('');
 
   readonly isLoggedIn = computed(() => this.auth.currentUser() !== null);
 
@@ -251,54 +242,8 @@ export class StepSummaryComponent implements OnInit {
     this.router.navigate(['/login'], { queryParams: { returnUrl: '/packages/new' } });
   }
 
-  /** Confirma la reserva (requiere sesión activa). */
-  confirmBooking() {
-    const s = this.state;
-    this.loadingConfirm.set(true);
-    this.confirmError.set('');
-
-    const body: Record<string, unknown> = {
-      passengers: s.passengers(),
-      pointsToRedeem: s.usePoints() ? (s.loyalty()?.availablePoints ?? 0) : 0,
-    };
-
-    // Vuelos: ida obligatorio, vuelta si existe.
-    const flights: any[] = [{ flightId: s.flightId() }];
-    if (s.returnFlightId()) flights.push({ flightId: s.returnFlightId() });
-    body['flights'] = flights;
-
-    // Hotel.
-    if (s.hotel() && s.hotelCheckIn() && s.hotelCheckOut()) {
-      body['hotels'] = [{
-        hotelId: s.hotel().id,
-        checkIn: s.hotelCheckIn(),
-        checkOut: s.hotelCheckOut(),
-        nights: s.hotelNights(),
-      }];
-    }
-
-    // Actividades.
-    if (s.activitySelections().length > 0) {
-      body['activities'] = s.activitySelections().map(sel => ({
-        activityId: sel.activityId,
-        quantity: sel.quantity,
-      }));
-    }
-
-    // Extras (CreateBookingDto espera { type: ExtraType }[], sin price).
-    if (s.extras().length > 0) {
-      body['extras'] = s.extras().map(e => ({ type: e.type }));
-    }
-
-    this.api.post<any>('bookings', body).subscribe({
-      next: (booking) => {
-        s.reset();
-        this.router.navigate(['/my-trips', booking.id]);
-      },
-      error: (err) => {
-        this.confirmError.set(apiErrorMessage(err, 'No pudimos confirmar la compra'));
-        this.loadingConfirm.set(false);
-      },
-    });
+  /** Avanza al paso de pago (paso 8). La creación de la reserva ocurre allí. */
+  irAlPago() {
+    this.state.goTo(8);
   }
 }
