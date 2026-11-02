@@ -7,6 +7,7 @@ import { DestinationsModule } from './destinations/destinations.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { LoyaltyModule } from './loyalty/loyalty.module';
 import { ContactModule } from './contact/contact.module';
+import { AdminModule } from './admin/admin.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -19,6 +20,7 @@ import { AppController } from './app.controller';
     BookingsModule,
     LoyaltyModule,
     ContactModule,
+    AdminModule,
   ],
   controllers: [AppController],
 })

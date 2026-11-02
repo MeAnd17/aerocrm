@@ -28,10 +28,12 @@ const prismaFalso = {
     findMany: jest.fn().mockResolvedValue([]),
     create: jest.fn(),
     update: jest.fn().mockResolvedValue({}),
+    count: jest.fn(),
   },
   client: {
     update: jest.fn().mockResolvedValue({}),
     findUnique: jest.fn(),
+    count: jest.fn(),
   },
   pointsHistory: {
     create: jest.fn().mockResolvedValue({}),
@@ -44,6 +46,9 @@ const prismaFalso = {
   },
   extraOption: {
     findFirst: jest.fn(),
+  },
+  destination: {
+    count: jest.fn(),
   },
 };
 
@@ -344,6 +349,36 @@ describe('API (e2e)', () => {
 
     expect(res.status).toBe(404);
     expect(res.body.message).toBe('Reserva no encontrada');
+  });
+
+  it('GET /api/admin/stats con rol CLIENT devuelve 403', async () => {
+    const clienteFalso = { id: 55, email: 'cliente@test.pe', isActive: true, role: 'CLIENT', client: { id: 9 } };
+    prismaFalso.user.findUnique.mockResolvedValueOnce(clienteFalso);
+    const token = jwtService.sign({ sub: 55, email: 'cliente@test.pe', clientId: 9, role: 'CLIENT' });
+
+    const res = await request(app.getHttpServer())
+      .get('/api/admin/stats')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(403);
+  });
+
+  it('GET /api/admin/stats con rol ADMIN devuelve 200 con destinos, reservas y clientes', async () => {
+    const adminFalso = { id: 1, email: 'admin@aerocrm.com', isActive: true, role: 'ADMIN', client: null };
+    prismaFalso.user.findUnique.mockResolvedValueOnce(adminFalso);
+    prismaFalso.destination.count.mockResolvedValueOnce(12);
+    prismaFalso.booking.count.mockResolvedValueOnce(48);
+    prismaFalso.client.count.mockResolvedValueOnce(35);
+    const token = jwtService.sign({ sub: 1, email: 'admin@aerocrm.com', clientId: null, role: 'ADMIN' });
+
+    const res = await request(app.getHttpServer())
+      .get('/api/admin/stats')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.destinations).toBe(12);
+    expect(res.body.bookings).toBe(48);
+    expect(res.body.clients).toBe(35);
   });
 
   it('PATCH /api/bookings/:id/cancel — cliente cancela reserva PENDIENTE (200)', async () => {

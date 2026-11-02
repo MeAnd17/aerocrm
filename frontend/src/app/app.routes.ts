@@ -37,8 +37,15 @@ export const routes: Routes = [
   },
   {
     path: 'admin',
-    loadComponent: () => import('./features/home/home.component').then(m => m.HomeComponent),
     canActivate: [adminGuard],
+    loadComponent: () => import('./features/admin/admin-shell.component').then(m => m.AdminShellComponent),
+    children: [
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./features/admin/admin-dashboard.component').then(m => m.AdminDashboardComponent),
+      },
+    ],
   },
   {
     path: 'search',
