@@ -63,6 +63,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    // La ruta más específica debe ir antes de my-trips/:id para que el router no la interprete como un ID.
+    path: 'my-trips/:id/print',
+    loadComponent: () => import('./features/my-trips/trip-print.component').then(m => m.TripPrintComponent),
+    canActivate: [authGuard],
+  },
+  {
     path: 'my-trips/:id',
     loadComponent: () => import('./features/my-trips/trip-detail.component').then(m => m.TripDetailComponent),
     canActivate: [authGuard],

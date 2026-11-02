@@ -1,7 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { LabelPipe } from '../../shared/pipes/label.pipe';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { apiErrorMessage } from '../../core/services/api-error';
@@ -184,6 +184,14 @@ interface ReservaDetalle {
           </div>
         </div>
 
+        <!-- Imprimir / Guardar PDF -->
+        @if (reserva()!.status === 'CONFIRMADO' || reserva()!.status === 'EN_CURSO' || reserva()!.status === 'COMPLETADO') {
+          <button (click)="irAImprimir()"
+            class="w-full border border-blue-300 text-blue-700 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-50 transition">
+            Imprimir / Guardar PDF
+          </button>
+        }
+
         <!-- Cancelar -->
         @if (reserva()!.status === 'CONFIRMADO' || reserva()!.status === 'PENDIENTE') {
           <button (click)="cancelar()" [disabled]="cancelando()"
@@ -205,6 +213,7 @@ export class TripDetailComponent implements OnInit {
     private api: ApiService,
     private route: ActivatedRoute,
     private toast: ToastService,
+    private router: Router,
   ) {}
 
   ngOnInit() {
@@ -223,6 +232,13 @@ export class TripDetailComponent implements OnInit {
         }
       },
     });
+  }
+
+  /** Navega a la vista imprimible de esta reserva. */
+  irAImprimir() {
+    const id = this.reserva()?.id;
+    if (!id) return;
+    void this.router.navigate(['/my-trips', id, 'print']);
   }
 
   cancelar() {
