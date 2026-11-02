@@ -27,10 +27,9 @@ export class QuoteDto {
   @IsInt()
   flightId: number;
 
-  @ApiPropertyOptional({ description: 'ID del vuelo de regreso', example: 12 })
-  @IsOptional()
+  @ApiProperty({ description: 'ID del vuelo de regreso', example: 12 })
   @IsInt()
-  returnFlightId?: number;
+  returnFlightId: number;
 
   @ApiProperty({ description: 'Número de pasajeros', example: 2, minimum: 1 })
   @IsInt()

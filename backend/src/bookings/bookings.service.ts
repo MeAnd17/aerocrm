@@ -105,6 +105,10 @@ export class BookingsService {
   async quote(dto: QuoteDto, rawBody: Record<string, unknown>): Promise<QuoteResponseDto> {
     rejectPriceFields(rawBody);
 
+    if (!dto.returnFlightId) {
+      throw new BadRequestException('El vuelo de regreso es obligatorio');
+    }
+
     // Vuelo de ida
     const outboundFlight = await this.prisma.flight.findUnique({
       where: { id: dto.flightId },
@@ -117,7 +121,7 @@ export class BookingsService {
     const destinationId = outboundFlight.destinationId;
     const passengers = dto.passengers;
 
-    // Vuelo de regreso (opcional)
+    // Vuelo de regreso (obligatorio)
     let returnFlight: typeof outboundFlight | null = null;
     if (dto.returnFlightId) {
       returnFlight = await this.prisma.flight.findUnique({

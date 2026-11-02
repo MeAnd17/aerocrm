@@ -57,4 +57,11 @@ describe('API (e2e)', () => {
     expect(noSession.status).toBe(401);
     expect(noSession.body.message).toBe('Tu sesión no es válida o expiró. Inicia sesión de nuevo');
   });
+
+  it('POST /api/bookings/quote rechaza la petición si falta el vuelo de regreso', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/api/bookings/quote')
+      .send({ flightId: 1, passengers: 2 });
+    expect(res.status).toBe(400);
+  });
 });

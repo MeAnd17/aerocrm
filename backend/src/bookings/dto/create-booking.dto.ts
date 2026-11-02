@@ -1,4 +1,4 @@
-import { IsNumber, IsOptional, IsString, IsArray, ValidateNested, IsEnum, Min, IsInt } from 'class-validator';
+import { IsNumber, IsOptional, IsString, IsArray, ArrayMinSize, ValidateNested, IsEnum, Min, IsInt } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ExtraType } from '@prisma/client';
@@ -72,8 +72,9 @@ export class CreateBookingDto {
   @IsString()
   notes?: string;
 
-  @ApiProperty({ description: 'Vuelos incluidos en el paquete (ida, y opcionalmente vuelta)', type: [BookingFlightDto] })
+  @ApiProperty({ description: 'Vuelos incluidos en el paquete (ida y regreso)', type: [BookingFlightDto] })
   @IsArray()
+  @ArrayMinSize(2, { message: 'Se requieren al menos dos vuelos (ida y regreso)' })
   @ValidateNested({ each: true })
   @Type(() => BookingFlightDto)
   flights: BookingFlightDto[];
