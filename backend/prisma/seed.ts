@@ -322,6 +322,7 @@ async function seedHistory(
             create: Array.from({ length: pax }, (_, i) => ({
               firstName: i === 0 ? demoClient.firstName : `Acompañante`,
               lastName: i === 0 ? demoClient.lastName : `${i}`,
+              documentType: 'DNI',
               documentNumber: i === 0 ? demoClient.documentNumber : `7000000${i}`,
               birthDate: i === 0 ? titularBirthDate : new Date('1990-01-01T00:00:00Z'),
               isHolder: i === 0,

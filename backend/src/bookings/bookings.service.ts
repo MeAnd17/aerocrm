@@ -380,6 +380,24 @@ export class BookingsService {
     // ── Validar que la cantidad de pasajeros en el array cuadre con el conteo ─
     const cantidadPasajeros = dto.passengers.length;
 
+    // ── Validar formato de documentos y rango de fecha de nacimiento ──────────
+    const hoy = new Date();
+    const anio1900 = new Date('1900-01-01');
+    for (const p of dto.passengers) {
+      const dniRe = /^\d{8}$/;
+      const pasaporteRe = /^[A-Za-z0-9]{6,12}$/;
+      if (p.documentType === 'DNI' && !dniRe.test(p.documentNumber)) {
+        throw new BadRequestException(`El DNI debe tener exactamente 8 dígitos (pasajero: ${p.firstName})`);
+      }
+      if (p.documentType === 'PASAPORTE' && !pasaporteRe.test(p.documentNumber)) {
+        throw new BadRequestException(`El pasaporte debe tener entre 6 y 12 caracteres alfanuméricos (pasajero: ${p.firstName})`);
+      }
+      const nacimiento = new Date(p.birthDate);
+      if (isNaN(nacimiento.getTime()) || nacimiento >= hoy || nacimiento < anio1900) {
+        throw new BadRequestException(`La fecha de nacimiento de ${p.firstName} debe estar entre 1900 y hoy`);
+      }
+    }
+
     // ── Recalcular precio desde el catálogo ───────────────────────────────────
     // Vuelos
     const flightRecords = await Promise.all(
@@ -525,6 +543,7 @@ export class BookingsService {
             create: dto.passengers.map((p) => ({
               firstName: p.firstName,
               lastName: p.lastName,
+              documentType: p.documentType,
               documentNumber: p.documentNumber,
               birthDate: new Date(p.birthDate),
               isHolder: p.isHolder ?? false,

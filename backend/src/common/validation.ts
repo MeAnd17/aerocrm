@@ -49,6 +49,7 @@ const FIELD_LABELS: Record<string, string> = {
   // Campos del DTO de cotización (QuoteDto)
   returnFlightId: 'vuelo de regreso',
   // Campos de BookingPassengerDto
+  documentType: 'tipo de documento',
   birthDate: 'fecha de nacimiento',
   isHolder: 'titular',
   // Campos de PayBookingDto y UpdateBookingStatusDto

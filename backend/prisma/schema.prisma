@@ -95,16 +95,17 @@ enum MembershipLevel {
 // ─── TRAVELERS (viajeros frecuentes guardados) ────────────────────────────────
 
 model Traveler {
-  id             Int      @id @default(autoincrement())
+  id             Int          @id @default(autoincrement())
   clientId       Int
   firstName      String
   lastName       String
+  documentType   DocumentType @default(DNI)
   documentNumber String
   dateOfBirth    DateTime
-  relation       String   // pareja, hijo, padre, etc.
-  createdAt      DateTime @default(now())
+  relation       String       // pareja, hijo, padre, etc.
+  createdAt      DateTime     @default(now())
 
-  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
 // ─── DESTINATIONS ─────────────────────────────────────────────────────────────
@@ -320,15 +321,16 @@ model BookingExtra {
 }
 
 model BookingPassenger {
-  id             Int      @id @default(autoincrement())
+  id             Int          @id @default(autoincrement())
   bookingId      String
   firstName      String
   lastName       String
+  documentType   DocumentType @default(DNI)
   documentNumber String
   birthDate      DateTime
-  isHolder       Boolean  @default(false)
+  isHolder       Boolean      @default(false)
 
-  booking        Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  booking        Booking      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
 
 enum ExtraType {
@@ -336,6 +338,11 @@ enum ExtraType {
   TRASLADO_VUELTA
   TRASLADO_COMPLETO
   SEGURO_VIAJE
+}
+
+enum DocumentType {
+  DNI
+  PASAPORTE
 }
 
 // ─── POINTS HISTORY ───────────────────────────────────────────────────────────

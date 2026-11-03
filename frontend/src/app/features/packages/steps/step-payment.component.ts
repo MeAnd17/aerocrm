@@ -196,11 +196,12 @@ export class StepPaymentComponent {
       passengers:      s.passengerDrafts().map((p) => ({
         firstName:      p.firstName,
         lastName:       p.lastName,
+        documentType:   p.documentType ?? 'DNI',
         documentNumber: p.documentNumber,
         birthDate:      p.birthDate,
         isHolder:       p.isHolder,
       })),
-      pointsToRedeem: s.usePoints() ? (s.loyalty()?.availablePoints ?? 0) : 0,
+      pointsToRedeem: s.usePoints() ? s.pointsToRedeem() : 0,
     };
 
     // Hotel (opcional)

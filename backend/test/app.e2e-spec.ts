@@ -403,7 +403,7 @@ describe('API (e2e)', () => {
       .post('/api/bookings')
       .set('Authorization', `Bearer ${token}`)
       .send({
-        passengers: [{ firstName: 'Ana', lastName: 'López', documentNumber: '70000001', birthDate: '1990-01-01', isHolder: true }],
+        passengers: [{ firstName: 'Ana', lastName: 'López', documentType: 'DNI', documentNumber: '70000001', birthDate: '1990-01-01', isHolder: true }],
         flights: [{ flightId: 1 }, { flightId: 2 }],
       });
 
@@ -641,7 +641,7 @@ describe('API (e2e)', () => {
       .post('/api/bookings')
       .set('Authorization', `Bearer ${token}`)
       .send({
-        passengers: [{ firstName: 'Carlos', lastName: 'Test', documentNumber: '70000099', birthDate: '1990-01-01', isHolder: true }],
+        passengers: [{ firstName: 'Carlos', lastName: 'Test', documentType: 'DNI', documentNumber: '70000099', birthDate: '1990-01-01', isHolder: true }],
         flights: [{ flightId: 10 }, { flightId: 11 }],
       });
 

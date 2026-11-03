@@ -147,6 +147,7 @@ export class ClientsService {
     const data: Prisma.TravelerUpdateInput = {
       firstName: dto.firstName,
       lastName: dto.lastName,
+      documentType: dto.documentType,
       documentNumber: dto.documentNumber,
       relation: dto.relation,
     };

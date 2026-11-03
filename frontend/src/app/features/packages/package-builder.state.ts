@@ -10,6 +10,8 @@ import { PackageDraftService } from './package-draft.service';
 export interface PassengerDraft {
   firstName: string;
   lastName: string;
+  /** DNI o PASAPORTE. */
+  documentType: 'DNI' | 'PASAPORTE';
   documentNumber: string;
   /** Fecha de nacimiento en formato ISO AAAA-MM-DD. */
   birthDate: string;

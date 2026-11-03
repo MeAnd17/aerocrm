@@ -1,7 +1,7 @@
-import { IsNumber, IsOptional, IsString, IsArray, ArrayMinSize, ValidateNested, IsEnum, Min, IsInt, IsISO8601, IsBoolean, MinLength } from 'class-validator';
+import { IsNumber, IsOptional, IsString, IsArray, ArrayMinSize, ValidateNested, IsEnum, Min, IsInt, IsISO8601, IsBoolean, Matches } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ExtraType } from '@prisma/client';
+import { DocumentType, ExtraType } from '@prisma/client';
 
 // ── Sub-DTOs de cada línea del paquete ────────────────────────────────────────
 // Los campos de precio (priceSnapshot, price, etc.) se eliminaron: el servidor
@@ -55,22 +55,27 @@ export class BookingExtraDto {
 }
 
 export class BookingPassengerDto {
-  @ApiProperty({ description: 'Nombre del pasajero', example: 'Ana' })
-  @IsString()
-  @MinLength(1)
+  @ApiProperty({ description: 'Nombre del pasajero (2–50 letras)', example: 'Ana' })
+  @Matches(/^[A-Za-záéíóúÁÉÍÓÚñÑüÜ\s\-']{2,50}$/, {
+    message: 'El nombre solo puede contener letras, espacios, guiones y apóstrofos (2–50 caracteres)',
+  })
   firstName: string;
 
-  @ApiProperty({ description: 'Apellido del pasajero', example: 'López' })
-  @IsString()
-  @MinLength(1)
+  @ApiProperty({ description: 'Apellido del pasajero (2–50 letras)', example: 'López' })
+  @Matches(/^[A-Za-záéíóúÁÉÍÓÚñÑüÜ\s\-']{2,50}$/, {
+    message: 'El apellido solo puede contener letras, espacios, guiones y apóstrofos (2–50 caracteres)',
+  })
   lastName: string;
 
-  @ApiProperty({ description: 'Número de documento', example: '70000001' })
+  @ApiProperty({ description: 'Tipo de documento', enum: DocumentType, example: 'DNI' })
+  @IsEnum(DocumentType)
+  documentType: DocumentType;
+
+  @ApiProperty({ description: 'Número de documento (DNI: 8 dígitos; Pasaporte: 6–12 alfanuméricos)', example: '70000001' })
   @IsString()
-  @MinLength(1)
   documentNumber: string;
 
-  @ApiProperty({ description: 'Fecha de nacimiento (ISO 8601)', example: '1990-05-12' })
+  @ApiProperty({ description: 'Fecha de nacimiento (ISO 8601, entre 1900 y hoy)', example: '1990-05-12' })
   @IsISO8601()
   birthDate: string;
 

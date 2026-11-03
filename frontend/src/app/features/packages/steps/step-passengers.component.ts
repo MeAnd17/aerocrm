@@ -12,6 +12,7 @@ interface ViajeroBD {
   id: number;
   firstName: string;
   lastName: string;
+  documentType?: 'DNI' | 'PASAPORTE';
   documentNumber: string;
   dateOfBirth: string;
 }
@@ -85,14 +86,23 @@ interface ViajeroBD {
             </div>
           </div>
 
-          <!-- Documento y fecha de nacimiento -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- Tipo de documento, número y fecha de nacimiento -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Tipo de documento</label>
+              <select
+                [(ngModel)]="pasajero.documentType"
+                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white">
+                <option value="DNI">DNI</option>
+                <option value="PASAPORTE">Pasaporte</option>
+              </select>
+            </div>
             <div>
               <label class="block text-xs font-medium text-gray-600 mb-1">Número de documento</label>
               <input
                 type="text"
                 [(ngModel)]="pasajero.documentNumber"
-                placeholder="DNI / Pasaporte"
+                [placeholder]="pasajero.documentType === 'PASAPORTE' ? 'Ej. AB123456' : 'Ej. 12345678'"
                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
             </div>
             <div>
@@ -192,6 +202,7 @@ export class StepPassengersComponent implements OnInit {
         nuevos.push({
           firstName: usuario.firstName,
           lastName: usuario.lastName,
+          documentType: 'DNI',
           documentNumber: '',
           birthDate: '',
           isHolder: true,
@@ -201,6 +212,7 @@ export class StepPassengersComponent implements OnInit {
         nuevos.push({
           firstName: '',
           lastName: '',
+          documentType: 'DNI',
           documentNumber: '',
           birthDate: '',
           isHolder: false,
@@ -234,6 +246,7 @@ export class StepPassengersComponent implements OnInit {
       ...copia[indice],
       firstName: viajero.firstName,
       lastName: viajero.lastName,
+      documentType: viajero.documentType ?? 'DNI',
       documentNumber: viajero.documentNumber,
       birthDate: viajero.dateOfBirth ?? '',
     };
@@ -262,6 +275,7 @@ export class StepPassengersComponent implements OnInit {
         this.api.post<unknown>('clients/me/travelers', {
           firstName: p.firstName,
           lastName: p.lastName,
+          documentType: p.documentType ?? 'DNI',
           documentNumber: p.documentNumber,
           dateOfBirth: p.birthDate,
           relation: 'OTRO',
@@ -279,6 +293,7 @@ export class StepPassengersComponent implements OnInit {
       lista.map(p => ({
         firstName: p.firstName,
         lastName: p.lastName,
+        documentType: p.documentType ?? 'DNI',
         documentNumber: p.documentNumber,
         birthDate: p.birthDate,
         isHolder: p.isHolder,
