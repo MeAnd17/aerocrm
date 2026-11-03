@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PackageBuilderState, PassengerDraft } from '../package-builder.state';
@@ -34,7 +34,7 @@ interface ViajeroBD {
       <div>
         <h3 class="font-semibold text-gray-800 text-lg">Datos de los pasajeros</h3>
         <p class="text-sm text-gray-500 mt-1">
-          Completá los datos de cada pasajero. El titular se pre-rellena con tu cuenta.
+          Completa los datos de cada pasajero. El titular se pre-rellena con tu cuenta.
         </p>
       </div>
 
@@ -70,7 +70,7 @@ interface ViajeroBD {
               <input
                 type="text"
                 [(ngModel)]="pasajero.firstName"
-                [disabled]="i === 0"
+                [disabled]="i === 0 && estaAutenticado()"
                 placeholder="Nombre"
                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100 disabled:text-gray-500" />
             </div>
@@ -79,7 +79,7 @@ interface ViajeroBD {
               <input
                 type="text"
                 [(ngModel)]="pasajero.lastName"
-                [disabled]="i === 0"
+                [disabled]="i === 0 && estaAutenticado()"
                 placeholder="Apellido"
                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100 disabled:text-gray-500" />
             </div>
@@ -146,6 +146,21 @@ export class StepPassengersComponent implements OnInit {
   readonly guardando = signal(false);
 
   readonly estaAutenticado = () => this.auth.isAuthenticated();
+
+  constructor() {
+    // Cuando el visitante inicia sesión mientras está en este paso, actualiza
+    // el nombre y apellido del titular con los del usuario autenticado (US-006).
+    effect(() => {
+      const usuario = this.auth.currentUser();
+      if (!usuario) return;
+      const lista = this.borradores();
+      if (lista.length === 0) return;
+      if (lista[0].firstName === usuario.firstName && lista[0].lastName === usuario.lastName) return;
+      const copia = [...lista];
+      copia[0] = { ...copia[0], firstName: usuario.firstName, lastName: usuario.lastName };
+      this.borradores.set(copia);
+    });
+  }
 
   ngOnInit() {
     this._inicializarBorradores();
@@ -234,7 +249,7 @@ export class StepPassengersComponent implements OnInit {
       p => !p.firstName.trim() || !p.lastName.trim() || !p.documentNumber.trim() || !p.birthDate,
     );
     if (incompleto) {
-      this.toast.error('Completá los datos de todos los pasajeros');
+      this.toast.error('Completa los datos de todos los pasajeros');
       return;
     }
 
