@@ -55,6 +55,8 @@ const FIELD_LABELS: Record<string, string> = {
   method: 'método de pago',
   status: 'estado',
   reason: 'motivo',
+  // Campos del DTO de atención de consultas (US-030)
+  note: 'nota interna',
   // Campos de DTOs de destinos e inventario (US-027)
   country: 'país',
   countryCode: 'código de país',

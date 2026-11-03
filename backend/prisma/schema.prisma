@@ -375,13 +375,21 @@ model SavedDestination {
 
 // ─── CONTACT MESSAGES ─────────────────────────────────────────────────────────
 
+enum ContactStatus {
+  PENDIENTE
+  ATENDIDA
+}
+
 model ContactMessage {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String
-  subject   String
-  message   String   @db.Text
-  createdAt DateTime @default(now())
+  id           Int           @id @default(autoincrement())
+  name         String
+  email        String
+  subject      String
+  message      String        @db.Text
+  status       ContactStatus @default(PENDIENTE)
+  attendedAt   DateTime?
+  internalNote String?
+  createdAt    DateTime      @default(now())
 }
 
 // ─── CATÁLOGO DE EXTRAS (TS-014) ──────────────────────────────────────────────

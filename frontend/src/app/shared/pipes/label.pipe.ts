@@ -48,6 +48,8 @@ const LABELS: Record<string, string> = {
   MUSICAL: 'Musical',
   CARNAVAL: 'Carnaval',
   NACIONAL: 'Nacional',
+  // Estado de consulta de contacto
+  ATENDIDA: 'Atendida',
   // Historial de puntos
   EARNED: 'Ganados',
   REDEEMED: 'Canjeados',

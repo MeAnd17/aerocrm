@@ -1,14 +1,22 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { ApiService } from '../../core/services/api.service';
+
+/** Respuesta parcial de GET /contact que incluye el total de resultados. */
+interface RespuestaContacto {
+  total: number;
+}
 
 /**
  * Estructura base del panel de administración con barra lateral de navegación
  * y salida para las rutas hijas (TS-027).
+ * Muestra un badge con la cantidad de consultas pendientes en el enlace a Consultas (US-030).
  */
 @Component({
   selector: 'app-admin-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
   template: `
     <div class="flex min-h-screen bg-gray-50">
       <!-- Barra lateral -->
@@ -51,6 +59,11 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
             class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition"
           >
             Consultas
+            @if (pendientes() > 0) {
+              <span class="ml-auto px-1.5 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full leading-none">
+                {{ pendientes() }}
+              </span>
+            }
           </a>
         </nav>
       </aside>
@@ -62,4 +75,20 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
     </div>
   `,
 })
-export class AdminShellComponent {}
+export class AdminShellComponent implements OnInit {
+  pendientes = signal(0);
+
+  constructor(private api: ApiService) {}
+
+  ngOnInit() {
+    this.cargarPendientes();
+  }
+
+  /** Consulta el total de mensajes con estado PENDIENTE para mostrar en el badge. */
+  cargarPendientes() {
+    this.api.get<RespuestaContacto>('contact', { status: 'PENDIENTE', limit: '1' }).subscribe({
+      next: (data) => this.pendientes.set(data.total),
+      error: () => this.pendientes.set(0),
+    });
+  }
+}

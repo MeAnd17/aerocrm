@@ -53,6 +53,9 @@ const prismaFalso = {
   contactMessage: {
     create: jest.fn().mockResolvedValue({}),
     findMany: jest.fn().mockResolvedValue([]),
+    count: jest.fn().mockResolvedValue(0),
+    findUnique: jest.fn(),
+    update: jest.fn(),
   },
 };
 
@@ -486,5 +489,23 @@ describe('API (e2e)', () => {
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(403);
+  });
+
+  it('PATCH /api/contact/1/attend como admin devuelve 200 con status ATENDIDA', async () => {
+    const adminFalso = { id: 1, email: 'admin@aerocrm.com', isActive: true, role: 'ADMIN', client: null };
+    prismaFalso.user.findUnique.mockResolvedValueOnce(adminFalso);
+    const mensajeExistente = { id: 1, name: 'Ana', email: 'ana@test.pe', subject: 'Consulta', message: 'Texto', status: 'PENDIENTE', attendedAt: null, internalNote: null };
+    const mensajeAtendido = { ...mensajeExistente, status: 'ATENDIDA', attendedAt: new Date(), internalNote: 'Respondido por correo' };
+    prismaFalso.contactMessage.findUnique.mockResolvedValueOnce(mensajeExistente);
+    prismaFalso.contactMessage.update.mockResolvedValueOnce(mensajeAtendido);
+
+    const token = jwtService.sign({ sub: 1, email: 'admin@aerocrm.com', clientId: null, role: 'ADMIN' });
+    const res = await request(app.getHttpServer())
+      .patch('/api/contact/1/attend')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ note: 'Respondido por correo' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('ATENDIDA');
   });
 });

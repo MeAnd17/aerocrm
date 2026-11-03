@@ -69,6 +69,10 @@ export const routes: Routes = [
         path: 'clients/:id',
         loadComponent: () => import('./features/admin/clients/admin-client-detail.component').then(m => m.AdminClientDetailComponent),
       },
+      {
+        path: 'inquiries',
+        loadComponent: () => import('./features/admin/contact/admin-contact.component').then(m => m.AdminContactComponent),
+      },
     ],
   },
   {
