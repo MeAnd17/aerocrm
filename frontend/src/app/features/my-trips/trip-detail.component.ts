@@ -192,8 +192,8 @@ interface ReservaDetalle {
           </button>
         }
 
-        <!-- Cancelar -->
-        @if (reserva()!.status === 'CONFIRMADO' || reserva()!.status === 'PENDIENTE') {
+        <!-- Cancelar (US-011: solo desde PENDIENTE; desde CONFIRMADO en adelante, solo el admin) -->
+        @if (reserva()!.status === 'PENDIENTE') {
           <button (click)="cancelar()" [disabled]="cancelando()"
             class="w-full border border-red-300 text-red-600 py-2.5 rounded-xl text-sm font-medium hover:bg-red-50 transition disabled:opacity-50">
             {{ cancelando() ? 'Cancelando...' : 'Cancelar reserva' }}

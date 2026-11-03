@@ -745,7 +745,7 @@ export class BookingsService {
     });
   }
 
-  /** Cancela la reserva propia de un cliente autenticado. */
+  /** Cancela la reserva propia de un cliente autenticado (solo desde PENDIENTE). */
   async cancelOwn(userId: number, bookingId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId }, include: { client: true } });
     if (!user?.client) throw new NotFoundException('Cliente no encontrado');
@@ -754,6 +754,12 @@ export class BookingsService {
       where: { id: bookingId, clientId: user.client.id },
     });
     if (!booking) throw new NotFoundException('Reserva no encontrada');
+
+    // US-011: el cliente solo puede cancelar reservas en estado PENDIENTE.
+    // Desde CONFIRMADO en adelante, solo el administrador puede cancelar.
+    if (booking.status !== 'PENDIENTE') {
+      throw new BadRequestException('Solo puedes cancelar una reserva en estado pendiente');
+    }
 
     return this.cancel(bookingId, user.email);
   }
