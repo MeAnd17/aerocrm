@@ -131,23 +131,35 @@ import { AuthService } from '../../../core/services/auth.service';
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="form-group">
                   <label class="aero-label">Contraseña *</label>
-                  <input [type]="showPw ? 'text' : 'password'" name="password" [(ngModel)]="form.password"
-                         required minlength="8" class="aero-input" placeholder="Mínimo 8 caracteres"
-                         #pw="ngModel" [class.border-red-500]="pw.invalid && pw.touched" />
+                  <div style="position:relative">
+                    <input [type]="showPw ? 'text' : 'password'" name="password" [(ngModel)]="form.password"
+                           required minlength="8" class="aero-input" placeholder="Mínimo 8 caracteres"
+                           style="padding-right:2.5rem"
+                           #pw="ngModel" [class.border-red-500]="pw.invalid && pw.touched" />
+                    <button type="button" (click)="showPw = !showPw"
+                            [attr.aria-label]="showPw ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:#5580d0;padding:0;line-height:1">
+                      {{ showPw ? '🙈' : '👁️' }}
+                    </button>
+                  </div>
                   <p *ngIf="pw.invalid && pw.touched" class="form-error">Mínimo 8 caracteres</p>
                 </div>
                 <div class="form-group">
                   <label class="aero-label">Confirmar contraseña *</label>
-                  <input [type]="showPw ? 'text' : 'password'" name="confirm" [(ngModel)]="confirmPassword"
-                         required class="aero-input" placeholder="Repite tu contraseña"
-                         [class.border-red-500]="confirmPassword && confirmPassword !== form.password" />
+                  <div style="position:relative">
+                    <input [type]="showPw ? 'text' : 'password'" name="confirm" [(ngModel)]="confirmPassword"
+                           required class="aero-input" placeholder="Repite tu contraseña"
+                           style="padding-right:2.5rem"
+                           [class.border-red-500]="confirmPassword && confirmPassword !== form.password" />
+                    <button type="button" (click)="showPw = !showPw"
+                            [attr.aria-label]="showPw ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:#5580d0;padding:0;line-height:1">
+                      {{ showPw ? '🙈' : '👁️' }}
+                    </button>
+                  </div>
                   <p *ngIf="confirmPassword && confirmPassword !== form.password" class="form-error">Las contraseñas no coinciden</p>
                 </div>
               </div>
-              <label class="flex items-center gap-2 mt-2 cursor-pointer">
-                <input type="checkbox" [(ngModel)]="showPw" name="showPw" class="w-3.5 h-3.5" style="accent-color:#c9a84c" />
-                <span style="font-size:.8rem;color:#5580d0">Mostrar contraseñas</span>
-              </label>
 
               <!-- Indicador de fortaleza -->
               <div *ngIf="form.password" class="mt-3">
