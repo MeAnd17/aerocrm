@@ -156,6 +156,14 @@ export class ContactComponent implements OnInit {
 
   onSubmit() {
     /** Envía el formulario y actualiza el historial si el usuario está autenticado. */
+    if (!this.form.name.trim() || !this.form.email.trim() || !this.form.subject.trim()) {
+      this.error.set('Completa todos los campos obligatorios');
+      return;
+    }
+    if (this.form.message.trim().length < 10) {
+      this.error.set('El mensaje debe tener al menos 10 caracteres');
+      return;
+    }
     this.loading.set(true);
     this.error.set('');
     this.api.post<{ message: string }>('contact', this.form).subscribe({
