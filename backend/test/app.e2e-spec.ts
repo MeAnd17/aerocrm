@@ -436,6 +436,51 @@ describe('API (e2e)', () => {
     expect(res.body.bookingPassengers[0].isHolder).toBe(true);
   });
 
+  it('POST /api/bookings con pointsToRedeem aplica descuento y guarda pointsUsed (US-020)', async () => {
+    const vueloIda = {
+      id: 1, flightNumber: 'LA501', airline: 'LATAM',
+      departureDate: new Date('2025-08-10T08:00:00Z'),
+      pricePerPerson: new Prisma.Decimal('350.00'),
+      isActive: true, destinationId: 3,
+      destination: { id: 3, name: 'Cusco' },
+    };
+    const vueloVuelta = { ...vueloIda, id: 2, flightNumber: 'LA502' };
+    const clienteConPuntos = { id: 5, availablePoints: 1000, completedTrips: 0, membershipLevel: 'EXPLORADOR' };
+    const usuarioConPuntos = { id: 99, email: 'usuario@test.pe', isActive: true, role: 'CLIENT', client: clienteConPuntos };
+    // 500 pts × S/ 0.10 = S/ 50 descuento. Total = 700 − 50 = 650. pointsEarned = floor(65000/10000) = 6.
+    const reservaConCanje = {
+      id: 'cld-canje-01', confirmationCode: 'VJ-CANJE01',
+      status: 'PENDIENTE', totalPrice: new Prisma.Decimal('650.00'),
+      passengers: 1, pointsUsed: 500, pointsEarned: 6,
+      bookingFlights: [], bookingHotels: [], bookingActivities: [], bookingExtras: [], bookingPassengers: [],
+    };
+
+    prismaFalso.user.findUnique
+      .mockResolvedValueOnce(usuarioConPuntos)
+      .mockResolvedValueOnce(usuarioConPuntos);
+    prismaFalso.flight.findUnique
+      .mockResolvedValueOnce(vueloIda)
+      .mockResolvedValueOnce(vueloVuelta);
+    prismaFalso.booking.findFirst.mockResolvedValueOnce(null);
+    prismaFalso.$transaction.mockImplementationOnce(
+      async (fn: (tx: typeof prismaFalso) => Promise<typeof reservaConCanje>) => fn(prismaFalso),
+    );
+    prismaFalso.booking.create.mockResolvedValueOnce(reservaConCanje);
+
+    const token = jwtService.sign({ sub: 99, email: 'usuario@test.pe', clientId: 5, role: 'CLIENT' });
+    const res = await request(app.getHttpServer())
+      .post('/api/bookings')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        passengers: [{ firstName: 'Ana', lastName: 'López', documentType: 'DNI', documentNumber: '70000001', birthDate: '1990-01-01', isHolder: true }],
+        flights: [{ flightId: 1 }, { flightId: 2 }],
+        pointsToRedeem: 500,
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.pointsUsed).toBe(500);
+  });
+
   it('PATCH /api/bookings/:id/status — admin no puede ir de PENDIENTE directo a COMPLETADO (400)', async () => {
     const adminFalso = { id: 1, email: 'admin@aerocrm.com', isActive: true, role: 'ADMIN', client: null };
     prismaFalso.user.findUnique.mockResolvedValueOnce(adminFalso);

@@ -97,7 +97,16 @@ type MetodoPago = 'TARJETA' | 'TRANSFERENCIA' | 'BILLETERA_DIGITAL';
 
       <!-- Error -->
       @if (errorPago()) {
-        <p class="text-sm text-red-600 bg-red-50 rounded-lg p-3">{{ errorPago() }}</p>
+        <div class="bg-red-50 rounded-lg p-3 space-y-2">
+          <p class="text-sm text-red-600">{{ errorPago() }}</p>
+          @if (errorEnReserva()) {
+            <button type="button"
+              (click)="state.goTo(6)"
+              class="text-xs font-semibold text-red-700 underline hover:text-red-900">
+              Corregir pasajeros
+            </button>
+          }
+        </div>
       }
 
       <!-- Botones -->
@@ -127,6 +136,8 @@ export class StepPaymentComponent {
   readonly metodoPago = signal<MetodoPago>('TARJETA');
   readonly cargando = signal(false);
   readonly errorPago = signal('');
+  /** Verdadero cuando el error ocurrió al crear la reserva (no en el pago), para mostrar el botón de corregir pasajeros. */
+  readonly errorEnReserva = signal(false);
 
   /** Datos de tarjeta — puramente decorativos, nunca se envían al backend. */
   nroTarjeta = '';
@@ -152,6 +163,7 @@ export class StepPaymentComponent {
     const s = this.state;
     this.cargando.set(true);
     this.errorPago.set('');
+    this.errorEnReserva.set(false);
 
     const cuerpo = this._construirCuerpo();
 
@@ -175,7 +187,8 @@ export class StepPaymentComponent {
         });
       },
       error: (err) => {
-        this.errorPago.set(apiErrorMessage(err, 'No pudimos procesar el pago. Intenta de nuevo.'));
+        this.errorPago.set(apiErrorMessage(err, 'No pudimos crear la reserva. Revisá los datos e intentá de nuevo.'));
+        this.errorEnReserva.set(true);
         this.cargando.set(false);
       },
     });
@@ -201,7 +214,7 @@ export class StepPaymentComponent {
         birthDate:      p.birthDate,
         isHolder:       p.isHolder,
       })),
-      pointsToRedeem: s.usePoints() ? s.pointsToRedeem() : 0,
+      pointsToRedeem: s.pointsToRedeem(),
     };
 
     // Hotel (opcional)
