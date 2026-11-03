@@ -633,3 +633,128 @@ Archivos:
 Base de datos: migración `20261103000616_add_contact_status`. Enum `ContactStatus` y campos `status`, `attendedAt`, `internalNote` en `ContactMessage`.
 
 PR: #pendiente
+
+
+---
+
+### TS-017: Validación de tipo y formato de documento en pasajeros
+
+git commit -m "fix: valida tipo y formato de documento y datos del pasajero (TS-017)"
+
+Se añadió el enum DocumentType (DNI / PASAPORTE) al schema de Prisma y se aplicó a BookingPassenger y Traveler. El DTO de pasajero exige el campo y valida formato según el tipo (8 dígitos para DNI, 6-12 alfanuméricos para PASAPORTE). El paso de pasajeros muestra un selector de tipo con placeholder dinámico y el estado del armador guarda documentType. El paso de pago lo incluye al enviar la reserva. Se corrigió también un bug en step-payment: pointsToRedeem tomaba todos los puntos disponibles en lugar del monto tecleado por el usuario.
+
+Archivos:
+- backend/prisma/schema.prisma: enum DocumentType; campo en BookingPassenger y Traveler.
+- backend/src/bookings/dto/create-booking.dto.ts: documentType obligatorio con @IsEnum.
+- backend/src/clients/dto/create-traveler.dto.ts y update-traveler.dto.ts: campo documentType opcional.
+- backend/src/clients/clients.service.ts: updateTraveler() persiste documentType.
+- backend/src/bookings/bookings.service.ts: validación de formato en create().
+- backend/src/common/validation.ts: etiqueta en español para documentType.
+- frontend/src/app/features/packages/steps/step-passengers.component.ts: selector DNI/PASAPORTE y placeholder dinámico.
+- frontend/src/app/features/packages/steps/step-payment.component.ts: envía documentType; corrige pointsToRedeem.
+- frontend/src/app/features/packages/package-builder.state.ts: agrega documentType al borrador de pasajero.
+- backend/test/app.e2e-spec.ts: agrega documentType a los pasajeros del test de reserva.
+
+Base de datos: migración add_document_type. Enum DocumentType y campo en BookingPassenger y Traveler.
+
+PR: #pendiente
+
+---
+
+### fix: Unificación de textos de la interfaz en español neutro
+
+git commit -m "fix: unifica textos de la interfaz en español neutro"
+
+Los títulos por defecto de los toasts estaban en inglés (Success, Warning, Info). Se reemplazaron por Listo, Aviso e Información respectivamente; Error ya estaba bien.
+
+Archivos:
+- frontend/src/app/core/services/toast.service.ts: títulos por defecto de los cuatro métodos.
+
+PR: #pendiente
+
+---
+
+### US-023: Validación del formulario de contacto (cliente y servidor)
+
+git commit -m "fix: valida el formulario de contacto en cliente y servidor (US-023)"
+git commit -m "fix: valida el formulario de contacto en el frontend (US-023)"
+
+El backend aceptaba mensajes de un solo carácter. Se agregó @MinLength(10) al DTO del mensaje y una prueba e2e que verifica el 400. En el frontend se agregó la misma validación antes del envío, con mensaje de error en pantalla. También se agregó la prueba e2e del campo mustChangePassword en la respuesta del login.
+
+Archivos:
+- backend/src/contact/dto/create-contact.dto.ts: @MinLength(10) en message.
+- backend/test/app.e2e-spec.ts: prueba POST /contact con mensaje < 10 chars -> 400; prueba login con mustChangePassword.
+- frontend/src/app/features/contact/contact.component.ts: validación client-side de longitud mínima.
+
+PR: #pendiente
+
+---
+
+### US-030: Contador de consultas pendientes reactivo
+
+git commit -m "fix: actualiza el contador de consultas pendientes sin recargar (US-030)"
+
+El badge del panel admin solo se actualizaba al recargar la página porque el signal era local al AdminShellComponent. Se extrajo a AdminNotificationsService (providedIn: root); el shell y el componente de consultas comparten la misma instancia. Al marcar una consulta como atendida, el componente llama refrescarPendientes() y el badge baja sin recarga.
+
+Archivos:
+- frontend/src/app/features/admin/admin-notifications.service.ts: servicio nuevo con signal pendientes y método refrescarPendientes().
+- frontend/src/app/features/admin/admin-shell.component.ts: reemplaza signal local por inject(AdminNotificationsService).
+- frontend/src/app/features/admin/contact/admin-contact.component.ts: llama refrescarPendientes() tras atender.
+
+PR: #pendiente
+
+---
+
+### US-029: Separación de cancelación y cambio de estado en el panel
+
+git commit -m "fix: separa la cancelación del cambio de estado en el panel (US-029)"
+
+El selector de estado incluía CANCELADO junto con las transiciones normales, lo que permitía cancelar sin motivo obligatorio. Se separó en dos secciones: el selector principal solo muestra transiciones de avance; un botón rojo independiente despliega un formulario con motivo obligatorio para cancelar. Las reservas COMPLETADAS y CANCELADAS no muestran ninguno de los dos controles.
+
+Archivos:
+- frontend/src/app/features/admin/bookings/admin-booking-detail.component.ts: constantes TRANSICIONES y CANCELABLES, signal mostraCancelForm, computed puedeCancel, método cancelarReserva() y template actualizado.
+
+PR: #pendiente
+
+---
+
+### US-029: Corrección de desfase de fechas y formato de montos en el panel
+
+git commit -m "fix: corrige desfase de fechas y unifica formato de montos en el panel (US-029)"
+
+Las fechas de hotel (check-in, check-out) y las de nacimiento en el detalle de reserva del admin se mostraban un día antes de lo correcto. El pipe date sin zona horaria usa la zona del navegador (UTC-5 Lima): una fecha guardada como 2025-11-06T00:00:00Z se interpretaba como 2025-11-05 local. La corrección fue pasar UTC como tercer argumento al pipe. Los montos pasaron de S/ X a S/. X con dos decimales obligatorios usando | number:1.2-2.
+
+Archivos:
+- frontend/src/app/features/admin/bookings/admin-booking-detail.component.ts: UTC en fechas de hotel y nacimiento; S/. con number pipe en montos.
+- frontend/src/app/features/admin/bookings/admin-bookings.component.ts: mismo formato de montos en el listado.
+
+PR: #pendiente
+
+---
+
+### US-028: Guard de contraseña temporal en todas las rutas
+
+git commit -m "fix: obliga a cambiar la contraseña temporal (US-028)"
+
+El flag mustChangePassword solo redirigía al momento del login. Si el usuario recargaba la página, ya estaba autenticado y el guard no lo bloqueaba. Se agregó la comprobación en authGuard y adminGuard: en cada activación de ruta, si mustChangePassword es true y la URL no es /profile/change-password, se redirige a esa ruta. El componente de cambio de contraseña llama refreshMe() tras el éxito para que el guard lea el estado actualizado del servidor.
+
+Archivos:
+- frontend/src/app/core/guards/auth.guard.ts: comprobación mustChangePassword en authGuard y adminGuard.
+- frontend/src/app/features/auth/change-password/change-password.component.ts: llama authService.refreshMe() tras éxito.
+- backend/test/app.e2e-spec.ts: prueba login con usuario de contraseña temporal -> respuesta incluye mustChangePassword: true.
+
+PR: #pendiente
+
+---
+
+### US-003: Reglas de contraseña y botones de visibilidad
+
+git commit -m "fix: explica las reglas y mejora la visibilidad de la contraseña (US-003)"
+
+El formulario de cambio de contraseña tenía checkboxes para mostrar/ocultar los campos, sin indicadores de requisitos ni validación de que la nueva fuera distinta a la actual. Se reemplazaron los checkboxes por botones de ojo posicionados dentro del campo. Se agregó un indicador en tiempo real con cuatro requisitos (mínimo 8 chars, 1 mayúscula, 1 número, distinta a la actual) usando computed(). canSubmit bloquea el botón hasta que los cuatro estén en verde. El mismo patrón de ojo se aplicó al formulario de registro.
+
+Archivos:
+- frontend/src/app/features/auth/change-password/change-password.component.ts: signals showCurrent y showNew; computed requirements y canSubmit con regla de contraseña distinta.
+- frontend/src/app/features/auth/client-register/client-register.component.ts: botones de ojo en los campos de contraseña.
+
+PR: #pendiente
