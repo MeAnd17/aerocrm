@@ -758,3 +758,34 @@ Archivos:
 - frontend/src/app/features/auth/client-register/client-register.component.ts: botones de ojo en los campos de contraseña.
 
 PR: #pendiente
+
+---
+
+### TS-017: Validación de formato de documento y fecha de nacimiento
+
+git commit -m "fix: completa la validación de datos del pasajero (TS-017)"
+
+El DTO BookingPassengerDto solo validaba que documentNumber fuera un string y que birthDate fuera ISO 8601, sin verificar el formato ni el rango. Se crearon dos decoradores de class-validator en `backend/src/common/validators.ts`: `EsDocumentoValido` valida DNI como exactamente 8 dígitos y pasaporte como alfanumérico de 6 a 12; `EsFechaNacimientoValida` rechaza fechas futuras y anteriores a 1900. En el frontend, `continuar()` replica las mismas tres reglas (nombre, documento y fecha) antes de llamar a la API, con mensajes de toast específicos para cada caso.
+
+Archivos:
+- `backend/src/common/validators.ts`: decoradores `EsDocumentoValido` y `EsFechaNacimientoValida`.
+- `backend/src/bookings/dto/create-booking.dto.ts`: importa y aplica ambos decoradores en `BookingPassengerDto`.
+- `frontend/src/app/features/packages/steps/step-passengers.component.ts`: validación de formato en `continuar()` antes de llamar a la API.
+- `backend/test/app.e2e-spec.ts`: tres pruebas nuevas — DNI inválido → 400; fecha futura → 400; fecha antes de 1900 → 400.
+
+PR: #pendiente
+
+---
+
+### US-011: Restricción de cancelación del cliente a reservas pendientes
+
+git commit -m "fix: restringe la cancelación del cliente a reservas pendientes (US-011)"
+
+`cancelOwn()` delegaba directamente a `cancel()`, que acepta tanto PENDIENTE como CONFIRMADO. Según la matriz del sprint (TS-018, `docs/tareas/sprint-2.md` línea 56: "de Pendiente o Confirmado a Cancelado cuando el cliente cancela") el spec original permitía ambos, pero la matriz de acceso aprobada (línea 64: "el cliente solo cancela lo suyo") restringe al cliente a PENDIENTE; desde CONFIRMADO solo el admin puede cancelar. Se agregó la comprobación en `cancelOwn()` antes de llamar a `cancel()`. El botón de cancelar en el detalle del cliente quedó condicionado solo a PENDIENTE. El test que esperaba 200 para cancelación de CONFIRMADO fue corregido a 400.
+
+Archivos:
+- `backend/src/bookings/bookings.service.ts`: `cancelOwn()` lanza `BadRequestException` si el estado no es PENDIENTE.
+- `frontend/src/app/features/my-trips/trip-detail.component.ts`: botón cancelar solo visible cuando `status === 'PENDIENTE'`.
+- `backend/test/app.e2e-spec.ts`: prueba cliente cancela CONFIRMADA → 400 con mensaje exacto.
+
+PR: #pendiente
