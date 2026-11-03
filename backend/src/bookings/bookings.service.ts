@@ -480,7 +480,7 @@ export class BookingsService {
           discountAmount,
           passengers: cantidadPasajeros,
           notes: dto.notes,
-          status: 'CONFIRMADO',
+          status: 'PENDIENTE',
           bookingFlights: {
             create: dto.flights.map((f, i) => ({
               flightId: f.flightId,
@@ -529,39 +529,7 @@ export class BookingsService {
         },
       });
 
-      // Actualizar puntos del cliente
-      await tx.client.update({
-        where: { id: client.id },
-        data: {
-          totalPoints: { increment: pointsEarned },
-          availablePoints: { increment: pointsEarned - pointsUsed },
-        },
-      });
-
-      // Historial de puntos
-      if (pointsEarned > 0) {
-        await tx.pointsHistory.create({
-          data: {
-            clientId: client.id,
-            type: 'EARNED',
-            points: pointsEarned,
-            description: `Compra de paquete ${confirmationCode}`,
-            bookingId: newBooking.id,
-          },
-        });
-      }
-      if (pointsUsed > 0) {
-        await tx.pointsHistory.create({
-          data: {
-            clientId: client.id,
-            type: 'REDEEMED',
-            points: -pointsUsed,
-            description: `Canje en paquete ${confirmationCode}`,
-            bookingId: newBooking.id,
-          },
-        });
-      }
-
+      // Los puntos se acreditan en pay() al confirmar, no al crear.
       return newBooking;
     });
 

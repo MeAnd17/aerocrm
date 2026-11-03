@@ -17,8 +17,9 @@ type MetodoPago = 'TARJETA' | 'TRANSFERENCIA' | 'BILLETERA_DIGITAL';
  * de datos de tarjeta puramente decorativo: esos datos NUNCA se envían al backend.
  *
  * Al confirmar:
- *  1. Llama POST /bookings con todo el paquete armado en el state (crea y confirma la reserva).
- *  2. Navega a /my-trips/:id y muestra el código de confirmación.
+ *  1. Llama POST /bookings → crea la reserva en estado PENDIENTE.
+ *  2. Llama POST /bookings/:id/pay → confirma la reserva (PENDIENTE → CONFIRMADO).
+ *  3. Navega a /my-trips/:id y muestra el código de confirmación.
  */
 @Component({
   selector: 'app-step-payment',
@@ -144,8 +145,8 @@ export class StepPaymentComponent {
   }
 
   /**
-   * Crea la reserva con todos los datos del state y navega al detalle.
-   * El método de pago elegido en pantalla NO se envía: create() confirma todo en el servidor.
+   * Crea la reserva (PENDIENTE) y luego la confirma llamando al endpoint de pago.
+   * El método de pago elegido se envía a /pay; los datos de tarjeta nunca llegan al backend.
    */
   confirmarPago() {
     const s = this.state;
@@ -156,13 +157,22 @@ export class StepPaymentComponent {
 
     this.api.post<any>('bookings', cuerpo).subscribe({
       next: (reserva) => {
-        s.reset();
-        const codigo = reserva.confirmationCode ?? '';
-        this.toast.success(
-          `¡Tu viaje está confirmado! Código ${codigo}`,
-          'Reserva confirmada',
-        );
-        this.router.navigate(['/my-trips', reserva.id]);
+        // Reserva creada en PENDIENTE; confirmarla con el pago simulado
+        this.api.post<any>(`bookings/${reserva.id}/pay`, { method: this.metodoPago() }).subscribe({
+          next: (confirmada) => {
+            s.reset();
+            const codigo = confirmada.confirmationCode ?? '';
+            this.toast.success(
+              `¡Tu viaje está confirmado! Código ${codigo}`,
+              'Reserva confirmada',
+            );
+            this.router.navigate(['/my-trips', confirmada.id]);
+          },
+          error: (err) => {
+            this.errorPago.set(apiErrorMessage(err, 'No pudimos procesar el pago. Intenta de nuevo.'));
+            this.cargando.set(false);
+          },
+        });
       },
       error: (err) => {
         this.errorPago.set(apiErrorMessage(err, 'No pudimos procesar el pago. Intenta de nuevo.'));
