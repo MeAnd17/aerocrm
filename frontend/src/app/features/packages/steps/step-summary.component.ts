@@ -145,10 +145,21 @@ import { apiErrorMessage } from '../../../core/services/api-error';
           <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
             <div class="flex items-center justify-between">
               <p class="text-sm font-semibold text-blue-800">💎 Canjear puntos</p>
-              <span class="text-xs text-blue-600">
-                {{ state.loyalty().availablePoints }} disponibles
-              </span>
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  [ngModel]="canjeActivo()"
+                  (ngModelChange)="toggleCanje($event)"
+                  class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-400"
+                />
+                <span class="text-xs text-blue-700 font-medium">Usar puntos</span>
+              </label>
             </div>
+
+            <p class="text-xs text-blue-600">
+              Tenés <strong>{{ state.loyalty().availablePoints }}</strong> puntos
+              · En esta compra podés usar hasta <strong>{{ maxPuntosCanjeables() }}</strong>
+            </p>
 
             @if (state.loyalty().currentDiscount > 0) {
               <p class="text-xs text-blue-600">
@@ -157,24 +168,27 @@ import { apiErrorMessage } from '../../../core/services/api-error';
               </p>
             }
 
-            <div class="flex items-center gap-2">
-              <input
-                type="number"
-                [(ngModel)]="puntosIngresados"
-                min="500"
-                step="100"
-                placeholder="Puntos a canjear (min. 500)"
-                class="flex-1 px-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                type="button"
-                (click)="aplicarCanje()"
-                [disabled]="loadingQuote()"
-                class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
-              >
-                Aplicar
-              </button>
-            </div>
+            @if (canjeActivo()) {
+              <div class="flex items-center gap-2">
+                <input
+                  type="number"
+                  [(ngModel)]="puntosIngresados"
+                  min="500"
+                  [max]="maxPuntosCanjeables()"
+                  step="100"
+                  placeholder="Puntos a canjear (min. 500)"
+                  class="flex-1 px-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="button"
+                  (click)="aplicarCanje()"
+                  [disabled]="loadingQuote()"
+                  class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+                >
+                  Aplicar
+                </button>
+              </div>
+            }
 
             @if (state.pointsToRedeem() > 0) {
               <div class="flex items-center justify-between text-xs">
@@ -201,7 +215,15 @@ import { apiErrorMessage } from '../../../core/services/api-error';
         <!-- Pasajeros -->
         <div class="bg-gray-50 rounded-lg p-3 space-y-1">
           <p class="text-sm font-semibold text-gray-700">👥 Pasajeros</p>
-          @if (state.passengers() > 0) {
+          @if (state.passengerDrafts().length > 0) {
+            @for (p of state.passengerDrafts(); track p.documentNumber; let pi = $index) {
+              <p class="text-sm text-gray-600">
+                {{ pi + 1 }}. {{ p.firstName }} {{ p.lastName }}
+                <span class="text-gray-400 text-xs">· {{ p.documentType === 'PASAPORTE' ? 'Pasaporte' : 'DNI' }} {{ p.documentNumber }}</span>
+                @if (pi === 0) { <span class="text-blue-600 text-xs">(titular)</span> }
+              </p>
+            }
+          } @else if (state.passengers() > 0) {
             <p class="text-sm text-gray-600">
               {{ state.passengers() }} pasajero{{ state.passengers() !== 1 ? 's' : '' }}
               seleccionado{{ state.passengers() !== 1 ? 's' : '' }}
@@ -256,6 +278,18 @@ export class StepSummaryComponent implements OnInit {
   readonly priceChanged = signal(false);
 
   readonly isLoggedIn = computed(() => this.auth.currentUser() !== null);
+
+  /** Interruptor de canje: comienza apagado (US-020). */
+  readonly canjeActivo = signal(false);
+
+  /** Puntos máximos canjeables: min(disponibles, floor(subtotal × 5)) — tope 50 % a S/ 0.10/pt. */
+  readonly maxPuntosCanjeables = computed(() => {
+    const loyalty = this.state.loyalty();
+    const q = this.quote();
+    if (!loyalty || !q) return 0;
+    const subtotal = Number(q.breakdown?.subtotal ?? 0);
+    return Math.min(loyalty.availablePoints, Math.floor(subtotal * 5));
+  });
 
   /** Puntos ingresados por el usuario en el campo de canje (US-020). */
   puntosIngresados = 0;
@@ -316,6 +350,16 @@ export class StepSummaryComponent implements OnInit {
     });
   }
 
+  /** Activa o desactiva el toggle de canje; al desactivar quita los puntos (US-020). */
+  toggleCanje(activo: boolean) {
+    this.canjeActivo.set(activo);
+    if (!activo) {
+      this.state.pointsToRedeem.set(0);
+      this.puntosIngresados = 0;
+      this._fetchQuote();
+    }
+  }
+
   /** Aplica el canje ingresado: actualiza el state y vuelve a cotizar (US-020). */
   aplicarCanje() {
     const puntos = Math.floor(this.puntosIngresados ?? 0);
@@ -325,6 +369,7 @@ export class StepSummaryComponent implements OnInit {
 
   /** Quita el canje activo y vuelve a cotizar sin puntos (US-020). */
   quitarCanje() {
+    this.canjeActivo.set(false);
     this.state.pointsToRedeem.set(0);
     this.puntosIngresados = 0;
     this._fetchQuote();

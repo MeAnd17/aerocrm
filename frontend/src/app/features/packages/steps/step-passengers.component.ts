@@ -73,7 +73,11 @@ interface ViajeroBD {
                 [(ngModel)]="pasajero.firstName"
                 [disabled]="i === 0 && estaAutenticado()"
                 placeholder="Nombre"
+                [class.border-red-400]="mostrarErrores() && !pasajero.firstName.trim()"
                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100 disabled:text-gray-500" />
+              @if (mostrarErrores() && !pasajero.firstName.trim()) {
+                <p class="text-xs text-red-500 mt-0.5">Requerido</p>
+              }
             </div>
             <div>
               <label class="block text-xs font-medium text-gray-600 mb-1">Apellido</label>
@@ -82,7 +86,11 @@ interface ViajeroBD {
                 [(ngModel)]="pasajero.lastName"
                 [disabled]="i === 0 && estaAutenticado()"
                 placeholder="Apellido"
+                [class.border-red-400]="mostrarErrores() && !pasajero.lastName.trim()"
                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100 disabled:text-gray-500" />
+              @if (mostrarErrores() && !pasajero.lastName.trim()) {
+                <p class="text-xs text-red-500 mt-0.5">Requerido</p>
+              }
             </div>
           </div>
 
@@ -102,15 +110,26 @@ interface ViajeroBD {
               <input
                 type="text"
                 [(ngModel)]="pasajero.documentNumber"
+                [attr.inputmode]="pasajero.documentType === 'PASAPORTE' ? null : 'numeric'"
+                [attr.maxlength]="pasajero.documentType === 'PASAPORTE' ? 12 : 8"
                 [placeholder]="pasajero.documentType === 'PASAPORTE' ? 'Ej. AB123456' : 'Ej. 12345678'"
+                (input)="pasajero.documentType === 'PASAPORTE' && mayusculasDoc(i, $event)"
+                [class.border-red-400]="mostrarErrores() && !pasajero.documentNumber.trim()"
                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+              @if (mostrarErrores() && !pasajero.documentNumber.trim()) {
+                <p class="text-xs text-red-500 mt-0.5">Requerido</p>
+              }
             </div>
             <div>
               <label class="block text-xs font-medium text-gray-600 mb-1">Fecha de nacimiento</label>
               <input
                 type="date"
                 [(ngModel)]="pasajero.birthDate"
+                [class.border-red-400]="mostrarErrores() && !pasajero.birthDate"
                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+              @if (mostrarErrores() && !pasajero.birthDate) {
+                <p class="text-xs text-red-500 mt-0.5">Requerida</p>
+              }
             </div>
           </div>
 
@@ -154,6 +173,8 @@ export class StepPassengersComponent implements OnInit {
   readonly borradores = signal<PassengerDraft[]>([]);
   readonly viajerosFrecuentes = signal<ViajeroBD[]>([]);
   readonly guardando = signal(false);
+  /** Se activa al primer intento de continuar para mostrar errores por campo. */
+  readonly mostrarErrores = signal(false);
 
   readonly estaAutenticado = () => this.auth.isAuthenticated();
 
@@ -234,6 +255,18 @@ export class StepPassengersComponent implements OnInit {
     });
   }
 
+  /** Fuerza mayúsculas en el campo de número de pasaporte mientras el usuario escribe. */
+  mayusculasDoc(indice: number, evento: Event) {
+    const input = evento.target as HTMLInputElement;
+    const upper = input.value.toUpperCase();
+    if (input.value !== upper) {
+      input.value = upper;
+    }
+    const copia = [...this.borradores()];
+    copia[indice] = { ...copia[indice], documentNumber: upper };
+    this.borradores.set(copia);
+  }
+
   /** Copia los datos de un viajero frecuente al formulario de un pasajero no titular. */
   copiarViajero(indice: number, evento: Event) {
     const id = Number((evento.target as HTMLSelectElement).value);
@@ -256,6 +289,9 @@ export class StepPassengersComponent implements OnInit {
   /** Valida, guarda en estado y, si corresponde, persiste viajeros frecuentes nuevos. */
   async continuar() {
     const lista = this.borradores();
+
+    // Activar indicadores de error para mostrar bordes rojos y mensajes por campo.
+    this.mostrarErrores.set(true);
 
     // Validación: todos los pasajeros deben tener los cuatro campos obligatorios.
     const incompleto = lista.some(
