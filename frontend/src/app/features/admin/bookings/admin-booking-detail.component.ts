@@ -130,11 +130,11 @@ interface ReservaDetalle {
           <div class="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
             <div>
               <p class="text-gray-400 text-xs uppercase tracking-wider mb-0.5">Total pagado</p>
-              <p class="font-semibold text-gray-800">S/ {{ reserva()!.totalPrice }}</p>
+              <p class="font-semibold text-gray-800">S/. {{ reserva()!.totalPrice | number:'1.2-2' }}</p>
             </div>
             <div>
               <p class="text-gray-400 text-xs uppercase tracking-wider mb-0.5">Descuento</p>
-              <p class="font-semibold text-gray-800">S/ {{ reserva()!.discountAmount }}</p>
+              <p class="font-semibold text-gray-800">S/. {{ reserva()!.discountAmount | number:'1.2-2' }}</p>
             </div>
             <div>
               <p class="text-gray-400 text-xs uppercase tracking-wider mb-0.5">Puntos ganados</p>
@@ -187,7 +187,7 @@ interface ReservaDetalle {
                     <td class="px-4 py-3 text-gray-600">
                       {{ bf.flight.departureDate | date:'dd/MM/yyyy HH:mm':'':'es-PE' }}
                     </td>
-                    <td class="px-4 py-3 text-right text-gray-700">S/ {{ bf.priceSnapshot }}</td>
+                    <td class="px-4 py-3 text-right text-gray-700">S/. {{ bf.priceSnapshot | number:'1.2-2' }}</td>
                   </tr>
                 }
               </tbody>
@@ -215,10 +215,10 @@ interface ReservaDetalle {
                 @for (bh of reserva()!.bookingHotels; track bh.id) {
                   <tr>
                     <td class="px-4 py-3 text-gray-700">{{ bh.hotel.name }}</td>
-                    <td class="px-4 py-3 text-gray-600">{{ bh.checkIn | date:'dd/MM/yyyy':'':'es-PE' }}</td>
-                    <td class="px-4 py-3 text-gray-600">{{ bh.checkOut | date:'dd/MM/yyyy':'':'es-PE' }}</td>
+                    <td class="px-4 py-3 text-gray-600">{{ bh.checkIn | date:'dd/MM/yyyy':'UTC':'es-PE' }}</td>
+                    <td class="px-4 py-3 text-gray-600">{{ bh.checkOut | date:'dd/MM/yyyy':'UTC':'es-PE' }}</td>
                     <td class="px-4 py-3 text-right text-gray-700">{{ bh.nights }}</td>
-                    <td class="px-4 py-3 text-right text-gray-700">S/ {{ bh.priceSnapshot }}</td>
+                    <td class="px-4 py-3 text-right text-gray-700">S/. {{ bh.priceSnapshot | number:'1.2-2' }}</td>
                   </tr>
                 }
               </tbody>
@@ -245,7 +245,7 @@ interface ReservaDetalle {
                   <tr>
                     <td class="px-4 py-3 text-gray-700">{{ ba.activity.name }}</td>
                     <td class="px-4 py-3 text-right text-gray-700">{{ ba.quantity }}</td>
-                    <td class="px-4 py-3 text-right text-gray-700">S/ {{ ba.priceSnapshot }}</td>
+                    <td class="px-4 py-3 text-right text-gray-700">S/. {{ ba.priceSnapshot | number:'1.2-2' }}</td>
                   </tr>
                 }
               </tbody>
@@ -272,7 +272,7 @@ interface ReservaDetalle {
                   <tr>
                     <td class="px-4 py-3 text-gray-700">{{ be.type | label }}</td>
                     <td class="px-4 py-3 text-gray-600">{{ be.details ?? '—' }}</td>
-                    <td class="px-4 py-3 text-right text-gray-700">S/ {{ be.price }}</td>
+                    <td class="px-4 py-3 text-right text-gray-700">S/. {{ be.price | number:'1.2-2' }}</td>
                   </tr>
                 }
               </tbody>
@@ -301,7 +301,7 @@ interface ReservaDetalle {
                 <tr>
                   <td class="px-4 py-3 text-gray-700">{{ p.firstName }} {{ p.lastName }}</td>
                   <td class="px-4 py-3 text-gray-600 font-mono">{{ p.documentNumber }}</td>
-                  <td class="px-4 py-3 text-gray-600">{{ p.birthDate | date:'dd/MM/yyyy':'':'es-PE' }}</td>
+                  <td class="px-4 py-3 text-gray-600">{{ p.birthDate | date:'dd/MM/yyyy':'UTC':'es-PE' }}</td>
                   <td class="px-4 py-3">
                     @if (p.isHolder) {
                       <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">Sí</span>

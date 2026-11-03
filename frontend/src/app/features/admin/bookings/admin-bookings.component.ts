@@ -111,7 +111,7 @@ const ESTADOS = ['PENDIENTE', 'CONFIRMADO', 'EN_CURSO', 'COMPLETADO', 'CANCELADO
                       {{ r.status | label }}
                     </span>
                   </td>
-                  <td class="px-4 py-3 text-right text-gray-700">S/ {{ r.totalPrice }}</td>
+                  <td class="px-4 py-3 text-right text-gray-700">S/. {{ r.totalPrice | number:'1.2-2' }}</td>
                   <td class="px-4 py-3 text-right text-gray-700">{{ r.passengers }}</td>
                   <td class="px-4 py-3 text-gray-600">{{ r.createdAt | date:'dd/MM/yyyy':'':'es-PE' }}</td>
                   <td class="px-4 py-3">
