@@ -9,6 +9,10 @@ export const authGuard: CanActivateFn = (_route, state) => {
   if (!auth.isAuthenticated()) {
     return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
   }
+  // Si el usuario tiene contraseña temporal, lo fuerza a cambiarla antes de continuar.
+  if (auth.currentUser()?.mustChangePassword && state.url !== '/profile/change-password') {
+    return router.createUrlTree(['/profile/change-password']);
+  }
   return true;
 };
 
@@ -18,6 +22,9 @@ export const adminGuard: CanActivateFn = (_route, state) => {
   const router = inject(Router);
   if (!auth.isAuthenticated()) {
     return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
+  }
+  if (auth.currentUser()?.mustChangePassword && state.url !== '/profile/change-password') {
+    return router.createUrlTree(['/profile/change-password']);
   }
   if (auth.currentUser()?.role !== 'ADMIN') {
     return router.createUrlTree(['/home']);

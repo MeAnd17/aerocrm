@@ -216,6 +216,29 @@ describe('API (e2e)', () => {
     expect(res.body.access_token).toBeDefined();
   });
 
+  it('POST /api/auth/login responde 201 con mustChangePassword=true si el usuario tiene contraseña temporal', async () => {
+    const hash = await bcryptjs.hash('Temp1234', 10);
+    const usuarioConTemporal = {
+      id: 21,
+      email: 'temporal@test.pe',
+      password: hash,
+      firstName: 'Rosa',
+      lastName: 'Gil',
+      isActive: true,
+      role: 'CLIENT',
+      mustChangePassword: true,
+      client: { id: 9, membershipLevel: 'EXPLORADOR', availablePoints: 0, completedTrips: 0 },
+    };
+    prismaFalso.user.findUnique.mockResolvedValueOnce(usuarioConTemporal);
+
+    const res = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email: 'temporal@test.pe', password: 'Temp1234' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.user.mustChangePassword).toBe(true);
+  });
+
   it('POST /api/bookings/quote responde 201 con desglose para vuelo de ida y regreso', async () => {
     const vueloBase = {
       id: 1,

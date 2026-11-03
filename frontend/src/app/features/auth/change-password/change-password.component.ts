@@ -1,8 +1,9 @@
-import { Component, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { apiErrorMessage } from '../../../core/services/api-error';
 
@@ -130,6 +131,7 @@ export class ChangePasswordComponent {
     private api: ApiService,
     private toast: ToastService,
     private router: Router,
+    private authService: AuthService,
   ) {}
 
   onSubmit() {
@@ -151,9 +153,19 @@ export class ChangePasswordComponent {
       newPassword: this.newPassword,
     }).subscribe({
       next: () => {
-        this.loading.set(false);
-        this.toast.success('Contraseña actualizada');
-        this.router.navigate(['/profile']);
+        // Limpia el flag mustChangePassword recargando el perfil del servidor.
+        this.authService.refreshMe().subscribe({
+          next: () => {
+            this.loading.set(false);
+            this.toast.success('Contraseña actualizada');
+            this.router.navigate(['/profile']);
+          },
+          error: () => {
+            this.loading.set(false);
+            this.toast.success('Contraseña actualizada');
+            this.router.navigate(['/profile']);
+          },
+        });
       },
       error: (err) => {
         this.loading.set(false);
