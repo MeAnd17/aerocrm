@@ -789,3 +789,79 @@ Archivos:
 - `backend/test/app.e2e-spec.ts`: prueba cliente cancela CONFIRMADA → 400 con mensaje exacto.
 
 PR: #pendiente
+
+---
+
+### US-020: Corrección del canje — los puntos no llegaban a la reserva
+
+Commits: `8488c8d`, `92b52d8`
+
+El interruptor `state.usePoints` siempre valía `false` porque `aplicarCanje()` nunca lo ponía en `true`. El cuerpo enviado a `POST /bookings` incluía `pointsToRedeem: s.usePoints() ? s.pointsToRedeem() : 0`, por lo que el campo siempre llegaba como `0` aunque el usuario hubiera aplicado un canje en el resumen. Se eliminó la condición y se envía `s.pointsToRedeem()` directamente, que ya vale `0` por defecto. Además se mejoró la UX del canje: interruptor apagado por defecto, texto "Tenés N puntos · En esta compra podés usar hasta M" y `max` en el input calculado como `min(disponibles, floor(subtotal × 5))`.
+
+Archivos:
+- `frontend/src/app/features/packages/steps/step-payment.component.ts`: línea 204: `s.usePoints() ? s.pointsToRedeem() : 0` → `s.pointsToRedeem()`.
+- `frontend/src/app/features/packages/steps/step-summary.component.ts`: toggle `canjeActivo`, computed `maxPuntosCanjeables`, método `toggleCanje()`.
+- `backend/test/app.e2e-spec.ts`: prueba `POST /api/bookings con pointsToRedeem aplica descuento y guarda pointsUsed`.
+
+PR: #pendiente
+
+---
+
+### US-010: Mejoras al paso de pasajeros
+
+Commit: `92b52d8`
+
+El campo de documento no tenía `inputmode` ni `maxlength`; los errores de validación solo aparecían en toast sin indicar qué campo falló; el resumen mostraba solo el conteo de pasajeros sin nombres ni documentos; en el paso de pago no había forma de volver a corregir los datos del pasajero si la reserva era rechazada. Se añadió `inputmode="numeric"` y `maxlength=8` para DNI, `maxlength=12` y auto-uppercase para pasaporte, señales de error por campo (`mostrarErrores` activado al primer `continuar()`), el resumen ahora lista nombres y documentos de cada pasajero, y el paso de pago muestra "Corregir pasajeros" cuando el error ocurrió durante la creación de la reserva.
+
+Archivos:
+- `frontend/src/app/features/packages/steps/step-passengers.component.ts`: `inputmode`, `maxlength`, `mayusculasDoc()`, `mostrarErrores`.
+- `frontend/src/app/features/packages/steps/step-summary.component.ts`: sección pasajeros lista nombres y documentos.
+- `frontend/src/app/features/packages/steps/step-payment.component.ts`: señal `errorEnReserva`, botón "Corregir pasajeros".
+
+PR: #pendiente
+
+---
+
+### US-023: Contacto en el menú del cliente
+
+Commit: `270275e`
+
+El link de Contacto existía en `VISITOR_LINKS` pero no en `CLIENT_LINKS`, por lo que un usuario autenticado no tenía acceso directo al formulario desde la barra de navegación. Se agregó `{ label: 'Contacto', path: '/contact' }` entre Mis puntos y Perfil.
+
+Archivos:
+- `frontend/src/app/core/layout/navbar/navbar.component.ts`: añadida entrada Contacto en `CLIENT_LINKS`.
+
+PR: #pendiente
+
+---
+
+### US-003: El botón de cambio de contraseña nunca se habilitaba
+
+Commit: `d05b0c9`
+
+`requirements` y `canSubmit` eran `computed()` que leían propiedades de string planas (`this.newPassword`, `this.currentPassword`, `this.confirmPassword`). `computed()` solo rastrea dependencias de signals; como las strings no son signals, el computed nunca se reevaluaba y el botón permanecía deshabilitado. Se convirtieron las tres propiedades a `signal('')` y se actualizaron el template (binding unidireccional + `ngModelChange`) y `onSubmit()`. Los emojis `👁️`/`🙈` en `change-password.component.ts` y `client-register.component.ts` se reemplazaron con SVG inline.
+
+Archivos:
+- `frontend/src/app/features/auth/change-password/change-password.component.ts`: strings → signals, template bindings, iconos SVG.
+- `frontend/src/app/features/auth/client-register/client-register.component.ts`: iconos SVG de ojo.
+
+PR: #pendiente
+
+---
+
+### Panel de administración: skeleton y tiempos de respuesta
+
+Commit: `de8df8d`
+
+Medición con servidor local (npm start:dev, base Supabase): stats 64ms, bookings 60ms, clients 18ms, contact 17ms — todos bajo 300ms, sin optimizaciones necesarias. El texto "Cargando estadísticas..." del dashboard se reemplazó con un grid de tres skeleton cards animados (Tailwind `animate-pulse`).
+
+Archivos:
+- `frontend/src/app/features/admin/admin-dashboard.component.ts`: skeleton de carga.
+
+PR: #pendiente
+
+---
+
+### US-019: Historial de puntos
+
+No implementado. US-019 pertenece al Sprint 3 (`docs/tareas/sprint-3.md` línea correspondiente). No corresponde implementarlo en esta rama.
