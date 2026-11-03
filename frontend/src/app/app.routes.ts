@@ -54,6 +54,14 @@ export const routes: Routes = [
         loadComponent: () => import('./features/admin/destinations/admin-inventory.component').then(m => m.AdminInventoryComponent),
       },
       {
+        path: 'bookings',
+        loadComponent: () => import('./features/admin/bookings/admin-bookings.component').then(m => m.AdminBookingsComponent),
+      },
+      {
+        path: 'bookings/:id',
+        loadComponent: () => import('./features/admin/bookings/admin-booking-detail.component').then(m => m.AdminBookingDetailComponent),
+      },
+      {
         path: 'clients',
         loadComponent: () => import('./features/admin/clients/admin-clients.component').then(m => m.AdminClientsComponent),
       },

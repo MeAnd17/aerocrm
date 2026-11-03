@@ -11,7 +11,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { UserRole } from '@prisma/client';
+import { BookingStatus, UserRole } from '@prisma/client';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { QuoteDto, QuoteResponseDto } from './dto/quote.dto';
@@ -20,6 +20,7 @@ import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { LoyaltyService } from '../loyalty/loyalty.service';
 
 /** Forma de la respuesta de GET /bookings/extras */
 class ExtraOptionDto {
@@ -30,6 +31,62 @@ class ExtraOptionDto {
   @ApiProperty({ example: 60.00 }) price: number;
   @ApiProperty({ example: 'POR_RESERVA', enum: ['POR_RESERVA', 'POR_PASAJERO'] }) pricing: string;
   @ApiProperty({ example: 'PEN' }) currency: string;
+}
+
+@ApiTags('Reservas — Admin')
+@Controller('admin/bookings')
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Token ausente o vencido' })
+@ApiForbiddenResponse({ description: 'Solo los administradores pueden acceder' })
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
+export class AdminBookingsController {
+  constructor(
+    private bookingsService: BookingsService,
+    private loyaltyService: LoyaltyService,
+  ) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Lista todas las reservas con filtros y paginación (solo admin)' })
+  @ApiQuery({ name: 'status', required: false, enum: BookingStatus })
+  @ApiQuery({ name: 'search', required: false, type: String, description: 'Busca por código, nombre o correo del cliente' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
+  @ApiOkResponse({ description: 'Lista paginada de reservas' })
+  findAllAdmin(
+    @Query() query: {
+      status?: BookingStatus;
+      search?: string;
+      page?: number;
+      limit?: number;
+    },
+  ) {
+    return this.bookingsService.findAllAdmin(query);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Detalle completo de cualquier reserva (solo admin)' })
+  @ApiNotFoundResponse({ description: 'Reserva no encontrada' })
+  findOneAdmin(@Param('id') id: string) {
+    return this.bookingsService.findOneAdmin(id);
+  }
+
+  @Patch(':id/status')
+  @ApiOperation({
+    summary: 'Cambia el estado de una reserva (solo admin)',
+    description:
+      'Avanza el estado según las transiciones válidas del ciclo de vida. ' +
+      'Si el nuevo estado es COMPLETADO, registra el viaje en el motor de fidelización.',
+  })
+  @ApiBadRequestResponse({ description: 'Transición de estado no válida' })
+  @ApiNotFoundResponse({ description: 'Reserva no encontrada' })
+  async cambiarEstadoAdmin(@Request() req, @Param('id') id: string, @Body() dto: UpdateBookingStatusDto) {
+    const reserva = await this.bookingsService.advanceStatus(id, dto.status, req.user.email);
+    if (dto.status === BookingStatus.COMPLETADO) {
+      await this.loyaltyService.onTripCompleted(reserva.clientId);
+    }
+    return reserva;
+  }
 }
 
 @ApiTags('Reservas')

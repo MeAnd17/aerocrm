@@ -72,6 +72,61 @@ export class BookingsService {
 
   // ─── Métodos públicos ───────────────────────────────────────────────────────
 
+  /** GET /admin/bookings — lista todas las reservas con filtros y paginación (US-029). */
+  async findAllAdmin(query: {
+    status?: BookingStatus;
+    search?: string;
+    page?: number | string;
+    limit?: number | string;
+  }) {
+    const { status, search, page = 1, limit = 20 } = query;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const where: Prisma.BookingWhereInput = {};
+    if (status) where.status = status;
+    if (search) {
+      where.OR = [
+        { confirmationCode: { contains: search, mode: 'insensitive' } },
+        { user: { email: { contains: search, mode: 'insensitive' } } },
+        { user: { firstName: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
+    const [bookings, total] = await Promise.all([
+      this.prisma.booking.findMany({
+        where,
+        skip,
+        take: Number(limit),
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: { select: { email: true, firstName: true, lastName: true } },
+          bookingFlights: { include: { flight: { include: { origin: true, destination: true } } } },
+          bookingPassengers: true,
+        },
+      }),
+      this.prisma.booking.count({ where }),
+    ]);
+
+    return { bookings, total, page: Number(page), limit: Number(limit) };
+  }
+
+  /** GET /admin/bookings/:id — detalle completo de cualquier reserva (US-029). */
+  async findOneAdmin(bookingId: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        user: { select: { email: true, firstName: true, lastName: true } },
+        bookingFlights: { include: { flight: { include: { origin: true, destination: true } } } },
+        bookingHotels: { include: { hotel: { include: { destination: true } } } },
+        bookingActivities: { include: { activity: true } },
+        bookingExtras: true,
+        bookingPassengers: true,
+      },
+    });
+    if (!booking) throw new NotFoundException('Reserva no encontrada');
+    return booking;
+  }
+
   async findAll(userId: number, query: { status?: string; page?: number | string; limit?: number | string }) {
     const { status, page = 1, limit = 10 } = query;
     const user = await this.prisma.user.findUnique({ where: { id: userId }, include: { client: true } });

@@ -334,6 +334,30 @@ describe('API (e2e)', () => {
     expect(res.status).toBe(400);
   });
 
+  it('PATCH /api/bookings/:id/status — admin avanza PENDIENTE a CONFIRMADO (200)', async () => {
+    const adminFalso = { id: 1, email: 'admin@aerocrm.com', isActive: true, role: 'ADMIN', client: null };
+    prismaFalso.user.findUnique.mockResolvedValueOnce(adminFalso);
+    const reservaPendiente = {
+      id: 'cld-test-3',
+      confirmationCode: 'VJ-TEST03',
+      status: 'PENDIENTE',
+      userId: 99,
+      clientId: 5,
+    };
+    const reservaConfirmada = { ...reservaPendiente, status: 'CONFIRMADO' };
+    prismaFalso.booking.findUnique.mockResolvedValueOnce(reservaPendiente);
+    prismaFalso.booking.update.mockResolvedValueOnce(reservaConfirmada);
+
+    const token = jwtService.sign({ sub: 1, email: 'admin@aerocrm.com', clientId: null, role: 'ADMIN' });
+    const res = await request(app.getHttpServer())
+      .patch('/api/bookings/cld-test-3/status')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'CONFIRMADO' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('CONFIRMADO');
+  });
+
   it('GET /api/bookings/:id de otro usuario devuelve 404 con "Reserva no encontrada"', async () => {
     const usuarioOtro = { id: 55, email: 'otro@test.pe', isActive: true, role: 'CLIENT', client: { id: 99 } };
     // JwtStrategy.validate
