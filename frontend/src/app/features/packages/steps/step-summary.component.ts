@@ -1,5 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
 import { PackageBuilderState } from '../package-builder.state';
@@ -9,13 +10,17 @@ import { apiErrorMessage } from '../../../core/services/api-error';
 
 
 /**
- * Paso 7 · Resumen del paquete (US-016).
+ * Paso 7 · Resumen del paquete (US-016, US-020).
  *
  * Llama a POST /api/bookings/quote al entrar para obtener el desglose oficial
  * del servidor (AGENTS.md B6). No calcula ningún precio en pantalla.
  *
  * Detecta cambios de precio comparando el total de la cotización con el total
  * local previo (state.totalPrice). Si difieren, avisa al usuario.
+ *
+ * Cuando el usuario está autenticado y tiene al menos 500 puntos, muestra el
+ * selector de canje (US-020). Al aplicar, re-cotiza con los puntos elegidos
+ * para obtener el descuento actualizado (puntos + bono de nivel) del servidor.
  *
  * El botón "Continuar al pago" requiere sesión. Si el usuario no está autenticado,
  * se muestra un aviso con botones de registro e inicio de sesión; el resumen
@@ -25,7 +30,7 @@ import { apiErrorMessage } from '../../../core/services/api-error';
 @Component({
   selector: 'app-step-summary',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="bg-white rounded-xl border shadow-sm p-5 space-y-4">
       <h3 class="font-semibold text-gray-800 text-lg">📋 Resumen del paquete</h3>
@@ -105,18 +110,93 @@ import { apiErrorMessage } from '../../../core/services/api-error';
             <span>S/. {{ q.breakdown.subtotal | number:'1.2-2' }}</span>
           </div>
 
-          <!-- Descuento por canje (siempre visible; 0 si no hay canje) -->
-          <div class="flex justify-between text-green-700">
-            <span>Descuento por canje de puntos</span>
-            <span>− S/. {{ q.breakdown.discountByRedemption | number:'1.2-2' }}</span>
-          </div>
+          <!-- Descuento por puntos (solo si hay canje) -->
+          @if (q.breakdown.pointsDiscountAmount > 0) {
+            <div class="flex justify-between text-green-700">
+              <span>Canje de {{ q.pointsToRedeem }} puntos</span>
+              <span>− S/. {{ q.breakdown.pointsDiscountAmount | number:'1.2-2' }}</span>
+            </div>
+          }
+
+          <!-- Descuento adicional por nivel (solo si hay bono) -->
+          @if (q.breakdown.levelDiscountAmount > 0) {
+            <div class="flex justify-between text-green-700">
+              <span>Bono nivel {{ state.loyalty()?.levelLabel }} ({{ state.loyalty()?.currentDiscount }}%)</span>
+              <span>− S/. {{ q.breakdown.levelDiscountAmount | number:'1.2-2' }}</span>
+            </div>
+          }
 
           <!-- Total -->
           <div class="border-t pt-2 flex justify-between font-bold text-base">
             <span>Total</span>
             <span class="text-blue-900">S/. {{ q.breakdown.total | number:'1.2-2' }}</span>
           </div>
+
+          <!-- Puntos que se ganarán -->
+          @if (q.pointsToEarn > 0) {
+            <div class="text-right text-xs text-blue-600">
+              Ganarás <strong>{{ q.pointsToEarn }} puntos</strong> con esta compra
+            </div>
+          }
         </div>
+
+        <!-- Canje de puntos (US-020): solo cuando está autenticado y tiene al menos 500 pts -->
+        @if (isLoggedIn() && state.loyalty()?.canRedeem) {
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <p class="text-sm font-semibold text-blue-800">💎 Canjear puntos</p>
+              <span class="text-xs text-blue-600">
+                {{ state.loyalty().availablePoints }} disponibles
+              </span>
+            </div>
+
+            @if (state.loyalty().currentDiscount > 0) {
+              <p class="text-xs text-blue-600">
+                Tu nivel <strong>{{ state.loyalty().levelLabel }}</strong>
+                añade un {{ state.loyalty().currentDiscount }}% de descuento adicional al canjear.
+              </p>
+            }
+
+            <div class="flex items-center gap-2">
+              <input
+                type="number"
+                [(ngModel)]="puntosIngresados"
+                min="500"
+                step="100"
+                placeholder="Puntos a canjear (min. 500)"
+                class="flex-1 px-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                (click)="aplicarCanje()"
+                [disabled]="loadingQuote()"
+                class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+              >
+                Aplicar
+              </button>
+            </div>
+
+            @if (state.pointsToRedeem() > 0) {
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-gray-500">
+                  Quedarán {{ state.loyalty().availablePoints - q.pointsToRedeem }} puntos tras el canje
+                </span>
+                <button
+                  type="button"
+                  (click)="quitarCanje()"
+                  class="text-red-600 hover:text-red-800 font-medium transition"
+                >
+                  Quitar canje
+                </button>
+              </div>
+            }
+          </div>
+        } @else if (isLoggedIn() && state.loyalty() && !state.loyalty().canRedeem) {
+          <p class="text-xs text-gray-500 bg-gray-50 rounded-lg p-3">
+            Necesitas al menos 500 puntos para canjear.
+            Tienes {{ state.loyalty().availablePoints }}.
+          </p>
+        }
 
         <!-- Pasajeros -->
         <div class="bg-gray-50 rounded-lg p-3 space-y-1">
@@ -177,6 +257,9 @@ export class StepSummaryComponent implements OnInit {
 
   readonly isLoggedIn = computed(() => this.auth.currentUser() !== null);
 
+  /** Puntos ingresados por el usuario en el campo de canje (US-020). */
+  puntosIngresados = 0;
+
   ngOnInit() {
     this._fetchQuote();
   }
@@ -209,9 +292,10 @@ export class StepSummaryComponent implements OnInit {
         quantity: sel.quantity,
       }));
     }
-    // La API espera extras como number[] (IDs numéricos del catálogo).
     const extraIds = s.extras().map(e => e.id).filter(Boolean);
     if (extraIds.length > 0) body['extras'] = extraIds;
+    // Incluir puntos a canjear cuando el usuario los eligió (US-020).
+    if (s.pointsToRedeem() > 0) body['pointsToRedeem'] = s.pointsToRedeem();
 
     this.api.post<any>('bookings/quote', body).subscribe({
       next: (response) => {
@@ -230,6 +314,20 @@ export class StepSummaryComponent implements OnInit {
         this.loadingQuote.set(false);
       },
     });
+  }
+
+  /** Aplica el canje ingresado: actualiza el state y vuelve a cotizar (US-020). */
+  aplicarCanje() {
+    const puntos = Math.floor(this.puntosIngresados ?? 0);
+    this.state.pointsToRedeem.set(puntos > 0 ? puntos : 0);
+    this._fetchQuote();
+  }
+
+  /** Quita el canje activo y vuelve a cotizar sin puntos (US-020). */
+  quitarCanje() {
+    this.state.pointsToRedeem.set(0);
+    this.puntosIngresados = 0;
+    this._fetchQuote();
   }
 
   /** Navega a /register con returnUrl al resumen. */

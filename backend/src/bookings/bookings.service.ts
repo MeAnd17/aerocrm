@@ -172,8 +172,8 @@ export class BookingsService {
     return booking;
   }
 
-  /** POST /bookings/quote — cotización pública, sin autenticación */
-  async quote(dto: QuoteDto, rawBody: Record<string, unknown>): Promise<QuoteResponseDto> {
+  /** POST /bookings/quote — cotización (pública o autenticada, US-020) */
+  async quote(dto: QuoteDto, rawBody: Record<string, unknown>, userId?: number): Promise<QuoteResponseDto> {
     rejectPriceFields(rawBody);
 
     if (!dto.returnFlightId) {
@@ -284,17 +284,24 @@ export class BookingsService {
       activityCents.reduce((s, c) => s + c, 0) +
       extraCents.reduce((s, c) => s + c, 0);
 
-    // Canje (sin cliente autenticado, pointsToRedeem == 0 si no se pasa)
+    // Canje — si hay userId (usuario autenticado) se usa su saldo y nivel reales (US-020).
     const pointsToRedeem = dto.pointsToRedeem ?? 0;
+    let availablePoints = pointsToRedeem; // fallback público: solo valida que pida lo que tiene
+    let completedTrips = 0;
+    if (userId && pointsToRedeem > 0) {
+      const clienteAuth = await this.prisma.client.findFirst({ where: { userId } });
+      if (clienteAuth) {
+        availablePoints = clienteAuth.availablePoints;
+        completedTrips = clienteAuth.completedTrips;
+      }
+    }
     let redemption;
     try {
       redemption = computeRedemption({
         packageTotalCents,
         pointsToRedeem,
-        // En quote público no conocemos los puntos/viajes: pasamos valores que
-        // solo permiten calcular el descuento de puntos puro (sin bono de nivel).
-        availablePoints: pointsToRedeem,
-        completedTrips: 0,
+        availablePoints,
+        completedTrips,
       });
     } catch (e) {
       if (e instanceof RedemptionError) throw new BadRequestException(e.message);
@@ -303,6 +310,8 @@ export class BookingsService {
 
     const subtotalDecimal = Number(fromCents(packageTotalCents));
     const discountDecimal = Number(fromCents(redemption.totalDiscountCents));
+    const pointsDiscountDecimal = Number(fromCents(redemption.pointsDiscountCents));
+    const levelDiscountDecimal = Number(fromCents(redemption.levelDiscountCents));
     const totalDecimal = Number(fromCents(redemption.finalTotalCents));
     const pointsToEarn = pointsForPurchase(redemption.finalTotalCents);
 
@@ -351,6 +360,8 @@ export class BookingsService {
         })),
         subtotal: subtotalDecimal,
         discountByRedemption: discountDecimal,
+        pointsDiscountAmount: pointsDiscountDecimal,
+        levelDiscountAmount: levelDiscountDecimal,
         total: totalDecimal,
       },
       pointsToRedeem: redemption.pointsUsed,

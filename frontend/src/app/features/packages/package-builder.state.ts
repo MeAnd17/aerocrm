@@ -76,6 +76,7 @@ export class PackageBuilderState {
 
   // ── Vista previa de totales ─────────────────────────────────────────────────
   readonly flightTotal = computed(() => Number(this.flight()?.pricePerPerson ?? 0) * this.passengers());
+  readonly returnFlightTotal = computed(() => Number(this.returnFlight()?.pricePerPerson ?? 0) * this.passengers());
   readonly hotelNights = computed(() => {
     const inDate = this.hotelCheckIn();
     const outDate = this.hotelCheckOut();
@@ -100,7 +101,7 @@ export class PackageBuilderState {
       return s + lineTotal;
     }, 0),
   );
-  readonly totalPrice = computed(() => this.flightTotal() + this.hotelTotal() + this.activitiesTotal() + this.extrasTotal());
+  readonly totalPrice = computed(() => this.flightTotal() + this.returnFlightTotal() + this.hotelTotal() + this.activitiesTotal() + this.extrasTotal());
   /** El descuento lo calcula el motor de fidelización del backend (AGENTS.md B7). */
   readonly pointsDiscount = computed(() => Number(this.redemption()?.totalDiscount ?? 0));
 

@@ -34,6 +34,7 @@ const prismaFalso = {
   client: {
     update: jest.fn().mockResolvedValue({}),
     findUnique: jest.fn(),
+    findFirst: jest.fn().mockResolvedValue(null),
     count: jest.fn(),
   },
   pointsHistory: {
@@ -247,6 +248,97 @@ describe('API (e2e)', () => {
     expect(res.body.breakdown.outboundFlight).toBeDefined();
     expect(res.body.breakdown.returnFlight).toBeDefined();
     expect(res.body.breakdown.total).toBeGreaterThan(0);
+  });
+
+  it('POST /api/bookings/quote con pointsToRedeem: 499 devuelve 400 (mínimo 500)', async () => {
+    const vueloBase = {
+      id: 1, flightNumber: 'LA501', airline: 'LATAM',
+      departureDate: new Date('2025-06-01T08:00:00Z'),
+      pricePerPerson: new Prisma.Decimal('350.00'),
+      isActive: true, destinationId: 3,
+      origin: { id: 1, name: 'Lima' }, destination: { id: 3, name: 'Cusco' },
+    };
+    prismaFalso.flight.findUnique
+      .mockResolvedValueOnce(vueloBase)
+      .mockResolvedValueOnce({ ...vueloBase, id: 2, flightNumber: 'LA502' });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/bookings/quote')
+      .send({ flightId: 1, returnFlightId: 2, passengers: 1, pointsToRedeem: 499 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toContain('500');
+  });
+
+  it('POST /api/bookings/quote con pointsToRedeem aplica descuento y respeta tope 50 %', async () => {
+    // Paquete: S/.350 (ida) + S/.350 (vuelta) = S/.700 subtotal. Tope 50 % = S/.350.
+    // Cliente: 1000 puntos disponibles, 0 viajes (Explorador, sin bono de nivel).
+    // pointsToRedeem: 1000 → se truncan a los que caben bajo el tope → 3500 / 10 = 350 pts → S/.35 discount.
+    // En realidad: 700 * 50% = 350 cents → 350/10 = 35 pts → pero pedimos 1000.
+    // Exactamente: tope = Math.floor(700*50/100)=350 (céntimos * 100 = S/.350)
+    // pointsThatFit = Math.floor(35000 / 10) = 3500 → pedimos 1000 < 3500, todo entra.
+    // discountByRedemption = 1000 * 10 = 10000 céntimos = S/.100.
+    // final = S/.700 - S/.100 = S/.600.
+    const vueloBase = {
+      id: 1, flightNumber: 'LA501', airline: 'LATAM',
+      departureDate: new Date('2025-06-01T08:00:00Z'),
+      pricePerPerson: new Prisma.Decimal('350.00'),
+      isActive: true, destinationId: 3,
+      origin: { id: 1, name: 'Lima' }, destination: { id: 3, name: 'Cusco' },
+    };
+    // JwtStrategy.validate para el token, luego client.findFirst en quote().
+    const usuarioFalso = { id: 55, email: 'cliente@test.pe', isActive: true, role: 'CLIENT', client: { id: 9 } };
+    prismaFalso.user.findUnique.mockResolvedValueOnce(usuarioFalso);
+    const clienteFalso = { id: 9, availablePoints: 1000, completedTrips: 0 };
+    prismaFalso.client.findFirst = jest.fn().mockResolvedValueOnce(clienteFalso);
+    prismaFalso.flight.findUnique
+      .mockResolvedValueOnce(vueloBase)
+      .mockResolvedValueOnce({ ...vueloBase, id: 2, flightNumber: 'LA502' });
+
+    const token = jwtService.sign({ sub: 55, email: 'cliente@test.pe', clientId: 9, role: 'CLIENT' });
+    const res = await request(app.getHttpServer())
+      .post('/api/bookings/quote')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ flightId: 1, returnFlightId: 2, passengers: 1, pointsToRedeem: 1000 });
+
+    expect(res.status).toBe(201);
+    expect(res.body.breakdown.discountByRedemption).toBeCloseTo(100, 1);
+    expect(res.body.breakdown.pointsDiscountAmount).toBeCloseTo(100, 1);
+    expect(res.body.breakdown.levelDiscountAmount).toBeCloseTo(0, 1);
+    expect(res.body.breakdown.total).toBeCloseTo(600, 1);
+    expect(res.body.pointsToRedeem).toBe(1000);
+  });
+
+  it('POST /api/bookings/quote con nivel ELITE aplica bono de nivel al canjear', async () => {
+    // Paquete: S/.700. Cliente Elite (16 viajes → 15 % bono).
+    // pointsToRedeem: 500 → S/.50 pts discount + S/.700*15% = S/.105 nivel discount.
+    // Total discount = S/.155. Total = S/.700 - S/.155 = S/.545.
+    const vueloBase = {
+      id: 1, flightNumber: 'LA501', airline: 'LATAM',
+      departureDate: new Date('2025-06-01T08:00:00Z'),
+      pricePerPerson: new Prisma.Decimal('350.00'),
+      isActive: true, destinationId: 3,
+      origin: { id: 1, name: 'Lima' }, destination: { id: 3, name: 'Cusco' },
+    };
+    const usuarioFalso = { id: 77, email: 'elite@test.pe', isActive: true, role: 'CLIENT', client: { id: 11 } };
+    prismaFalso.user.findUnique.mockResolvedValueOnce(usuarioFalso);
+    const clienteElite = { id: 11, availablePoints: 2524, completedTrips: 16 };
+    prismaFalso.client.findFirst = jest.fn().mockResolvedValueOnce(clienteElite);
+    prismaFalso.flight.findUnique
+      .mockResolvedValueOnce(vueloBase)
+      .mockResolvedValueOnce({ ...vueloBase, id: 2, flightNumber: 'LA502' });
+
+    const token = jwtService.sign({ sub: 77, email: 'elite@test.pe', clientId: 11, role: 'CLIENT' });
+    const res = await request(app.getHttpServer())
+      .post('/api/bookings/quote')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ flightId: 1, returnFlightId: 2, passengers: 1, pointsToRedeem: 500 });
+
+    expect(res.status).toBe(201);
+    expect(res.body.breakdown.pointsDiscountAmount).toBeCloseTo(50, 1);
+    expect(res.body.breakdown.levelDiscountAmount).toBeCloseTo(105, 1);
+    expect(res.body.breakdown.discountByRedemption).toBeCloseTo(155, 1);
+    expect(res.body.breakdown.total).toBeCloseTo(545, 1);
   });
 
   it('POST /api/bookings rechaza lista de pasajeros vacía con 400', async () => {

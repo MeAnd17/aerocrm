@@ -118,6 +118,10 @@ export class QuoteBreakdownDto {
   @ApiProperty({ type: [QuoteExtraLineDto] }) extras: QuoteExtraLineDto[];
   @ApiProperty({ example: 5000.00 }) subtotal: number;
   @ApiProperty({ example: 50.00 }) discountByRedemption: number;
+  /** Parte del descuento correspondiente a los puntos canjeados (sin bono de nivel). */
+  @ApiProperty({ example: 50.00 }) pointsDiscountAmount: number;
+  /** Parte del descuento correspondiente al bono adicional por nivel de membresía. */
+  @ApiProperty({ example: 0.00 }) levelDiscountAmount: number;
   @ApiProperty({ example: 4950.00 }) total: number;
 }
 

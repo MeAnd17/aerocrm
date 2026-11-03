@@ -21,6 +21,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { LoyaltyService } from '../loyalty/loyalty.service';
+import { OptionalJwtGuard } from './optional-jwt.guard';
 
 /** Forma de la respuesta de GET /bookings/extras */
 class ExtraOptionDto {
@@ -99,18 +100,20 @@ export class BookingsController {
    * calculado por el servidor. No crea ninguna reserva.
    */
   @Post('quote')
+  @UseGuards(OptionalJwtGuard)
   @ApiOperation({
-    summary: 'Cotiza un paquete (sin autenticación)',
+    summary: 'Cotiza un paquete (pública o autenticada, US-020)',
     description:
       'Calcula el precio total del paquete en el servidor a partir del catálogo. ' +
-      'No crea ninguna reserva. Si se envía pointsToRedeem, aplica el descuento de canje.',
+      'No crea ninguna reserva. Si se envía pointsToRedeem y el usuario está autenticado, ' +
+      'aplica el descuento de canje completo incluyendo el bono por nivel de membresía.',
   })
   @ApiOkResponse({ description: 'Desglose de precios del paquete', type: QuoteResponseDto })
   @ApiBadRequestResponse({ description: 'Parámetros inválidos, extra o actividad no disponible, o intento de enviar campos de precio' })
   @ApiNotFoundResponse({ description: 'Vuelo no encontrado o inactivo' })
-  quote(@Body() dto: QuoteDto, @Request() req: { body?: Record<string, unknown> }) {
+  quote(@Body() dto: QuoteDto, @Request() req: any) {
     // req.body contiene el cuerpo original tal como lo recibió Express, antes de transformación.
-    return this.bookingsService.quote(dto, req.body ?? {});
+    return this.bookingsService.quote(dto, req.body ?? {}, req.user?.sub);
   }
 
   @Get('extras')
