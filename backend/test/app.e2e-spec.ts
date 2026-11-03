@@ -558,6 +558,19 @@ describe('API (e2e)', () => {
     expect(res.body.message).toBeDefined();
   });
 
+  it('POST /api/contact con mensaje menor a 10 caracteres devuelve 400', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/api/contact')
+      .send({
+        name: 'Ana López',
+        email: 'ana@test.pe',
+        subject: 'Consulta',
+        message: 'Corto',
+      });
+
+    expect(res.status).toBe(400);
+  });
+
   it('GET /api/contact/mine con autenticación devuelve 200 con lista', async () => {
     const usuarioFalso = { id: 10, email: 'ana@test.pe', isActive: true, role: 'CLIENT', client: { id: 3 } };
     prismaFalso.user.findUnique.mockResolvedValueOnce(usuarioFalso);
