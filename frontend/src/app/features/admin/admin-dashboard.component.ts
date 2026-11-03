@@ -22,7 +22,14 @@ interface AdminStats {
       <h1 class="text-xl font-bold text-gray-800">Resumen</h1>
 
       @if (cargando()) {
-        <p class="text-sm text-gray-500">Cargando estadísticas...</p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" aria-hidden="true">
+          @for (_ of [1, 2, 3]; track _) {
+            <div class="bg-white rounded-xl border shadow-sm p-5 animate-pulse">
+              <div class="h-8 w-16 bg-gray-200 rounded mb-2"></div>
+              <div class="h-4 w-28 bg-gray-100 rounded"></div>
+            </div>
+          }
+        </div>
       }
 
       @if (error()) {
