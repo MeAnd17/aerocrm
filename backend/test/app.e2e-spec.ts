@@ -50,6 +50,10 @@ const prismaFalso = {
   destination: {
     count: jest.fn(),
   },
+  contactMessage: {
+    create: jest.fn().mockResolvedValue({}),
+    findMany: jest.fn().mockResolvedValue([]),
+  },
 };
 
 describe('API (e2e)', () => {
@@ -440,5 +444,47 @@ describe('API (e2e)', () => {
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
+  });
+
+  it('POST /api/contact sin autenticación devuelve 201', async () => {
+    prismaFalso.contactMessage.create.mockResolvedValueOnce({});
+
+    const res = await request(app.getHttpServer())
+      .post('/api/contact')
+      .send({
+        name: 'Ana López',
+        email: 'ana@test.pe',
+        subject: 'Consulta de vuelo',
+        message: 'Quisiera información sobre vuelos a Cusco.',
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.message).toBeDefined();
+  });
+
+  it('GET /api/contact/mine con autenticación devuelve 200 con lista', async () => {
+    const usuarioFalso = { id: 10, email: 'ana@test.pe', isActive: true, role: 'CLIENT', client: { id: 3 } };
+    prismaFalso.user.findUnique.mockResolvedValueOnce(usuarioFalso);
+    prismaFalso.contactMessage.findMany.mockResolvedValueOnce([]);
+    const token = jwtService.sign({ sub: 10, email: 'ana@test.pe', clientId: 3, role: 'CLIENT' });
+
+    const res = await request(app.getHttpServer())
+      .get('/api/contact/mine')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it('GET /api/contact sin rol ADMIN devuelve 403', async () => {
+    const clienteFalso = { id: 10, email: 'ana@test.pe', isActive: true, role: 'CLIENT', client: { id: 3 } };
+    prismaFalso.user.findUnique.mockResolvedValueOnce(clienteFalso);
+    const token = jwtService.sign({ sub: 10, email: 'ana@test.pe', clientId: 3, role: 'CLIENT' });
+
+    const res = await request(app.getHttpServer())
+      .get('/api/contact')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(403);
   });
 });
