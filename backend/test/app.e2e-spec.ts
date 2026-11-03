@@ -738,29 +738,75 @@ describe('API (e2e)', () => {
     expect(res.body.message).toBe('Tus puntos disponibles cambiaron, vuelve a revisar el resumen');
   });
 
-  it('PATCH /api/bookings/:id/cancel — cancelar desde CONFIRMADO revierte puntos ganados y canjeados', async () => {
+  // ─── TS-017: Validación de formato de documento y fecha de nacimiento ────────
+
+  it('POST /api/bookings rechaza DNI con formato incorrecto con 400 (TS-017)', async () => {
+    const usuarioBase = { id: 99, email: 'usuario@test.pe', isActive: true, role: 'CLIENT', client: { id: 5 } };
+    prismaFalso.user.findUnique.mockResolvedValueOnce(usuarioBase);
+    const token = jwtService.sign({ sub: 99, email: 'usuario@test.pe', clientId: 5, role: 'CLIENT' });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/bookings')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        passengers: [{ firstName: 'Ana', lastName: 'López', documentType: 'DNI', documentNumber: '1', birthDate: '1990-01-01', isHolder: true }],
+        flights: [{ flightId: 1 }, { flightId: 2 }],
+      });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('POST /api/bookings rechaza fecha de nacimiento futura con 400 (TS-017)', async () => {
+    const usuarioBase = { id: 99, email: 'usuario@test.pe', isActive: true, role: 'CLIENT', client: { id: 5 } };
+    prismaFalso.user.findUnique.mockResolvedValueOnce(usuarioBase);
+    const token = jwtService.sign({ sub: 99, email: 'usuario@test.pe', clientId: 5, role: 'CLIENT' });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/bookings')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        passengers: [{ firstName: 'Ana', lastName: 'López', documentType: 'DNI', documentNumber: '70000001', birthDate: '2099-01-01', isHolder: true }],
+        flights: [{ flightId: 1 }, { flightId: 2 }],
+      });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('POST /api/bookings rechaza fecha de nacimiento anterior a 1900 con 400 (TS-017)', async () => {
+    const usuarioBase = { id: 99, email: 'usuario@test.pe', isActive: true, role: 'CLIENT', client: { id: 5 } };
+    prismaFalso.user.findUnique.mockResolvedValueOnce(usuarioBase);
+    const token = jwtService.sign({ sub: 99, email: 'usuario@test.pe', clientId: 5, role: 'CLIENT' });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/bookings')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        passengers: [{ firstName: 'Ana', lastName: 'López', documentType: 'DNI', documentNumber: '70000001', birthDate: '1899-12-31', isHolder: true }],
+        flights: [{ flightId: 1 }, { flightId: 2 }],
+      });
+
+    expect(res.status).toBe(400);
+  });
+
+  // ─── US-011: Cliente solo cancela reservas PENDIENTE ─────────────────────────
+
+  it('PATCH /api/bookings/:id/cancel — cliente no puede cancelar reserva CONFIRMADA (400) (US-011)', async () => {
     const usuarioCliente = { id: 99, email: 'cliente@test.pe', isActive: true, role: 'CLIENT', client: { id: 5 } };
     const reservaConfirmada = {
       id: 'cld-cancel-02', confirmationCode: 'VJ-CANCEL02',
       status: 'CONFIRMADO', userId: 99, clientId: 5,
-      client: { id: 5, availablePoints: 100, totalPoints: 110 },
-      pointsEarned: 10, pointsUsed: 0,
     };
 
     prismaFalso.user.findUnique.mockResolvedValueOnce(usuarioCliente);
     prismaFalso.user.findUnique.mockResolvedValueOnce(usuarioCliente);
     prismaFalso.booking.findFirst.mockResolvedValueOnce(reservaConfirmada);
-    prismaFalso.booking.findUnique.mockResolvedValueOnce(reservaConfirmada);
-    prismaFalso.$transaction.mockImplementationOnce(async (fn: (tx: typeof prismaFalso) => Promise<unknown>) => fn(prismaFalso));
-    prismaFalso.booking.update.mockResolvedValueOnce({ ...reservaConfirmada, status: 'CANCELADO' });
-    prismaFalso.booking.findUnique.mockResolvedValueOnce({ ...reservaConfirmada, status: 'CANCELADO' });
 
     const token = jwtService.sign({ sub: 99, email: 'cliente@test.pe', clientId: 5, role: 'CLIENT' });
     const res = await request(app.getHttpServer())
       .patch('/api/bookings/cld-cancel-02/cancel')
       .set('Authorization', `Bearer ${token}`);
 
-    expect(res.status).toBe(200);
-    expect(res.body.status).toBe('CANCELADO');
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Solo puedes cancelar una reserva en estado pendiente');
   });
 });

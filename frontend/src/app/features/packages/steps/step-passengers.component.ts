@@ -266,6 +266,41 @@ export class StepPassengersComponent implements OnInit {
       return;
     }
 
+    // Validación: nombre y apellido (solo letras con tildes, ñ, espacios, guion y apóstrofo; 2–50).
+    const regexNombre = /^[A-Za-záéíóúÁÉÍÓÚñÑüÜ\s\-']{2,50}$/;
+    const nombreInvalido = lista.some(
+      p => !regexNombre.test(p.firstName.trim()) || !regexNombre.test(p.lastName.trim()),
+    );
+    if (nombreInvalido) {
+      this.toast.error('El nombre y apellido solo pueden contener letras, espacios, guiones y apóstrofos (2–50 caracteres)');
+      return;
+    }
+
+    // Validación: número de documento según el tipo seleccionado.
+    const regexDni = /^\d{8}$/;
+    const regexPasaporte = /^[A-Z0-9]{6,12}$/i;
+    const documentoInvalido = lista.some(p =>
+      p.documentType === 'DNI'
+        ? !regexDni.test(p.documentNumber)
+        : !regexPasaporte.test(p.documentNumber),
+    );
+    if (documentoInvalido) {
+      this.toast.error('El DNI debe tener 8 dígitos; el pasaporte debe ser alfanumérico de 6 a 12 caracteres');
+      return;
+    }
+
+    // Validación: fecha de nacimiento (no futura, no anterior a 1900).
+    const hoy = new Date();
+    const minima = new Date('1900-01-01');
+    const fechaInvalida = lista.some(p => {
+      const fecha = new Date(p.birthDate);
+      return isNaN(fecha.getTime()) || fecha >= hoy || fecha < minima;
+    });
+    if (fechaInvalida) {
+      this.toast.error('La fecha de nacimiento debe estar entre 1900 y hoy');
+      return;
+    }
+
     this.guardando.set(true);
 
     // Guardar viajeros frecuentes marcados (se procesan en paralelo, errores no bloquean).

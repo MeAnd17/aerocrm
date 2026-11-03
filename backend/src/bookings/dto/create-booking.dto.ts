@@ -2,6 +2,7 @@ import { IsNumber, IsOptional, IsString, IsArray, ArrayMinSize, ValidateNested, 
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { DocumentType, ExtraType } from '@prisma/client';
+import { EsDocumentoValido, EsFechaNacimientoValida } from '../../common/validators';
 
 // ── Sub-DTOs de cada línea del paquete ────────────────────────────────────────
 // Los campos de precio (priceSnapshot, price, etc.) se eliminaron: el servidor
@@ -73,10 +74,12 @@ export class BookingPassengerDto {
 
   @ApiProperty({ description: 'Número de documento (DNI: 8 dígitos; Pasaporte: 6–12 alfanuméricos)', example: '70000001' })
   @IsString()
+  @EsDocumentoValido()
   documentNumber: string;
 
   @ApiProperty({ description: 'Fecha de nacimiento (ISO 8601, entre 1900 y hoy)', example: '1990-05-12' })
   @IsISO8601()
+  @EsFechaNacimientoValida()
   birthDate: string;
 
   @ApiPropertyOptional({ description: '¿Es el titular de la reserva?', example: true })
