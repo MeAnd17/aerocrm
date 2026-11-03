@@ -20,6 +20,7 @@ const CLIENT_LINKS: NavLink[] = [
   { label: 'Explorar', path: '/search' },
   { label: 'Mis viajes', path: '/my-trips' },
   { label: 'Mis puntos', path: '/loyalty' },
+  { label: 'Contacto', path: '/contact' },
   { label: 'Perfil', path: '/profile' },
 ];
 
