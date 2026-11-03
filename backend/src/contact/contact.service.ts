@@ -22,7 +22,8 @@ export class ContactService {
   }
 
   async findAll(query: { status?: ContactStatus; page?: number; limit?: number }) {
-    /** Devuelve todos los mensajes paginados con filtro opcional por estado; solo para administradores. */
+    /** Devuelve todos los mensajes paginados con filtro opcional por estado; solo para administradores.
+     *  Cada mensaje incluye clientId si el remitente tiene cuenta registrada. */
     const { status, page = 1, limit = 20 } = query;
     const where = status ? { status } : {};
 
@@ -36,7 +37,23 @@ export class ContactService {
       this.prisma.contactMessage.count({ where }),
     ]);
 
-    return { messages, total, page, limit };
+    // Enriquecer con clientId para los remitentes que sean clientes registrados
+    const emails = [...new Set(messages.map((m) => m.email))];
+    const usuarios = await this.prisma.user.findMany({
+      where: { email: { in: emails } },
+      select: { email: true, client: { select: { id: true } } },
+    });
+    const emailAClientId: Record<string, number> = {};
+    for (const u of usuarios) {
+      if (u.client) emailAClientId[u.email] = u.client.id;
+    }
+
+    const messagesEnriquecidos = messages.map((m) => ({
+      ...m,
+      clientId: emailAClientId[m.email] ?? null,
+    }));
+
+    return { messages: messagesEnriquecidos, total, page, limit };
   }
 
   async markAttended(id: number, note?: string) {

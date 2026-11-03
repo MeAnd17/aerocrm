@@ -18,6 +18,7 @@ interface ConsultaContacto {
   attendedAt: string | null;
   internalNote: string | null;
   createdAt: string;
+  clientId: number | null;
 }
 
 /** Respuesta paginada de GET /contact. */
@@ -213,6 +214,12 @@ export class AdminContactComponent implements OnInit {
         this.consultas.set(data.messages);
         this.total.set(data.total);
         this.cargando.set(false);
+        // Poblar el mapa email→clientId para el enlace a la ficha del cliente
+        const mapa: Record<string, number> = {};
+        for (const m of data.messages) {
+          if (m.clientId) mapa[m.email] = m.clientId;
+        }
+        this.mapaClientes.set(mapa);
       },
       error: (err) => {
         this.error.set(apiErrorMessage(err, 'No se pudieron cargar las consultas.'));
