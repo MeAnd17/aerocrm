@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
+import { AdminNotificationsService } from '../admin-notifications.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { apiErrorMessage } from '../../../core/services/api-error';
 import { LabelPipe } from '../../../shared/pipes/label.pipe';
@@ -194,6 +195,7 @@ export class AdminContactComponent implements OnInit {
   constructor(
     private api: ApiService,
     private toast: ToastService,
+    private notifs: AdminNotificationsService,
   ) {}
 
   ngOnInit() {
@@ -246,6 +248,7 @@ export class AdminContactComponent implements OnInit {
         this.total.update((t) => (this.estadoFiltro === 'PENDIENTE' ? t - 1 : t));
         this.guardando.set(null);
         this.consultaAbierta.set(null);
+        this.notifs.refrescarPendientes();
         this.toast.show('success', 'Consulta marcada como atendida');
       },
       error: (err) => {

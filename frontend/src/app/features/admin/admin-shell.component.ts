@@ -1,12 +1,7 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { ApiService } from '../../core/services/api.service';
-
-/** Respuesta parcial de GET /contact que incluye el total de resultados. */
-interface RespuestaContacto {
-  total: number;
-}
+import { AdminNotificationsService } from './admin-notifications.service';
 
 /**
  * Estructura base del panel de administración con barra lateral de navegación
@@ -59,9 +54,9 @@ interface RespuestaContacto {
             class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition"
           >
             Consultas
-            @if (pendientes() > 0) {
+            @if (notifs.pendientes() > 0) {
               <span class="ml-auto px-1.5 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full leading-none">
-                {{ pendientes() }}
+                {{ notifs.pendientes() }}
               </span>
             }
           </a>
@@ -76,19 +71,9 @@ interface RespuestaContacto {
   `,
 })
 export class AdminShellComponent implements OnInit {
-  pendientes = signal(0);
-
-  constructor(private api: ApiService) {}
+  readonly notifs = inject(AdminNotificationsService);
 
   ngOnInit() {
-    this.cargarPendientes();
-  }
-
-  /** Consulta el total de mensajes con estado PENDIENTE para mostrar en el badge. */
-  cargarPendientes() {
-    this.api.get<RespuestaContacto>('contact', { status: 'PENDIENTE', limit: '1' }).subscribe({
-      next: (data) => this.pendientes.set(data.total),
-      error: () => this.pendientes.set(0),
-    });
+    this.notifs.refrescarPendientes();
   }
 }
