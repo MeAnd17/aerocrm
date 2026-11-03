@@ -8,13 +8,17 @@ import { apiErrorMessage } from '../../../core/services/api-error';
 import { LabelPipe } from '../../../shared/pipes/label.pipe';
 
 /** Mapa de transiciones válidas por estado actual. */
+/** Transiciones de avance (excluyen CANCELADO — tiene botón propio). */
 const TRANSICIONES: Record<string, string[]> = {
-  PENDIENTE:  ['CONFIRMADO', 'CANCELADO'],
-  CONFIRMADO: ['EN_CURSO',   'CANCELADO'],
+  PENDIENTE:  ['CONFIRMADO'],
+  CONFIRMADO: ['EN_CURSO'],
   EN_CURSO:   ['COMPLETADO'],
   COMPLETADO: [],
   CANCELADO:  [],
 };
+
+/** Estados desde los que el admin puede cancelar. */
+const CANCELABLES = ['PENDIENTE', 'CONFIRMADO'];
 
 /** Pasajero de la reserva. */
 interface Pasajero {
@@ -312,44 +316,89 @@ interface ReservaDetalle {
         </div>
 
         <!-- Cambio de estado -->
-        @if (transicionesValidas().length > 0) {
-          <div class="bg-white border rounded-xl shadow-sm p-6 space-y-4">
+        @if (transicionesValidas().length > 0 || puedeCancel()) {
+          <div class="bg-white border rounded-xl shadow-sm p-6 space-y-5">
             <h2 class="text-base font-semibold text-gray-700">Cambiar estado</h2>
 
-            <div class="space-y-3">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Nuevo estado</label>
-                <select
-                  [(ngModel)]="nuevoEstado"
-                  class="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccionar estado</option>
-                  @for (t of transicionesValidas(); track t) {
-                    <option [value]="t">{{ t | label }}</option>
+            <!-- Avance de estado (excluye cancelación) -->
+            @if (transicionesValidas().length > 0) {
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Nuevo estado</label>
+                  <select
+                    [(ngModel)]="nuevoEstado"
+                    class="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccionar estado</option>
+                    @for (t of transicionesValidas(); track t) {
+                      <option [value]="t">{{ t | label }}</option>
+                    }
+                  </select>
+                  @if (reserva()!.status === 'CONFIRMADO') {
+                    <p class="text-xs text-gray-400 mt-1">
+                      Para marcarla como Completado, primero debe pasar a En curso.
+                    </p>
                   }
-                </select>
-              </div>
+                </div>
 
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Motivo (opcional)
-                </label>
-                <textarea
-                  [(ngModel)]="motivoCambio"
-                  rows="2"
-                  placeholder="Explicación del cambio manual"
-                  class="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                ></textarea>
-              </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Motivo (opcional)
+                  </label>
+                  <textarea
+                    [(ngModel)]="motivoCambio"
+                    rows="2"
+                    placeholder="Explicación del cambio manual"
+                    class="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  ></textarea>
+                </div>
 
-              <button
-                (click)="cambiarEstado()"
-                [disabled]="!nuevoEstado || cambiando()"
-                class="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {{ cambiando() ? 'Procesando...' : 'Cambiar estado' }}
-              </button>
-            </div>
+                <button
+                  (click)="cambiarEstado()"
+                  [disabled]="!nuevoEstado || cambiando()"
+                  class="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {{ cambiando() ? 'Procesando...' : 'Cambiar estado' }}
+                </button>
+              </div>
+            }
+
+            <!-- Cancelación (botón rojo separado) -->
+            @if (puedeCancel()) {
+              <div class="border-t pt-4 space-y-3">
+                @if (!mostraCancelForm()) {
+                  <button
+                    (click)="mostraCancelForm.set(true)"
+                    class="px-5 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition"
+                  >
+                    Cancelar reserva
+                  </button>
+                } @else {
+                  <p class="text-sm font-medium text-red-700">¿Cancelar esta reserva?</p>
+                  <textarea
+                    [(ngModel)]="motivoCancel"
+                    rows="2"
+                    placeholder="Motivo de cancelación (obligatorio)"
+                    class="w-full max-w-md px-3 py-2 border border-red-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"
+                  ></textarea>
+                  <div class="flex gap-2">
+                    <button
+                      (click)="cancelarReserva()"
+                      [disabled]="!motivoCancel.trim() || cambiando()"
+                      class="px-5 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {{ cambiando() ? 'Procesando...' : 'Confirmar cancelación' }}
+                    </button>
+                    <button
+                      (click)="mostraCancelForm.set(false); motivoCancel = ''"
+                      class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition"
+                    >
+                      Volver
+                    </button>
+                  </div>
+                }
+              </div>
+            }
           </div>
         } @else {
           <div class="bg-gray-50 border border-gray-200 rounded-xl p-4">
@@ -368,12 +417,21 @@ export class AdminBookingDetailComponent implements OnInit {
 
   nuevoEstado = '';
   motivoCambio = '';
+  motivoCancel = '';
 
-  /** Transiciones posibles desde el estado actual de la reserva. */
+  readonly mostraCancelForm = signal(false);
+
+  /** Transiciones de avance posibles (excluyen CANCELADO). */
   transicionesValidas = computed<string[]>(() => {
     const r = this.reserva();
     if (!r) return [];
     return TRANSICIONES[r.status] ?? [];
+  });
+
+  /** Indica si la reserva se puede cancelar desde el panel. */
+  puedeCancel = computed<boolean>(() => {
+    const r = this.reserva();
+    return r ? CANCELABLES.includes(r.status) : false;
   });
 
   constructor(
@@ -424,6 +482,32 @@ export class AdminBookingDetailComponent implements OnInit {
         },
         error: (err) => {
           this.toast.error(apiErrorMessage(err, 'No se pudo cambiar el estado.'));
+          this.cambiando.set(false);
+        },
+      });
+  }
+
+  /** Cancela la reserva con un motivo obligatorio. */
+  cancelarReserva() {
+    const r = this.reserva();
+    if (!r || !this.motivoCancel.trim()) return;
+
+    this.cambiando.set(true);
+    this.api
+      .patch<ReservaDetalle>(`admin/bookings/${r.id}/status`, {
+        status: 'CANCELADO',
+        reason: this.motivoCancel.trim(),
+      })
+      .subscribe({
+        next: () => {
+          this.toast.success('Reserva cancelada');
+          this.motivoCancel = '';
+          this.mostraCancelForm.set(false);
+          this.cambiando.set(false);
+          this.cargar(r.id);
+        },
+        error: (err) => {
+          this.toast.error(apiErrorMessage(err, 'No se pudo cancelar la reserva.'));
           this.cambiando.set(false);
         },
       });
