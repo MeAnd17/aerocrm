@@ -8,8 +8,8 @@ import { AuthGuard } from '@nestjs/passport';
  */
 @Injectable()
 export class OptionalJwtGuard extends AuthGuard('jwt') {
-  handleRequest<T = any>(_err: any, user: T): T {
+  handleRequest<T = unknown>(_err: unknown, user: T): T {
     // No lanzar error si falta o falla el token — req.user quedará undefined.
-    return user ?? (undefined as any);
+    return user as T;
   }
 }

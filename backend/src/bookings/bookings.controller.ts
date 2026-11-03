@@ -111,7 +111,7 @@ export class BookingsController {
   @ApiOkResponse({ description: 'Desglose de precios del paquete', type: QuoteResponseDto })
   @ApiBadRequestResponse({ description: 'Parámetros inválidos, extra o actividad no disponible, o intento de enviar campos de precio' })
   @ApiNotFoundResponse({ description: 'Vuelo no encontrado o inactivo' })
-  quote(@Body() dto: QuoteDto, @Request() req: any) {
+  quote(@Body() dto: QuoteDto, @Request() req: { body: Record<string, unknown>; user?: { sub: number } }) {
     // req.body contiene el cuerpo original tal como lo recibió Express, antes de transformación.
     return this.bookingsService.quote(dto, req.body ?? {}, req.user?.sub);
   }
