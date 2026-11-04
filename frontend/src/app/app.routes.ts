@@ -23,10 +23,12 @@ export const routes: Routes = [
   {
     path: 'explore',
     loadComponent: () => import('./features/search/search.component').then(m => m.SearchComponent),
+    canActivate: [clientOnlyGuard],
   },
   {
     path: 'contact',
     loadComponent: () => import('./features/contact/contact.component').then(m => m.ContactComponent),
+    canActivate: [clientOnlyGuard],
   },
 
   // ── Privadas (requieren login) ────────────────────────────────────────────
@@ -82,19 +84,23 @@ export const routes: Routes = [
   {
     path: 'search',
     loadComponent: () => import('./features/search/search.component').then(m => m.SearchComponent),
+    canActivate: [clientOnlyGuard],
   },
   {
     path: 'destinations',
     loadComponent: () => import('./features/destinations/destinations-list.component').then(m => m.DestinationsListComponent),
+    canActivate: [clientOnlyGuard],
   },
   {
     path: 'destinations/:id',
     loadComponent: () => import('./features/destinations/destination-detail.component').then(m => m.DestinationDetailComponent),
+    canActivate: [clientOnlyGuard],
   },
   {
     // Abierto a visitantes (modo explorador, M2): la cuenta se pide recién al confirmar.
     path: 'packages/new',
     loadComponent: () => import('./features/packages/package-builder.component').then(m => m.PackageBuilderComponent),
+    canActivate: [clientOnlyGuard],
   },
   {
     path: 'my-trips',
