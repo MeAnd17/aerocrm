@@ -1,46 +1,101 @@
 import { IsNumber, IsOptional, IsString, IsArray, ValidateNested, IsEnum, Min, IsInt } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ExtraType } from '@prisma/client';
 
+// ── Sub-DTOs de cada línea del paquete ────────────────────────────────────────
+// Los campos de precio (priceSnapshot, price, etc.) se eliminaron: el servidor
+// los calcula a partir del catálogo (AGENTS.md B6).
+
 export class BookingFlightDto {
-  @IsInt() flightId: number;
-  @IsNumber() priceSnapshot: number;
+  @ApiProperty({ description: 'ID del vuelo', example: 5 })
+  @IsInt()
+  flightId: number;
 }
 
 export class BookingHotelDto {
-  @IsInt() hotelId: number;
-  @IsString() checkIn: string;
-  @IsString() checkOut: string;
-  @IsInt() nights: number;
-  @IsNumber() priceSnapshot: number;
+  @ApiProperty({ description: 'ID del hotel', example: 3 })
+  @IsInt()
+  hotelId: number;
+
+  @ApiProperty({ description: 'Fecha de entrada (ISO date)', example: '2025-08-10' })
+  @IsString()
+  checkIn: string;
+
+  @ApiProperty({ description: 'Fecha de salida (ISO date)', example: '2025-08-17' })
+  @IsString()
+  checkOut: string;
+
+  @ApiProperty({ description: 'Número de noches', example: 7 })
+  @IsInt()
+  @Min(1)
+  nights: number;
 }
 
 export class BookingActivityDto {
-  @IsInt() activityId: number;
-  @IsInt() @Min(1) quantity: number;
-  @IsNumber() priceSnapshot: number;
+  @ApiProperty({ description: 'ID de la actividad', example: 2 })
+  @IsInt()
+  activityId: number;
+
+  @ApiProperty({ description: 'Cantidad de participantes', example: 2, minimum: 1 })
+  @IsInt()
+  @Min(1)
+  quantity: number;
 }
 
 export class BookingExtraDto {
-  @IsEnum(ExtraType) type: ExtraType;
-  @IsNumber() price: number;
-  @IsOptional() @IsString() details?: string;
+  @ApiProperty({ description: 'Tipo de extra', enum: ExtraType })
+  @IsEnum(ExtraType)
+  type: ExtraType;
+
+  @ApiPropertyOptional({ description: 'Detalle adicional (p.ej. dirección de recogida)', example: 'Av. Lima 123' })
+  @IsOptional()
+  @IsString()
+  details?: string;
 }
 
-export class CreateBookingDto {
-  @IsInt() @Min(1) passengers: number;
-  @IsOptional() @IsNumber() pointsToRedeem?: number;
-  @IsOptional() @IsString() notes?: string;
+// ── DTO principal de creación ─────────────────────────────────────────────────
 
-  @IsArray() @ValidateNested({ each: true }) @Type(() => BookingFlightDto)
+export class CreateBookingDto {
+  @ApiProperty({ description: 'Número de pasajeros', example: 2, minimum: 1 })
+  @IsInt()
+  @Min(1)
+  passengers: number;
+
+  @ApiPropertyOptional({ description: 'Puntos a canjear (mínimo 500)', example: 500 })
+  @IsOptional()
+  @IsNumber()
+  pointsToRedeem?: number;
+
+  @ApiPropertyOptional({ description: 'Notas adicionales', example: 'Preferencia ventana' })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @ApiProperty({ description: 'Vuelos incluidos en el paquete (ida, y opcionalmente vuelta)', type: [BookingFlightDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BookingFlightDto)
   flights: BookingFlightDto[];
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => BookingHotelDto)
+  @ApiPropertyOptional({ description: 'Hotel del paquete', type: [BookingHotelDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BookingHotelDto)
   hotels?: BookingHotelDto[];
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => BookingActivityDto)
+  @ApiPropertyOptional({ description: 'Actividades del paquete', type: [BookingActivityDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BookingActivityDto)
   activities?: BookingActivityDto[];
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => BookingExtraDto)
+  @ApiPropertyOptional({ description: 'Extras del paquete (traslados, seguro)', type: [BookingExtraDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BookingExtraDto)
   extras?: BookingExtraDto[];
 }

@@ -1,10 +1,14 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { LabelPipe } from '../../shared/pipes/label.pipe';
 import { DurationPipe } from '../../shared/pipes/duration.pipe';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
+import { PackageDraftService } from '../packages/package-draft.service';
+
+/** Opciones de filtro de escala. */
+type StopsFilter = 'todos' | 'directo' | '1' | '2+';
 
 @Component({
   selector: 'app-search',
@@ -46,67 +50,159 @@ import { ApiService } from '../../core/services/api.service';
               class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
         </div>
+        @if (dateError()) {
+          <p class="text-sm text-red-600">{{ dateError() }}</p>
+        }
         <button (click)="search()" [disabled]="loading()"
           class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50">
           {{ loading() ? 'Buscando...' : '🔍 Buscar vuelos' }}
         </button>
       </div>
 
-      <!-- Resultados de vuelos -->
-      @if (flights().length > 0) {
-        <div class="space-y-3">
-          <div>
-            <h2 class="font-semibold text-gray-800">{{ flights().length }} vuelos disponibles</h2>
-            <p class="text-xs text-gray-500">Mostramos salidas hasta 3 días antes y después de la fecha que elegiste.</p>
-          </div>
-          @for (flight of flights(); track flight.id) {
-            <div class="bg-white rounded-xl border shadow-sm p-4 hover:shadow-md transition">
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="font-bold text-gray-800">{{ flight.airline }} · {{ flight.flightNumber }}</p>
-                  <span class="inline-block mt-0.5 rounded-full px-2 py-0.5 text-xs font-medium"
-                    [class.bg-green-100]="flight.daysFromRequested === 0" [class.text-green-700]="flight.daysFromRequested === 0"
-                    [class.bg-amber-50]="flight.daysFromRequested !== 0" [class.text-amber-700]="flight.daysFromRequested !== 0">
-                    {{ dayLabel(flight.daysFromRequested) }}
-                  </span>
-                  <p class="text-sm text-gray-500">
-                    {{ flight.origin?.city }} → {{ flight.destination?.city }} ·
-                    {{ flight.stops === 0 ? 'Directo' : flight.stops + ' escala(s)' }}
-                  </p>
-                  <p class="text-xs text-gray-400 mt-1">
-                    {{ flight.departureDate | date:'dd MMM yyyy, HH:mm' }}
-                    · {{ flight.durationMinutes | duracion }}
-                  </p>
-                </div>
-                <div class="text-right">
-                  <p class="text-xl font-bold text-blue-900">S/. {{ flight.totalPrice | number:'1.2-2' }}</p>
-                  <p class="text-xs text-gray-400">{{ searchForm.passengers }} pax · {{ flight.classType | label }}</p>
-                  <button (click)="selectFlight(flight)"
-                    class="mt-2 bg-blue-600 text-white text-sm px-4 py-1.5 rounded-lg hover:bg-blue-700 transition">
-                    Seleccionar
-                  </button>
-                </div>
+      <!-- Filtros y resultados -->
+      @if (allFlights().length > 0) {
+        <div class="flex flex-col lg:flex-row gap-4">
+
+          <!-- Panel de filtros -->
+          <aside class="w-full lg:w-64 shrink-0 bg-white rounded-xl border shadow-sm p-4 space-y-5 self-start">
+            <h3 class="font-semibold text-gray-800">Filtros</h3>
+
+            <!-- Ordenar por -->
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Ordenar por</label>
+              <select [(ngModel)]="filters.sortBy"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="cercania">Cercanía a la fecha</option>
+                <option value="precio">Precio</option>
+                <option value="duracion">Duración</option>
+              </select>
+            </div>
+
+            <!-- Precio por persona -->
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Precio por persona</label>
+              <div class="flex gap-2">
+                <input type="number" [(ngModel)]="filters.minPrice" placeholder="Mín" min="0"
+                  class="w-1/2 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <input type="number" [(ngModel)]="filters.maxPrice" placeholder="Máx" min="0"
+                  class="w-1/2 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
             </div>
-          }
+
+            <!-- Duración máxima -->
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
+                Duración máxima: {{ filters.maxDuration ? (filters.maxDuration | duracion) : 'Cualquiera' }}
+              </label>
+              <input type="range" [(ngModel)]="filters.maxDuration"
+                min="0" [max]="maxDurationAvailable()" step="30"
+                class="w-full accent-blue-600" />
+            </div>
+
+            <!-- Escalas -->
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">Escalas</label>
+              <div class="space-y-1">
+                @for (opt of stopsOptions; track opt.value) {
+                  <label class="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="radio" name="stops" [value]="opt.value" [(ngModel)]="filters.stops"
+                      class="accent-blue-600" />
+                    {{ opt.label }}
+                  </label>
+                }
+              </div>
+            </div>
+
+            <!-- Aerolínea -->
+            @if (airlines().length > 1) {
+              <div>
+                <label class="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">Aerolínea</label>
+                <div class="space-y-1">
+                  @for (airline of airlines(); track airline) {
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" [checked]="filters.airlines.includes(airline)"
+                        (change)="toggleAirline(airline)"
+                        class="accent-blue-600 rounded" />
+                      {{ airline }}
+                    </label>
+                  }
+                </div>
+              </div>
+            }
+
+            <button (click)="resetFilters()"
+              class="w-full text-sm text-blue-600 hover:underline text-left">
+              Limpiar filtros
+            </button>
+          </aside>
+
+          <!-- Lista de resultados -->
+          <div class="flex-1 space-y-3">
+            <div>
+              <h2 class="font-semibold text-gray-800">{{ filteredFlights().length }} vuelo{{ filteredFlights().length !== 1 ? 's' : '' }} disponible{{ filteredFlights().length !== 1 ? 's' : '' }}</h2>
+              <p class="text-xs text-gray-500">Mostramos salidas hasta 3 días antes y después de la fecha que elegiste.</p>
+            </div>
+
+            @if (filteredFlights().length === 0) {
+              <div class="text-center py-10 text-gray-400">
+                <p class="text-4xl mb-3">✈️</p>
+                <p>No encontramos vuelos cerca de esa fecha. Prueba con otra fecha o quita filtros.</p>
+              </div>
+            }
+
+            @for (flight of filteredFlights(); track flight.id) {
+              <div class="bg-white rounded-xl border shadow-sm p-4 hover:shadow-md transition">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex-1 min-w-0">
+                    <p class="font-bold text-gray-800">{{ flight.airline }} · {{ flight.flightNumber }}</p>
+                    <span class="inline-block mt-0.5 rounded-full px-2 py-0.5 text-xs font-medium"
+                      [class.bg-green-100]="flight.daysFromRequested === 0"
+                      [class.text-green-700]="flight.daysFromRequested === 0"
+                      [class.bg-amber-50]="flight.daysFromRequested !== 0"
+                      [class.text-amber-700]="flight.daysFromRequested !== 0">
+                      {{ dayLabel(flight.daysFromRequested) }}
+                    </span>
+                    <p class="text-sm text-gray-500 mt-1">
+                      {{ flight.origin?.city }} → {{ flight.destination?.city }} ·
+                      {{ flight.stops === 0 ? 'Directo' : flight.stops === 1 ? '1 escala' : flight.stops + ' escalas' }}
+                    </p>
+                    <p class="text-xs text-gray-400 mt-1">
+                      Salida: {{ flight.departureDate | date:'dd MMM yyyy, HH:mm':'UTC':'es-PE' }}
+                    </p>
+                    <p class="text-xs text-gray-400">
+                      Llegada: {{ flight.arrivalDate | date:'dd MMM yyyy, HH:mm':'UTC':'es-PE' }}
+                      · {{ flight.durationMinutes | duracion }}
+                    </p>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <p class="text-xl font-bold text-blue-900">S/. {{ flight.totalPrice | number:'1.2-2' }}</p>
+                    <p class="text-xs text-gray-400">{{ searchForm.passengers }} pax · {{ flight.classType | label }}</p>
+                    <button (click)="selectFlight(flight)"
+                      class="mt-2 bg-blue-600 text-white text-sm px-4 py-1.5 rounded-lg hover:bg-blue-700 transition">
+                      Seleccionar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
         </div>
       }
 
-      @if (searched() && flights().length === 0 && !loading()) {
+      @if (searched() && allFlights().length === 0 && !loading()) {
         <div class="text-center py-10 text-gray-400">
           <p class="text-4xl mb-3">✈️</p>
-          <p>No encontramos vuelos entre 3 días antes y 3 días después de esa fecha</p>
-          <p class="text-sm mt-1">Prueba con otra fecha u otro destino.</p>
+          <p>No encontramos vuelos cerca de esa fecha. Prueba con otra fecha o quita filtros.</p>
         </div>
       }
 
-      <!-- Todos los destinos -->
+      <!-- Destinos populares (solo antes de buscar) -->
       @if (!searched()) {
         <div>
           <h2 class="font-semibold text-gray-800 mb-3">Destinos populares</h2>
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
             @for (dest of destinations(); track dest.id) {
-              <button (click)="searchForm.destinationId = dest.id"
+              <button (click)="selectDestination(dest)"
                 [class.ring-2]="searchForm.destinationId == dest.id"
                 [class.ring-blue-500]="searchForm.destinationId == dest.id"
                 class="bg-white border rounded-xl p-3 text-left hover:border-blue-300 transition">
@@ -130,33 +226,154 @@ import { ApiService } from '../../core/services/api.service';
   `,
 })
 export class SearchComponent implements OnInit {
+  /** Todos los destinos disponibles (sin el origen Lima). */
   destinations = signal<any[]>([]);
-  flights = signal<any[]>([]);
+  /** Vuelos que devolvió la última búsqueda (sin filtrar). */
+  allFlights = signal<any[]>([]);
   loading = signal(false);
   searched = signal(false);
+  dateError = signal('');
 
   searchForm = { origin: 'LIM', destinationId: '', departureDate: '', passengers: 1 };
+
   /** No se puede buscar hacia atrás en el tiempo. */
   readonly today = new Date().toISOString().slice(0, 10);
 
-  constructor(private api: ApiService, private router: Router) {}
+  /** Filtros que se aplican sobre allFlights() en el frontend. */
+  filters: {
+    sortBy: 'cercania' | 'precio' | 'duracion';
+    minPrice: number | null;
+    maxPrice: number | null;
+    maxDuration: number;
+    stops: StopsFilter;
+    airlines: string[];
+  } = {
+    sortBy: 'cercania',
+    minPrice: null,
+    maxPrice: null,
+    maxDuration: 0,
+    stops: 'todos',
+    airlines: [],
+  };
+
+  readonly stopsOptions: { value: StopsFilter; label: string }[] = [
+    { value: 'todos', label: 'Todos' },
+    { value: 'directo', label: 'Directo' },
+    { value: '1', label: '1 escala' },
+    { value: '2+', label: '2 o más escalas' },
+  ];
+
+  /** Lista de aerolíneas únicas en los resultados actuales. */
+  readonly airlines = computed(() => {
+    const set = new Set<string>(this.allFlights().map((f: any) => f.airline));
+    return Array.from(set).sort();
+  });
+
+  /** Duración máxima de los vuelos encontrados (para el rango del slider). */
+  readonly maxDurationAvailable = computed(() => {
+    const flights = this.allFlights();
+    if (!flights.length) return 1440;
+    return Math.max(...flights.map((f: any) => f.durationMinutes ?? 0));
+  });
+
+  /** Vuelos filtrados y ordenados según los controles del panel. */
+  readonly filteredFlights = computed(() => {
+    const f = this.filters;
+    let list: any[] = [...this.allFlights()];
+
+    // Filtro: precio mínimo por persona
+    if (f.minPrice != null && f.minPrice > 0) {
+      list = list.filter((fl) => Number(fl.pricePerPerson) >= f.minPrice!);
+    }
+    // Filtro: precio máximo por persona
+    if (f.maxPrice != null && f.maxPrice > 0) {
+      list = list.filter((fl) => Number(fl.pricePerPerson) <= f.maxPrice!);
+    }
+    // Filtro: duración máxima
+    if (f.maxDuration > 0) {
+      list = list.filter((fl) => (fl.durationMinutes ?? 0) <= f.maxDuration);
+    }
+    // Filtro: escalas
+    if (f.stops === 'directo') list = list.filter((fl) => fl.stops === 0);
+    else if (f.stops === '1') list = list.filter((fl) => fl.stops === 1);
+    else if (f.stops === '2+') list = list.filter((fl) => fl.stops >= 2);
+
+    // Filtro: aerolínea (si hay alguna marcada)
+    if (f.airlines.length > 0) {
+      list = list.filter((fl) => f.airlines.includes(fl.airline));
+    }
+
+    // Ordenación
+    if (f.sortBy === 'precio') {
+      list.sort((a, b) => Number(a.pricePerPerson) - Number(b.pricePerPerson));
+    } else if (f.sortBy === 'duracion') {
+      list.sort((a, b) => (a.durationMinutes ?? 0) - (b.durationMinutes ?? 0));
+    }
+    // 'cercania': ya viene ordenado por el backend; mantener ese orden
+
+    return list;
+  });
+
+  constructor(
+    private api: ApiService,
+    private router: Router,
+    private route: ActivatedRoute,
+    private draftService: PackageDraftService,
+  ) {}
 
   ngOnInit() {
-    this.api.get<any[]>('destinations').subscribe(data => this.destinations.set(data));
+    this.api.get<any[]>('destinations').subscribe((data) => {
+      // Criterio 1: excluir Lima (origen) de la lista de destinos disponibles
+      this.destinations.set(data.filter((d) => d.city !== 'Lima'));
+      // Pre-seleccionar el destino si viene desde la página de detalle (US-006)
+      const destId = this.route.snapshot.queryParamMap.get('destinationId');
+      if (destId) {
+        this.searchForm.destinationId = destId;
+      }
+    });
   }
 
   search() {
+    // Validar fecha: debe ser hoy o futura
+    if (this.searchForm.departureDate && this.searchForm.departureDate < this.today) {
+      this.dateError.set('Elige una fecha a partir de hoy.');
+      return;
+    }
+    this.dateError.set('');
+
     if (!this.searchForm.destinationId || !this.searchForm.departureDate) return;
+
     this.loading.set(true);
     this.searched.set(false);
-    this.api.get<any[]>(`destinations/${this.searchForm.destinationId}/flights`, {
-      origin: this.searchForm.origin,
-      departureDate: this.searchForm.departureDate,
-      passengers: this.searchForm.passengers,
-    }).subscribe({
-      next: (data) => { this.flights.set(data); this.loading.set(false); this.searched.set(true); },
-      error: () => { this.loading.set(false); this.searched.set(true); },
-    });
+    this.allFlights.set([]);
+
+    // Registrar el tipo del destino seleccionado como señal de búsqueda
+    const selectedDest = this.destinations().find((d) => String(d.id) === String(this.searchForm.destinationId));
+    if (selectedDest?.type) {
+      this.draftService.recordViewedDestinationType(selectedDest.type);
+    }
+
+    this.api
+      .get<any[]>(`destinations/${this.searchForm.destinationId}/flights`, {
+        origin: this.searchForm.origin,
+        departureDate: this.searchForm.departureDate,
+        passengers: this.searchForm.passengers,
+      })
+      .subscribe({
+        next: (data) => {
+          this.allFlights.set(data);
+          this.resetFilters();
+          // Inicializar el slider de duración al máximo disponible
+          const max = data.length ? Math.max(...data.map((f: any) => f.durationMinutes ?? 0)) : 0;
+          this.filters.maxDuration = max;
+          this.loading.set(false);
+          this.searched.set(true);
+        },
+        error: () => {
+          this.loading.set(false);
+          this.searched.set(true);
+        },
+      });
   }
 
   /** Texto de cercanía a la fecha elegida: "Tu fecha", "1 día antes", "2 días después". */
@@ -166,10 +383,19 @@ export class SearchComponent implements OnInit {
     return `${n} ${n === 1 ? 'día' : 'días'} ${days < 0 ? 'antes' : 'después'}`;
   }
 
+  /** Selecciona un destino desde la cuadrícula y registra su tipo como señal. */
+  selectDestination(dest: any) {
+    this.searchForm.destinationId = dest.id;
+    if (dest.type) {
+      this.draftService.recordViewedDestinationType(dest.type);
+    }
+  }
+
   selectFlight(flight: any) {
-    // El armador arranca con la fecha real del vuelo elegido (puede no ser la que se buscó).
+    // Guardar el flightId en el draft y navegar al armador.
+    // El armador (PackageBuilderComponent) llama a state.start() con los query params.
     const salida = new Date(flight.departureDate);
-    const fecha = `${salida.getFullYear()}-${String(salida.getMonth() + 1).padStart(2, '0')}-${String(salida.getDate()).padStart(2, '0')}`;
+    const fecha = `${salida.getUTCFullYear()}-${String(salida.getUTCMonth() + 1).padStart(2, '0')}-${String(salida.getUTCDate()).padStart(2, '0')}`;
     this.router.navigate(['/packages/new'], {
       queryParams: {
         flightId: flight.id,
@@ -179,5 +405,30 @@ export class SearchComponent implements OnInit {
         flightPrice: flight.pricePerPerson,
       },
     });
+  }
+
+  /** Activa o desactiva una aerolínea del filtro de checkboxes. */
+  toggleAirline(airline: string) {
+    const idx = this.filters.airlines.indexOf(airline);
+    if (idx >= 0) {
+      this.filters.airlines = this.filters.airlines.filter((a) => a !== airline);
+    } else {
+      this.filters.airlines = [...this.filters.airlines, airline];
+    }
+  }
+
+  /** Vuelve todos los filtros a su estado inicial (sin borrar los resultados). */
+  resetFilters() {
+    const max = this.allFlights().length
+      ? Math.max(...this.allFlights().map((f: any) => f.durationMinutes ?? 0))
+      : 0;
+    this.filters = {
+      sortBy: 'cercania',
+      minPrice: null,
+      maxPrice: null,
+      maxDuration: max,
+      stops: 'todos',
+      airlines: [],
+    };
   }
 }

@@ -5,11 +5,18 @@ import { LabelPipe } from '../pipes/label.pipe';
 import { EmptyStateComponent } from './empty-state.component';
 
 /**
- * Lista filtrable de actividades (US-008).
+ * Lista filtrable de actividades (US-008, US-014).
  * Se usa en el detalle del destino y en el paso de actividades del armador.
  *
  *   <app-activity-list [activities]="list"
- *     [selectedIds]="ids" (activityToggle)="state.toggleActivity($event)" />
+ *     [selectedIds]="ids"
+ *     [activitySelections]="selections"
+ *     [maxQuantity]="passengers"
+ *     (activityToggle)="state.toggleActivity($event)"
+ *     (quantityChange)="state.setActivityQuantity($event)" />
+ *
+ * Cuando maxQuantity > 0, se muestra un selector de cantidad en cada
+ * actividad seleccionada (US-014: 1 … passengers).
  */
 @Component({
   selector: 'app-activity-list',
@@ -28,7 +35,7 @@ import { EmptyStateComponent } from './empty-state.component';
             [class.text-white]="typeFilters().includes(tipo)"
             [class.border-blue-600]="typeFilters().includes(tipo)"
             class="px-2 py-0.5 border rounded-full text-xs font-medium transition">
-            {{ tipo | etiqueta }}
+            {{ tipo | label }}
           </button>
         }
       </div>
@@ -52,14 +59,42 @@ import { EmptyStateComponent } from './empty-state.component';
     } @else {
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         @for (act of filteredActivities(); track act.id) {
-          <div (click)="activityToggle.emit(act)"
+          <div
             [class.ring-2]="selectedIds.includes(act.id)"
             [class.ring-blue-500]="selectedIds.includes(act.id)"
-            [class.cursor-pointer]="activityToggle.observed"
             class="p-3 border rounded-xl hover:border-blue-300 transition">
-            <p class="font-medium text-sm text-gray-800">{{ act.name }}</p>
-            <p class="text-xs text-gray-500 mt-0.5">{{ act.type | etiqueta }} · {{ act.durationHours }}h</p>
-            <p class="text-sm font-bold text-blue-900 mt-1">S/. {{ act.price }} <span class="text-xs text-gray-400 font-normal">por persona</span></p>
+
+            <!-- Cabecera: click para toggle -->
+            <div (click)="activityToggle.emit(act)" class="cursor-pointer">
+              <p class="font-medium text-sm text-gray-800">{{ act.name }}</p>
+              <p class="text-xs text-gray-500 mt-0.5">{{ act.type | label }} · {{ act.durationHours }}h</p>
+              <p class="text-sm font-bold text-blue-900 mt-1">
+                S/. {{ act.price }}
+                <span class="text-xs text-gray-400 font-normal">por persona</span>
+              </p>
+            </div>
+
+            <!-- Selector de cantidad (solo cuando está seleccionada y hay más de 1 pasajero) -->
+            @if (selectedIds.includes(act.id) && maxQuantity > 1) {
+              <div class="mt-2 flex items-center gap-2" (click)="$event.stopPropagation()">
+                <span class="text-xs text-gray-500">Personas:</span>
+                <div class="flex items-center gap-1">
+                  <button type="button"
+                    (click)="adjustQuantity(act.id, -1)"
+                    [disabled]="getQuantity(act.id) <= 1"
+                    class="w-6 h-6 rounded-full border text-gray-600 flex items-center justify-center text-sm font-bold
+                           disabled:opacity-30 hover:enabled:bg-gray-100 transition">−</button>
+                  <span class="w-6 text-center text-sm font-semibold text-gray-800">{{ getQuantity(act.id) }}</span>
+                  <button type="button"
+                    (click)="adjustQuantity(act.id, +1)"
+                    [disabled]="getQuantity(act.id) >= maxQuantity"
+                    class="w-6 h-6 rounded-full border text-gray-600 flex items-center justify-center text-sm font-bold
+                           disabled:opacity-30 hover:enabled:bg-gray-100 transition">+</button>
+                </div>
+                <span class="text-xs text-gray-400">/ {{ maxQuantity }}</span>
+              </div>
+            }
+
           </div>
         }
       </div>
@@ -69,7 +104,13 @@ import { EmptyStateComponent } from './empty-state.component';
 export class ActivityListComponent implements OnChanges {
   @Input() activities: any[] = [];
   @Input() selectedIds: number[] = [];
+  /** Selecciones con cantidad (del estado del armador). */
+  @Input() activitySelections: { activityId: number; quantity: number }[] = [];
+  /** Máximo de personas seleccionables (= pasajeros del viaje). 0 = sin selector. */
+  @Input() maxQuantity = 0;
   @Output() activityToggle = new EventEmitter<any>();
+  /** Emitido cuando cambia la cantidad de personas para una actividad ya seleccionada. */
+  @Output() quantityChange = new EventEmitter<{ activityId: number; quantity: number }>();
 
   readonly typeFilters = signal<string[]>([]);
   readonly minPrice = signal<number | null>(null);
@@ -98,5 +139,18 @@ export class ActivityListComponent implements OnChanges {
   toggleType(tipo: string) {
     const curr = this.typeFilters();
     this.typeFilters.set(curr.includes(tipo) ? curr.filter(t => t !== tipo) : [...curr, tipo]);
+  }
+
+  /** Devuelve la cantidad elegida para una actividad, o 1 si no hay selección. */
+  getQuantity(activityId: number): number {
+    return this.activitySelections.find(s => s.activityId === activityId)?.quantity ?? 1;
+  }
+
+  adjustQuantity(activityId: number, delta: number) {
+    const current = this.getQuantity(activityId);
+    const next = Math.max(1, Math.min(this.maxQuantity, current + delta));
+    if (next !== current) {
+      this.quantityChange.emit({ activityId, quantity: next });
+    }
   }
 }

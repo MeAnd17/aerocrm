@@ -1,6 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -9,7 +10,7 @@ import { apiErrorMessage } from '../../core/services/api-error';
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="space-y-5">
       <h1 class="text-2xl font-bold text-gray-800">Mi perfil</h1>
@@ -172,6 +173,12 @@ import { apiErrorMessage } from '../../core/services/api-error';
             </div>
           }
         </div>
+
+        <!-- Cambiar contraseña -->
+        <a routerLink="/profile/change-password"
+          class="block w-full border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm hover:bg-gray-50 transition text-center">
+          Cambiar contraseña
+        </a>
 
         <!-- Cerrar sesión -->
         <button (click)="auth.logout()"

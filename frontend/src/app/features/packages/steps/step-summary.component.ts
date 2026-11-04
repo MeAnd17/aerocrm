@@ -1,153 +1,304 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { apiErrorMessage } from '../../../core/services/api-error';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
 import { PackageBuilderState } from '../package-builder.state';
 import { AuthService } from '../../../core/services/auth.service';
+import { ToastService } from '../../../core/services/toast.service';
+import { apiErrorMessage } from '../../../core/services/api-error';
 
-/** Paso 6 · Resumen, canje de puntos y confirmación. */
+/**
+ * Paso 6 · Resumen del paquete.
+ *
+ * Llama a POST /api/bookings/quote al entrar para obtener el desglose oficial
+ * del servidor (AGENTS.md B6). No calcula ningún precio en pantalla.
+ *
+ * Detecta cambios de precio comparando el total de la cotización con el total
+ * local previo (state.totalPrice). Si difieren, avisa al usuario.
+ *
+ * El botón "Confirmar y pagar" requiere sesión. Si el usuario no está autenticado,
+ * se muestra un aviso con botones de registro e inicio de sesión; el resumen
+ * sigue siendo visible (criterio 4).
+ */
 @Component({
   selector: 'app-step-summary',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule],
   template: `
-    <div class="bg-white rounded-xl border shadow-sm p-5 space-y-3">
-      <h3 class="font-semibold text-gray-800">📋 Resumen del paquete</h3>
-      <div class="space-y-2 text-sm">
-        <div class="flex justify-between"><span>✈️ Vuelo ({{ state.passengers() }} pax)</span><span class="font-semibold">S/. {{ state.flightTotal() | number:'1.2-2' }}</span></div>
-        @if (state.hotel()) {
-          <div class="flex justify-between"><span>🏨 {{ state.hotel()?.name }} ({{ state.hotelNights() }} noches)</span><span class="font-semibold">S/. {{ state.hotelTotal() | number:'1.2-2' }}</span></div>
-        }
-        @for (act of state.activities(); track act.id) {
-          <div class="flex justify-between"><span>🎯 {{ act.name }} (× {{ state.passengers() }})</span><span class="font-semibold">S/. {{ act.price * state.passengers() | number:'1.2-2' }}</span></div>
-        }
-        @for (extra of state.extras(); track extra.type) {
-          <div class="flex justify-between"><span>➕ {{ extra.label }}</span><span class="font-semibold">S/. {{ extra.price }}</span></div>
-        }
-        <div class="border-t pt-2 flex justify-between font-bold text-base">
-          <span>Total</span><span class="text-blue-900">S/. {{ state.totalPrice() | number:'1.2-2' }}</span>
-        </div>
-      </div>
+    <div class="bg-white rounded-xl border shadow-sm p-5 space-y-4">
+      <h3 class="font-semibold text-gray-800 text-lg">📋 Resumen del paquete</h3>
 
-      <!-- Puntos a canjear -->
-      @if (state.loyalty()?.canRedeem) {
-        <div class="bg-blue-50 rounded-lg p-3">
-          <p class="text-sm font-medium text-blue-800 mb-2">
-            Tienes {{ state.loyalty()?.availablePoints }} puntos (S/. {{ state.loyalty()?.availablePointsValue }} de descuento)
-          </p>
-          <label class="flex items-center gap-2 text-sm">
-            <input type="checkbox" [ngModel]="state.usePoints()" (ngModelChange)="onUsePointsChange($event)" class="rounded" />
-            Usar mis puntos en este paquete
-          </label>
-          @if (state.redemption(); as r) {
-            <p class="text-sm text-blue-800 mt-2">
-              Usarás <strong>{{ r.pointsUsed }}</strong> de tus {{ r.availablePoints }} puntos y ahorras
-              <strong>S/. {{ r.totalDiscount | number:'1.2-2' }}</strong>
-              @if (r.levelDiscount !== '0.00') { (incluye S/. {{ r.levelDiscount | number:'1.2-2' }} por tu nivel)}.
-              @if (r.pointsLeft > 0) { Te quedan {{ r.pointsLeft }} puntos para tu próximo viaje. }
+      <!-- Estado de carga de la cotización -->
+      @if (loadingQuote()) {
+        <p class="text-sm text-gray-500 text-center py-4">Calculando precios…</p>
+      }
+
+      @if (quoteError()) {
+        <p class="text-sm text-red-600 bg-red-50 rounded-lg p-3">{{ quoteError() }}</p>
+      }
+
+      <!-- Desglose de precios (solo cuando hay cotización del servidor) -->
+      @if (quote(); as q) {
+        <!-- Aviso de precio actualizado -->
+        @if (priceChanged()) {
+          <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <p class="text-sm font-semibold text-amber-800">⚠️ El precio de tu paquete se actualizó</p>
+            <p class="text-sm text-amber-700 mt-1">
+              El nuevo total es
+              <span class="font-bold">S/. {{ q.breakdown.total | number:'1.2-2' }}</span>.
+            </p>
+          </div>
+        }
+
+        <div class="space-y-2 text-sm">
+          <!-- Vuelo de ida -->
+          <div class="flex justify-between">
+            <span>
+              ✈️ Vuelo de ida
+              <span class="text-gray-500">({{ q.breakdown.outboundFlight.flightNumber }})</span>
+              × {{ state.passengers() }} pax
+            </span>
+            <span class="font-semibold">S/. {{ q.breakdown.outboundFlight.lineTotal | number:'1.2-2' }}</span>
+          </div>
+
+          <!-- Vuelo de regreso (si existe) -->
+          @if (q.breakdown.returnFlight) {
+            <div class="flex justify-between">
+              <span>
+                🔁 Vuelo de regreso
+                <span class="text-gray-500">({{ q.breakdown.returnFlight.flightNumber }})</span>
+                × {{ state.passengers() }} pax
+              </span>
+              <span class="font-semibold">S/. {{ q.breakdown.returnFlight.lineTotal | number:'1.2-2' }}</span>
+            </div>
+          }
+
+          <!-- Hotel -->
+          @if (q.breakdown.hotel) {
+            <div class="flex justify-between">
+              <span>🏨 {{ q.breakdown.hotel.name }} ({{ q.breakdown.hotel.nights }} noches)</span>
+              <span class="font-semibold">S/. {{ q.breakdown.hotel.lineTotal | number:'1.2-2' }}</span>
+            </div>
+          }
+
+          <!-- Actividades -->
+          @for (act of q.breakdown.activities; track act.id) {
+            <div class="flex justify-between">
+              <span>🎯 {{ act.name }} (× {{ act.quantity }})</span>
+              <span class="font-semibold">S/. {{ act.lineTotal | number:'1.2-2' }}</span>
+            </div>
+          }
+
+          <!-- Extras -->
+          @for (extra of q.breakdown.extras; track extra.id) {
+            <div class="flex justify-between">
+              <span>➕ {{ extra.name }}</span>
+              <span class="font-semibold">S/. {{ extra.lineTotal | number:'1.2-2' }}</span>
+            </div>
+          }
+
+          <!-- Separador y subtotal -->
+          <div class="border-t pt-2 flex justify-between text-gray-600">
+            <span>Subtotal</span>
+            <span>S/. {{ q.breakdown.subtotal | number:'1.2-2' }}</span>
+          </div>
+
+          <!-- Descuento por canje (siempre visible; 0 si no hay canje) -->
+          <div class="flex justify-between text-green-700">
+            <span>Descuento por canje de puntos</span>
+            <span>− S/. {{ q.breakdown.discountByRedemption | number:'1.2-2' }}</span>
+          </div>
+
+          <!-- Total -->
+          <div class="border-t pt-2 flex justify-between font-bold text-base">
+            <span>Total</span>
+            <span class="text-blue-900">S/. {{ q.breakdown.total | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <!-- Pasajeros -->
+        <div class="bg-gray-50 rounded-lg p-3 space-y-1">
+          <p class="text-sm font-semibold text-gray-700">👥 Pasajeros</p>
+          @if (state.passengers() > 0) {
+            <p class="text-sm text-gray-600">
+              {{ state.passengers() }} pasajero{{ state.passengers() !== 1 ? 's' : '' }}
+              seleccionado{{ state.passengers() !== 1 ? 's' : '' }}
+            </p>
+          } @else {
+            <p class="text-sm text-gray-500 italic">
+              Los datos de cada pasajero se agregarán en el siguiente paso.
             </p>
           }
-          @if (redemptionError()) {
-            <p class="text-sm text-amber-700 mt-2">{{ redemptionError() }}</p>
-          }
-          <p class="text-xs text-gray-500 mt-2">Con puntos puedes pagar hasta el {{ state.loyalty()?.maxRedeemPercent }} % del paquete.</p>
         </div>
-      }
 
-      @if (error()) {
-        <p class="text-red-600 text-sm">{{ error() }}</p>
-      }
-
-      @if (!isLoggedIn()) {
-        <p class="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
-          Tu paquete queda guardado. Inicia sesión o crea tu cuenta para confirmarlo; al volver lo encontrarás tal cual.
-        </p>
-        <button (click)="goToLogin()"
-          class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold text-lg transition">
-          Inicia sesión para confirmar
-        </button>
-      } @else {
-      <button (click)="confirmBooking()" [disabled]="loading()"
-        class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold text-lg transition disabled:opacity-50">
-        @if (loading()) { Confirmando... } @else { ✅ Confirmar y pagar S/. {{ payableTotal() | number:'1.2-2' }} }
-      </button>
+        <!-- Bloque de sesión o botón confirmar -->
+        @if (!isLoggedIn()) {
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+            <p class="text-sm font-semibold text-blue-800">
+              Crea tu cuenta o inicia sesión para confirmar tu viaje
+            </p>
+            <div class="flex gap-3 flex-wrap">
+              <button (click)="goToRegister()"
+                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-semibold text-sm transition">
+                Registrarme
+              </button>
+              <button (click)="goToLogin()"
+                class="flex-1 bg-white hover:bg-gray-50 text-blue-700 border border-blue-300 py-2 px-4 rounded-lg font-semibold text-sm transition">
+                Iniciar sesión
+              </button>
+            </div>
+          </div>
+        } @else {
+          @if (confirmError()) {
+            <p class="text-sm text-red-600 bg-red-50 rounded-lg p-3">{{ confirmError() }}</p>
+          }
+          <button (click)="confirmBooking()" [disabled]="loadingConfirm()"
+            class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold text-lg transition disabled:opacity-50">
+            @if (loadingConfirm()) {
+              Confirmando…
+            } @else {
+              ✅ Confirmar y pagar S/. {{ q.breakdown.total | number:'1.2-2' }}
+            }
+          </button>
+        }
       }
     </div>
   `,
 })
-export class StepSummaryComponent {
+export class StepSummaryComponent implements OnInit {
   readonly state = inject(PackageBuilderState);
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
+  private readonly toast = inject(ToastService);
+
+  /** Cotización devuelta por el servidor. */
+  readonly quote = signal<any>(null);
+  readonly loadingQuote = signal(false);
+  readonly quoteError = signal('');
+
+  /** Indica si el total del servidor difiere del total local previo. */
+  readonly priceChanged = signal(false);
+
+  /** Confirmación de la reserva. */
+  readonly loadingConfirm = signal(false);
+  readonly confirmError = signal('');
 
   readonly isLoggedIn = computed(() => this.auth.currentUser() !== null);
 
-  readonly loading = signal(false);
-  readonly error = signal('');
-  readonly redemptionError = signal('');
-
-  constructor() {
-    // El canje se calcula sobre el total de este momento: al entrar (o volver) al resumen se pide de nuevo,
-    // así no queda un descuento viejo si el cliente cambió el paquete o recargó la página.
-    this.state.usePoints.set(false);
-    this.state.redemption.set(null);
+  ngOnInit() {
+    this._fetchQuote();
   }
 
-  /** Lo que se cobra: con canje, el total final que calculó el backend; sin canje, el total del paquete. */
-  payableTotal() {
-    const r = this.state.redemption();
-    return this.state.usePoints() && r ? Number(r.finalTotal) : this.state.totalPrice();
-  }
+  /** Solicita la cotización al servidor y detecta cambios de precio. */
+  private _fetchQuote() {
+    const s = this.state;
+    if (!s.flightId()) return;
 
-  onUsePointsChange(value: boolean) {
-    this.state.usePoints.set(value);
-    this.state.redemption.set(null);
-    this.redemptionError.set('');
-    if (!value) return;
-    // Se ofrecen todos los puntos; el backend usa solo los que caben bajo el tope.
-    this.api.post<any>('loyalty/redemption-preview', {
-      packageTotal: this.state.totalPrice().toFixed(2),
-      pointsToRedeem: this.state.loyalty()?.availablePoints ?? 0,
-    }).subscribe({
-      next: (r) => this.state.redemption.set(r),
+    // Total local antes de pedir al servidor: sirve para detectar cambios.
+    const localTotal = s.totalPrice();
+
+    this.loadingQuote.set(true);
+    this.quoteError.set('');
+    this.priceChanged.set(false);
+
+    const body: Record<string, unknown> = {
+      flightId: s.flightId(),
+      passengers: s.passengers(),
+    };
+    if (s.returnFlightId()) body['returnFlightId'] = s.returnFlightId();
+    if (s.hotelId()) {
+      body['hotelId'] = s.hotelId();
+      body['checkIn'] = s.hotelCheckIn();
+      body['checkOut'] = s.hotelCheckOut();
+    }
+    if (s.activitySelections().length > 0) {
+      body['activities'] = s.activitySelections().map(sel => ({
+        activityId: sel.activityId,
+        quantity: sel.quantity,
+      }));
+    }
+    // La API espera extras como number[] (IDs numéricos del catálogo).
+    const extraIds = s.extras().map(e => e.id).filter(Boolean);
+    if (extraIds.length > 0) body['extras'] = extraIds;
+
+    this.api.post<any>('bookings/quote', body).subscribe({
+      next: (response) => {
+        this.quote.set(response);
+        this.loadingQuote.set(false);
+        // Detectar cambio: comparar total del servidor con el total local previo.
+        // Se usa una tolerancia de 1 céntimo para evitar falsos positivos por redondeo.
+        const serverTotal = Number(response.breakdown.total);
+        if (Math.abs(serverTotal - localTotal) > 0.01) {
+          this.priceChanged.set(true);
+          this.toast.warning('El precio de tu paquete se actualizó');
+        }
+      },
       error: (err) => {
-        this.state.usePoints.set(false);
-        this.redemptionError.set(apiErrorMessage(err, 'No pudimos calcular el canje'));
+        this.quoteError.set(apiErrorMessage(err, 'No se pudo calcular el precio del paquete'));
+        this.loadingQuote.set(false);
       },
     });
   }
 
-  /** El visitante inicia sesión y vuelve al resumen; el paquete pasa a ser suyo. */
+  /** Navega a /register con returnUrl al resumen. */
+  goToRegister() {
+    this.router.navigate(['/register'], { queryParams: { returnUrl: '/packages/new' } });
+  }
+
+  /** Navega a /login con returnUrl al resumen. */
   goToLogin() {
     this.router.navigate(['/login'], { queryParams: { returnUrl: '/packages/new' } });
   }
 
+  /** Confirma la reserva (requiere sesión activa). */
   confirmBooking() {
     const s = this.state;
-    this.loading.set(true);
-    this.error.set('');
-    const body: any = {
+    this.loadingConfirm.set(true);
+    this.confirmError.set('');
+
+    const body: Record<string, unknown> = {
       passengers: s.passengers(),
       pointsToRedeem: s.usePoints() ? (s.loyalty()?.availablePoints ?? 0) : 0,
-      flights: [{ flightId: s.flightId(), priceSnapshot: s.flight()?.pricePerPerson ?? 0 }],
-      hotels: s.hotel() && s.hotelCheckIn() && s.hotelCheckOut() ? [{
-        hotelId: s.hotel().id,
-        checkIn: s.hotelCheckIn(), checkOut: s.hotelCheckOut(),
-        nights: s.hotelNights(), priceSnapshot: s.hotelTotal(),
-      }] : [],
-      // Las actividades se cobran por pasajero.
-      activities: s.activities().map((a) => ({ activityId: a.id, quantity: s.passengers(), priceSnapshot: Number(a.price) })),
-      extras: s.extras().map((e) => ({ type: e.type, price: e.price })),
     };
+
+    // Vuelos: ida obligatorio, vuelta si existe.
+    const flights: any[] = [{ flightId: s.flightId() }];
+    if (s.returnFlightId()) flights.push({ flightId: s.returnFlightId() });
+    body['flights'] = flights;
+
+    // Hotel.
+    if (s.hotel() && s.hotelCheckIn() && s.hotelCheckOut()) {
+      body['hotels'] = [{
+        hotelId: s.hotel().id,
+        checkIn: s.hotelCheckIn(),
+        checkOut: s.hotelCheckOut(),
+        nights: s.hotelNights(),
+      }];
+    }
+
+    // Actividades.
+    if (s.activitySelections().length > 0) {
+      body['activities'] = s.activitySelections().map(sel => ({
+        activityId: sel.activityId,
+        quantity: sel.quantity,
+      }));
+    }
+
+    // Extras (CreateBookingDto espera { type: ExtraType }[], sin price).
+    if (s.extras().length > 0) {
+      body['extras'] = s.extras().map(e => ({ type: e.type }));
+    }
+
     this.api.post<any>('bookings', body).subscribe({
       next: (booking) => {
         s.reset();
         this.router.navigate(['/my-trips', booking.id]);
       },
-      error: (err) => { this.error.set(apiErrorMessage(err, 'No pudimos confirmar la compra')); this.loading.set(false); },
+      error: (err) => {
+        this.confirmError.set(apiErrorMessage(err, 'No pudimos confirmar la compra'));
+        this.loadingConfirm.set(false);
+      },
     });
   }
 }

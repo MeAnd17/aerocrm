@@ -46,6 +46,8 @@ const FIELD_LABELS: Record<string, string> = {
   price: 'precio',
   type: 'tipo',
   details: 'detalle',
+  // Campos del DTO de cotización (QuoteDto)
+  returnFlightId: 'vuelo de regreso',
 };
 
 /** Los mensajes por defecto de class-validator están en inglés y contienen "must" o "should". */

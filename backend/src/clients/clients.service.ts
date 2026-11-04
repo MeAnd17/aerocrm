@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { CreateTravelerDto } from './dto/create-traveler.dto';
@@ -42,7 +43,13 @@ export class ClientsService {
     });
     if (!user?.client) throw new NotFoundException('Perfil no encontrado');
 
-    const data: any = { ...dto };
+    const data: Prisma.ClientUpdateInput = {
+      phone: dto.phone,
+      nationality: dto.nationality,
+      documentNumber: dto.documentNumber,
+      travelStyle: dto.travelStyle,
+      destinationType: dto.destinationType,
+    };
     if (dto.dateOfBirth) data.dateOfBirth = new Date(dto.dateOfBirth);
 
     return this.prisma.client.update({
@@ -81,7 +88,6 @@ export class ClientsService {
     });
 
     // Temporadas próximas (festividades de los próximos 3 meses)
-    const now = new Date();
     const upcomingFestivities = await this.prisma.festivity.findMany({
       where: { isActive: true },
       include: { destination: true },
@@ -137,7 +143,12 @@ export class ClientsService {
       if (existing) throw new BadRequestException('Ya tienes un viajero con ese documento');
     }
 
-    const data: any = { ...dto };
+    const data: Prisma.TravelerUpdateInput = {
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      documentNumber: dto.documentNumber,
+      relation: dto.relation,
+    };
     if (dto.dateOfBirth) data.dateOfBirth = new Date(dto.dateOfBirth);
 
     return this.prisma.traveler.update({

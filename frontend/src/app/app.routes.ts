@@ -43,7 +43,6 @@ export const routes: Routes = [
   {
     path: 'search',
     loadComponent: () => import('./features/search/search.component').then(m => m.SearchComponent),
-    canActivate: [authGuard],
   },
   {
     path: 'destinations',
@@ -76,6 +75,11 @@ export const routes: Routes = [
   {
     path: 'profile',
     loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'profile/change-password',
+    loadComponent: () => import('./features/auth/change-password/change-password.component').then(m => m.ChangePasswordComponent),
     canActivate: [authGuard],
   },
 

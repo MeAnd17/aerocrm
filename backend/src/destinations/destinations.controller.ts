@@ -11,7 +11,7 @@ export class DestinationsController {
   @ApiOperation({ summary: 'Lista destinos activos (no requiere sesión)' })
   @ApiQuery({ name: 'type', required: false, enum: ['PLAYA', 'CIUDAD', 'AVENTURA', 'CULTURA'] })
   @ApiQuery({ name: 'search', required: false, description: 'Texto a buscar en nombre, ciudad o país' })
-  findAll(@Query() query: any) {
+  findAll(@Query() query: { type?: string; search?: string }) {
     return this.destinationsService.findAll(query);
   }
 

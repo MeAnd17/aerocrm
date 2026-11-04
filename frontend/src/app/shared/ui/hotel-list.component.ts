@@ -100,9 +100,6 @@ import { EmptyStateComponent } from './empty-state.component';
               <ui-stars [rating]="hotel.stars" class="mt-1" />
               <div class="mt-1 flex flex-wrap items-baseline gap-3">
                 <span class="font-bold text-blue-900 text-sm">S/. {{ hotel.pricePerNight }}<span class="text-xs text-gray-400">/noche</span></span>
-                @if (nights() > 0) {
-                  <span class="text-xs text-gray-500">Total: S/. {{ hotel.pricePerNight * nights() }}</span>
-                }
               </div>
             </div>
           </div>

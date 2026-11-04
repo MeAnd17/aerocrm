@@ -430,3 +430,20 @@ model Holiday {
   @@unique([countryCode, month, day])
 }
 
+// ─── CACHE DE APIS EXTERNAS (TS-013) ──────────────────────────────────────────
+// Guarda la última respuesta exitosa de Calendarific y OpenWeatherMap para no
+// consultar el servicio externo en cada visita.  Si la clave externa no está
+// configurada se salta el caché y se usa el dato de respaldo de la base.
+//
+// Claves de ejemplo:
+//   "holidays:PE:2026"          → feriados de Perú para 2026 (TTL 30 días)
+//   "weather:Lima:2026-12"      → clima de Lima en diciembre de 2026 (TTL 3 h)
+
+model ExternalApiCache {
+  id        Int      @id @default(autoincrement())
+  cacheKey  String   @unique   // ej: "holidays:PE:2026", "weather:Lima:2026-12"
+  data      Json
+  fetchedAt DateTime @default(now())
+  expiresAt DateTime
+}
+
