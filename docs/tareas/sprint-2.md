@@ -919,3 +919,85 @@ Archivos:
 ### Ortografía de los mensajes de commit
 
 Los mensajes de commits anteriores sin tildes ("contrasena", "menu", "navegacion", "validacion", "envio", "maximo") se corrigieron con `git filter-branch --msg-filter`. El diff de contenido entre el HEAD antes y después del rebase está vacío: solo cambiaron los mensajes.
+
+---
+
+## Fichas — Cuarta ronda de QA
+
+### Aviso de precio solo ante cambio de precio base (US-015)
+
+Commit: `fix: muestra el aviso de precio solo si cambian los precios base (US-015)`
+
+**Raíz del problema:** `_fetchQuote()` comparaba `response.breakdown.total` (subtotal menos descuento de canje) con `s.totalPrice()` (subtotal base calculado en el estado, sin descuento). Al aplicar o quitar el canje, el total cambiaba aunque los precios del catálogo no lo hicieran, disparando el aviso de forma engañosa.
+
+**Solución:** Cambiar la comparación a `response.breakdown.subtotal` versus `s.totalPrice()`. Ambos representan el precio base sin descuento, por lo que solo difieren cuando cambia el catálogo.
+
+Archivos:
+- `frontend/src/app/features/packages/steps/step-summary.component.ts`
+
+---
+
+### El titular toma los datos de la cuenta al iniciar sesión (US-010)
+
+Commit: `fix: el titular toma los datos de la cuenta al iniciar sesión (US-010)`
+
+**Raíz del problema:** El efecto en `StepPassengersComponent` solo actualizaba nombre y apellido al detectar autenticación; documentType, documentNumber y fecha de nacimiento no se tomaban del perfil aunque existieran.
+
+**Solución:** Se reemplaza la actualización inline del efecto por una llamada a `GET /clients/me` a través del nuevo método `_cargarDatosTitular()`. El efecto usa el flag `_perfilCargado` para no repetir la llamada. El titular recibe todos los campos del perfil; si el perfil no tiene documento, se conserva lo que el usuario escribió. Se muestra un toast informativo si el nombre del borrador era diferente al de la cuenta.
+
+Archivos:
+- `frontend/src/app/features/packages/steps/step-passengers.component.ts`
+
+---
+
+### Documento de viaje en el perfil del cliente (US-009)
+
+Commit: `fix: agrega el documento de viaje al perfil del cliente (US-009)`
+
+**Cambios de esquema:** Se añadió `documentType DocumentType?` al modelo `Client` en `schema.prisma`. El enum `DocumentType` ya existía para `Traveler`. Se generó la migración `20261104061905_agrega_document_type_al_cliente` (SQL: `ALTER TABLE "Client" ADD COLUMN "documentType" "DocumentType"`). Esta modificación toca un área reservada (§7); se realizó bajo autorización explícita del equipo G4.
+
+**Backend:**
+- `update-client.dto.ts`: agrega `documentType?: DocumentType`.
+- `clients.service.ts` → `updateProfile()`: persiste `documentType`.
+- `bookings.service.ts` → `_rellenarDocumentoSiVacio()`: método privado que, después de crear una reserva, actualiza el perfil del cliente con los datos del titular si esos campos están vacíos (auto-relleno en la primera compra).
+- `seed-data/users.ts`: agrega `documentType: 'DNI'` a los tres clientes de demostración.
+- `seed.ts` → `seedDemoClients()`: incluye `documentType` en el perfil del upsert.
+
+**Frontend:**
+- `profile.component.ts`: nuevo bloque "Documento de viaje" con tipo, número y fecha de nacimiento; validaciones idénticas al paso de pasajeros; botón "Guardar documento" independiente del formulario de datos personales.
+
+Archivos:
+- `backend/prisma/schema.prisma`
+- `backend/prisma/migrations/20261104061905_agrega_document_type_al_cliente/migration.sql`
+- `backend/prisma/seed-data/users.ts`
+- `backend/prisma/seed.ts`
+- `backend/src/clients/dto/update-client.dto.ts`
+- `backend/src/clients/clients.service.ts`
+- `backend/src/bookings/bookings.service.ts`
+- `frontend/src/app/features/profile/profile.component.ts`
+
+---
+
+### Restringe al administrador al panel de gestión (TS-027)
+
+Commit: `fix: restringe al administrador al panel de gestión (TS-027)`
+
+**Frontend:**
+- `auth.guard.ts`: nuevo guard `clientOnlyGuard` que redirige a `/admin/dashboard` si el usuario es ADMIN; `adminGuard` actualizado para redirigir a `/admin/change-password` en lugar de `/profile/change-password` cuando hay contraseña temporal.
+- `app.routes.ts`: `clientOnlyGuard` aplicado a home, my-trips, loyalty, profile y profile/change-password. Nueva ruta `/admin/change-password` que carga `ChangePasswordComponent`.
+- `navbar.component.ts`: nueva constante `ADMIN_LINKS` con solo "Panel de administración"; `links` computed diferencia entre visitante, cliente y administrador.
+- `admin-shell.component.ts`: agrega "Cambiar contraseña" y "Cerrar sesión" al pie de la barra lateral.
+
+**Backend:**
+- `clients.controller.ts`: `GET /clients/me` y `PATCH /clients/me` reciben `@UseGuards(RolesGuard)` + `@Roles(UserRole.CLIENT)` → 403 para administradores.
+- `bookings.controller.ts`: `POST /bookings/quote` verifica `req.user.role === ADMIN` y lanza `ForbiddenException`; `POST /bookings` y `POST /bookings/:id/pay` reciben `@UseGuards(JwtAuthGuard, RolesGuard)` + `@Roles(UserRole.CLIENT)`.
+- `app.e2e-spec.ts`: 5 nuevas pruebas que verifican 403 para admin en cada una de esas rutas.
+
+Archivos:
+- `frontend/src/app/core/guards/auth.guard.ts`
+- `frontend/src/app/app.routes.ts`
+- `frontend/src/app/core/layout/navbar/navbar.component.ts`
+- `frontend/src/app/features/admin/admin-shell.component.ts`
+- `backend/src/clients/clients.controller.ts`
+- `backend/src/bookings/bookings.controller.ts`
+- `backend/test/app.e2e-spec.ts`
