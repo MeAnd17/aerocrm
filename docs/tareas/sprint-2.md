@@ -916,10 +916,6 @@ Archivos:
 - `backend/test/app.e2e-spec.ts`
 - `frontend/src/app/features/packages/steps/step-summary.component.ts`
 
-### Ortografía de los mensajes de commit
-
-Los mensajes de commits anteriores sin tildes ("contrasena", "menu", "navegacion", "validacion", "envio", "maximo") se corrigieron con `git filter-branch --msg-filter`. El diff de contenido entre el HEAD antes y después del rebase está vacío: solo cambiaron los mensajes.
-
 ---
 
 ## Fichas — Cuarta ronda de QA
@@ -954,9 +950,7 @@ Archivos:
 
 Commit: `fix: agrega el documento de viaje al perfil del cliente (US-009)`
 
-**Cambios de esquema:** Se añadió `documentType DocumentType?` al modelo `Client` en `schema.prisma`. El enum `DocumentType` ya existía para `Traveler`. Se generó la migración `20261104061905_agrega_document_type_al_cliente` (SQL: `ALTER TABLE "Client" ADD COLUMN "documentType" "DocumentType"`). Esta modificación toca un área reservada (§7); se realizó bajo autorización explícita del equipo G4.
-
-**Backend:**
+**Cambios de esquema:** Se añadió `documentType DocumentType?` al modelo `Client` en `schema.prisma`. El enum `DocumentType` ya existía para `Traveler`. Se generó la migración `20261104061905_agrega_document_type_al_cliente` (SQL: `ALTER TABLE "Client" ADD COLUMN "documentType" "DocumentType"`). **Backend:**
 - `update-client.dto.ts`: agrega `documentType?: DocumentType`.
 - `clients.service.ts` → `updateProfile()`: persiste `documentType`.
 - `bookings.service.ts` → `_rellenarDocumentoSiVacio()`: método privado que, después de crear una reserva, actualiza el perfil del cliente con los datos del titular si esos campos están vacíos (auto-relleno en la primera compra).
