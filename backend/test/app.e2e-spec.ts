@@ -364,6 +364,38 @@ describe('API (e2e)', () => {
     expect(res.body.breakdown.total).toBeCloseTo(545, 1);
   });
 
+  it('POST /api/bookings/quote con nivel ELITE devuelve maxRedeemablePoints respetando el bono de nivel', async () => {
+    // Paquete: S/.700 (S/.350 × 2 vuelos). Nivel ELITE: 15 % bono.
+    // capCents = floor(70000 × 50/100) = 35000
+    // levelDiscountCents = floor(70000 × 15/100) = 10500
+    // pointsThatFit = floor((35000 − 10500) / 10) = 2450
+    // availablePoints = 3000 → maxRedeemablePoints = min(3000, 2450) = 2450
+    // Sin bono (cálculo incorrecto anterior): floor(70000 / 10) = 7000 → min(3000, 7000) = 3000 (INCORRECTO)
+    const vueloBase = {
+      id: 1, flightNumber: 'LA501', airline: 'LATAM',
+      departureDate: new Date('2025-06-01T08:00:00Z'),
+      pricePerPerson: new Prisma.Decimal('350.00'),
+      isActive: true, destinationId: 3,
+      origin: { id: 1, name: 'Lima' }, destination: { id: 3, name: 'Cusco' },
+    };
+    const usuarioElite = { id: 88, email: 'elite2@test.pe', isActive: true, role: 'CLIENT', client: { id: 12 } };
+    prismaFalso.user.findUnique.mockResolvedValueOnce(usuarioElite);
+    const clienteElite = { id: 12, availablePoints: 3000, completedTrips: 16 };
+    prismaFalso.client.findFirst = jest.fn().mockResolvedValueOnce(clienteElite);
+    prismaFalso.flight.findUnique
+      .mockResolvedValueOnce(vueloBase)
+      .mockResolvedValueOnce({ ...vueloBase, id: 2, flightNumber: 'LA502' });
+
+    const token = jwtService.sign({ sub: 88, email: 'elite2@test.pe', clientId: 12, role: 'CLIENT' });
+    const res = await request(app.getHttpServer())
+      .post('/api/bookings/quote')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ flightId: 1, returnFlightId: 2, passengers: 1 });
+
+    expect(res.status).toBe(201);
+    expect(res.body.maxRedeemablePoints).toBe(2450);
+  });
+
   it('POST /api/bookings rechaza lista de pasajeros vacía con 400', async () => {
     // JwtStrategy.validate llama findUnique para verificar el token.
     const usuarioBase = { id: 99, email: 'usuario@test.pe', isActive: true, role: 'CLIENT', client: { id: 5 } };
@@ -477,8 +509,17 @@ describe('API (e2e)', () => {
         pointsToRedeem: 500,
       });
 
+    // 500 pts × S/ 0.10 = S/ 50 descuento. Total = S/ 700 − S/ 50 = S/ 650. pointsEarned = 6.
+    // Prisma.Decimal('650.00').toString() = "650" (sin ceros decimales al serializar).
     expect(res.status).toBe(201);
     expect(res.body.pointsUsed).toBe(500);
+    expect(res.body.totalPrice).toBe('650');
+    // fromCents(65000) devuelve "650.00" — eso es lo que llega al create antes de que Prisma lo normalice.
+    expect(prismaFalso.booking.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ pointsUsed: 500, totalPrice: '650.00' }),
+      }),
+    );
   });
 
   it('PATCH /api/bookings/:id/status — admin no puede ir de PENDIENTE directo a COMPLETADO (400)', async () => {
