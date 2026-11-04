@@ -78,6 +78,10 @@ import { apiErrorMessage } from '../../../core/services/api-error';
           class="text-sm text-gray-400 hover:text-gray-600 px-3 whitespace-nowrap">
           Ya tengo alojamiento
         </button>
+        <button (click)="state.goTo(2)"
+          class="text-sm text-gray-400 hover:text-gray-600 px-3 whitespace-nowrap">
+          ← Volver
+        </button>
       </div>
     </div>
   `,

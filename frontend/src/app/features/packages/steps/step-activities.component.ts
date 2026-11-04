@@ -35,6 +35,11 @@ import { ActivityListComponent } from '../../../shared/ui/activity-list.componen
           class="text-sm text-gray-400 px-3 hover:text-gray-600 transition">
           Continuar sin actividades
         </button>
+        <button
+          (click)="state.goTo(3)"
+          class="text-sm text-gray-400 px-3 hover:text-gray-600 transition">
+          ← Volver
+        </button>
       </div>
     </div>
   `,
