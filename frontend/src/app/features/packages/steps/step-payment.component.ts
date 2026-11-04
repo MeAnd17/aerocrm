@@ -187,7 +187,7 @@ export class StepPaymentComponent {
         });
       },
       error: (err) => {
-        this.errorPago.set(apiErrorMessage(err, 'No pudimos crear la reserva. Revisá los datos e intentá de nuevo.'));
+        this.errorPago.set(apiErrorMessage(err, 'No pudimos crear la reserva. Revisa los datos e intenta de nuevo.'));
         this.errorEnReserva.set(true);
         this.cargando.set(false);
       },
