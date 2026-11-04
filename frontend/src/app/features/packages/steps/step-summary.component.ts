@@ -15,8 +15,9 @@ import { apiErrorMessage } from '../../../core/services/api-error';
  * Llama a POST /api/bookings/quote al entrar para obtener el desglose oficial
  * del servidor (AGENTS.md B6). No calcula ningún precio en pantalla.
  *
- * Detecta cambios de precio comparando el total de la cotización con el total
- * local previo (state.totalPrice). Si difieren, avisa al usuario.
+ * Detecta cambios de precio comparando el subtotal base de la cotización con el
+ * subtotal local previo (state.totalPrice). Solo avisa si cambia el precio base,
+ * no cuando cambia el descuento por canje (US-015).
  *
  * Cuando el usuario está autenticado y tiene al menos 500 puntos, muestra el
  * selector de canje (US-020). Al aplicar, re-cotiza con los puntos elegidos
@@ -298,12 +299,12 @@ export class StepSummaryComponent implements OnInit {
     this._fetchQuote();
   }
 
-  /** Solicita la cotización al servidor y detecta cambios de precio. */
+  /** Solicita la cotización al servidor y detecta cambios de precio base. */
   private _fetchQuote() {
     const s = this.state;
     if (!s.flightId()) return;
 
-    // Total local antes de pedir al servidor: sirve para detectar cambios.
+    // Subtotal base local (sin descuento) antes de pedir al servidor: sirve para detectar cambios de precio.
     const localTotal = s.totalPrice();
 
     this.loadingQuote.set(true);
@@ -335,9 +336,9 @@ export class StepSummaryComponent implements OnInit {
       next: (response) => {
         this.quote.set(response);
         this.loadingQuote.set(false);
-        // Detectar cambio: comparar total del servidor con el total local previo.
-        // Se usa una tolerancia de 1 céntimo para evitar falsos positivos por redondeo.
-        const serverTotal = Number(response.breakdown.total);
+        // Detectar cambio: comparar subtotal base del servidor con el subtotal local previo.
+        // Se usa el subtotal (sin descuento) para no disparar el aviso cuando solo cambia el canje.
+        const serverTotal = Number(response.breakdown.subtotal);
         if (Math.abs(serverTotal - localTotal) > 0.01) {
           this.priceChanged.set(true);
           this.toast.warning('El precio de tu paquete se actualizó');
