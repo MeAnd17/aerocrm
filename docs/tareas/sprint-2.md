@@ -995,3 +995,71 @@ Archivos:
 - `backend/src/clients/clients.controller.ts`
 - `backend/src/bookings/bookings.controller.ts`
 - `backend/test/app.e2e-spec.ts`
+
+---
+
+## Fichas — Quinta ronda de QA
+
+### Rutas públicas bloqueadas para el administrador (TS-027)
+
+Commit: `fix: bloquea las rutas públicas para el administrador (TS-027)`
+
+**Raíz del problema:** `clientOnlyGuard` solo estaba aplicado a rutas privadas (home, my-trips, loyalty, profile). Un administrador podía navegar a `explore`, `search`, `destinations`, `destinations/:id`, `packages/new` y `contact` sin ser redirigido al panel.
+
+**Solución:** Agregar `canActivate: [clientOnlyGuard]` a todas esas rutas. El comodín `**` ya redirigía a `explore`, que ahora también tiene el guard, por lo que cualquier URL desconocida lleva al admin a `/admin/dashboard`.
+
+Archivos:
+- `frontend/src/app/app.routes.ts`
+
+---
+
+### Documento del perfil completado al confirmar el pago (US-009)
+
+Commit: `fix: completa el documento del perfil al confirmar el pago sin promesas sueltas (US-009)`
+
+**Raíz del problema:** `_rellenarDocumentoSiVacio` se llamaba en `create()` con `void`, lo que dejaba la promesa sin manejador de rechazo. Además usaba `as any` para tipar `documentType` y vivía en el momento equivocado (al crear la reserva, no al pagarla).
+
+**Solución:** Eliminar la llamada de `create()`. En `pay()`, después de confirmar la transacción, llamar con `await` + `try/catch` + `Logger`. Tipar `documentType` con el enum `DocumentType` de Prisma. `birthDate` del pasajero ya es `Date` (campo Prisma), así que se elimina la conversión con `new Date()`.
+
+Archivos:
+- `backend/src/bookings/bookings.service.ts`
+
+---
+
+### Guard reutilizable para rutas de cliente (TS-027)
+
+Commit: `refactor: mueve la restricción del administrador a un guard reutilizable (TS-027)`
+
+**Raíz del problema:** El endpoint `POST /bookings/quote` tenía un `if (req.user?.role === ADMIN) throw ForbiddenException` escrito directamente en el método del controlador, violando la regla B4 de AGENTS.md.
+
+**Solución:** Crear `NotAdminGuard` en `backend/src/auth/guards/not-admin.guard.ts`. El guard bloquea a los administradores y deja pasar a clientes y visitantes sin sesión. El decorator del endpoint pasa de `@UseGuards(OptionalJwtGuard)` a `@UseGuards(OptionalJwtGuard, NotAdminGuard)`. El chequeo inline y la importación de `ForbiddenException` se eliminan del controlador.
+
+Archivos:
+- `backend/src/auth/guards/not-admin.guard.ts` (nuevo)
+- `backend/src/bookings/bookings.controller.ts`
+
+---
+
+### Importación sin uso en el controlador de clientes (TS-027)
+
+Commit: `fix: elimina importación sin uso en el controlador de clientes (TS-027)`
+
+**Raíz del problema:** El commit `01d7b35` importó `ApiOkResponse` de `@nestjs/swagger` en `clients.controller.ts` sin usarlo, generando un warning de lint.
+
+**Solución:** Eliminar `ApiOkResponse` del import.
+
+Archivos:
+- `backend/src/clients/clients.controller.ts`
+
+---
+
+### Reemplazo del titular al adoptar el borrador tras iniciar sesión (US-010)
+
+Commit: `fix: reemplaza al titular al adoptar el borrador tras iniciar sesión (US-010)`
+
+**Raíz del problema:** `_cargarDatosTitular()` vive en `StepPassengersComponent` y solo corre cuando el componente está activo. Si el visitante completaba el paso 6 y llegaba al Resumen (paso 7) antes de iniciar sesión, `_syncOwner()` en el estado adoptaba el borrador pero no actualizaba `passengerDrafts`. El Resumen seguía mostrando los datos del visitante.
+
+**Solución:** Agregar `_adoptarBorrador()` a `PackageBuilderState`. Se llama desde `_syncOwner()` cuando el dueño pasa de `null` a un userId (visitante → autenticado). Si `passengerDrafts` tiene datos (el paso 6 ya fue completado), reemplaza el nombre del titular de inmediato y hace `GET /clients/me` para completar documento y fecha de nacimiento. Si `passengerDrafts` está vacío, no actúa: `StepPassengersComponent` lo maneja al instanciarse. La lógica del componente se conserva para el caso en que el usuario ya está autenticado y visita el paso 6 por primera vez.
+
+Archivos:
+- `frontend/src/app/features/packages/package-builder.state.ts`

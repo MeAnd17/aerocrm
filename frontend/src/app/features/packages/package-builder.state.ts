@@ -1,6 +1,7 @@
 import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ToastService } from '../../core/services/toast.service';
 import { PackageDraftService } from './package-draft.service';
 
 /**
@@ -38,6 +39,7 @@ export class PackageBuilderState {
   private readonly auth = inject(AuthService);
   private readonly draftService = inject(PackageDraftService);
   private readonly api = inject(ApiService);
+  private readonly toast = inject(ToastService);
 
   /** Dueño del paquete en curso: null mientras lo arma un visitante. */
   readonly ownerId = signal<number | null>(null);
@@ -163,10 +165,67 @@ export class PackageBuilderState {
     if (owner === userId) return;
     if (owner === null && userId !== null) {
       this.ownerId.set(userId);
+      this._adoptarBorrador();
       return;
     }
     this.reset();
     this.ownerId.set(userId);
+  }
+
+  /**
+   * Al adoptar el borrador de un visitante que acaba de iniciar sesión, reemplaza
+   * los datos del titular con los del usuario autenticado (US-010).
+   * Solo actúa si el paso 6 ya fue completado (passengerDrafts no vacío);
+   * si está vacío, StepPassengersComponent se encarga al instanciarse.
+   */
+  private _adoptarBorrador() {
+    const drafts = this.passengerDrafts();
+    if (drafts.length === 0) return;
+
+    const usuario = this.auth.currentUser();
+    if (!usuario) return;
+
+    const titular = drafts[0];
+    const nombreDiferente =
+      titular.firstName.trim() !== '' &&
+      (titular.firstName !== usuario.firstName || titular.lastName !== usuario.lastName);
+
+    // Reemplazar nombre del titular de inmediato (disponible sin llamada a la API).
+    this.passengerDrafts.set(
+      drafts.map((p, i) =>
+        i === 0 ? { ...p, firstName: usuario.firstName, lastName: usuario.lastName } : p,
+      ),
+    );
+
+    if (nombreDiferente) {
+      this.toast.info(
+        'El titular de la reserva es el dueño de la cuenta. Si viaja otra persona, agrégala como acompañante.',
+      );
+    }
+
+    // Completar con documento y fecha de nacimiento del perfil si existen.
+    this.api.get<{ documentType?: 'DNI' | 'PASAPORTE'; documentNumber?: string; dateOfBirth?: string }>('clients/me').subscribe({
+      next: (perfil) => {
+        const actual = this.passengerDrafts();
+        if (actual.length === 0) return;
+        const t = actual[0];
+        this.passengerDrafts.set(
+          actual.map((p, i) =>
+            i === 0
+              ? {
+                  ...p,
+                  documentType: perfil.documentType ?? t.documentType,
+                  documentNumber: perfil.documentNumber?.trim() ? perfil.documentNumber : t.documentNumber,
+                  birthDate: perfil.dateOfBirth ? perfil.dateOfBirth.split('T')[0] : t.birthDate,
+                }
+              : p,
+          ),
+        );
+      },
+      error: () => {
+        // No crítico: el titular ya tiene al menos el nombre de la cuenta.
+      },
+    });
   }
 
   // ── Acciones ────────────────────────────────────────────────────────────────
