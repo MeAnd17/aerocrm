@@ -1,4 +1,4 @@
-import { Controller, ForbiddenException, Get, Post, Patch, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -22,6 +22,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { OptionalJwtGuard } from './optional-jwt.guard';
+import { NotAdminGuard } from '../auth/guards/not-admin.guard';
 
 /** Forma de la respuesta de GET /bookings/extras */
 class ExtraOptionDto {
@@ -100,7 +101,7 @@ export class BookingsController {
    * calculado por el servidor. No crea ninguna reserva.
    */
   @Post('quote')
-  @UseGuards(OptionalJwtGuard)
+  @UseGuards(OptionalJwtGuard, NotAdminGuard)
   @ApiOperation({
     summary: 'Cotiza un paquete (pública o autenticada, US-020)',
     description:
@@ -113,9 +114,6 @@ export class BookingsController {
   @ApiNotFoundResponse({ description: 'Vuelo no encontrado o inactivo' })
   @ApiForbiddenResponse({ description: 'El administrador no puede usar rutas de cliente' })
   quote(@Body() dto: QuoteDto, @Request() req: { body: Record<string, unknown>; user?: { sub: number; role?: string } }) {
-    if (req.user?.role === UserRole.ADMIN) {
-      throw new ForbiddenException('El administrador no puede cotizar paquetes de cliente');
-    }
     // req.body contiene el cuerpo original tal como lo recibió Express, antes de transformación.
     return this.bookingsService.quote(dto, req.body ?? {}, req.user?.sub);
   }
