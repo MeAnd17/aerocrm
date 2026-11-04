@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AdminNotificationsService } from './admin-notifications.service';
+import { AuthService } from '../../core/services/auth.service';
 
 /**
  * Estructura base del panel de administración con barra lateral de navegación
@@ -61,6 +62,22 @@ import { AdminNotificationsService } from './admin-notifications.service';
             }
           </a>
         </nav>
+        <div class="px-3 py-4 border-t space-y-1">
+          <a
+            routerLink="change-password"
+            routerLinkActive="bg-blue-50 text-blue-700 font-semibold"
+            class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition"
+          >
+            Cambiar contraseña
+          </a>
+          <button
+            type="button"
+            (click)="auth.logout()"
+            class="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-50 transition"
+          >
+            Cerrar sesión
+          </button>
+        </div>
       </aside>
 
       <!-- Contenido principal -->
@@ -72,6 +89,7 @@ import { AdminNotificationsService } from './admin-notifications.service';
 })
 export class AdminShellComponent implements OnInit {
   readonly notifs = inject(AdminNotificationsService);
+  readonly auth = inject(AuthService);
 
   ngOnInit() {
     this.notifs.refrescarPendientes();

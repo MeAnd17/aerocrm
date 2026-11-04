@@ -614,6 +614,72 @@ describe('API (e2e)', () => {
     expect(res.body.clients).toBe(35);
   });
 
+  // ─── TS-027: Administrador no puede usar rutas de cliente ────────────────────
+
+  it('POST /api/bookings/quote — admin recibe 403 (TS-027)', async () => {
+    const adminFalso = { id: 1, email: 'admin@aerocrm.com', isActive: true, role: 'ADMIN', client: null };
+    prismaFalso.user.findUnique.mockResolvedValueOnce(adminFalso);
+    const token = jwtService.sign({ sub: 1, email: 'admin@aerocrm.com', clientId: null, role: 'ADMIN' });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/bookings/quote')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ flightId: 1, returnFlightId: 2, passengers: 1 });
+
+    expect(res.status).toBe(403);
+  });
+
+  it('POST /api/bookings — admin recibe 403 (TS-027)', async () => {
+    const adminFalso = { id: 1, email: 'admin@aerocrm.com', isActive: true, role: 'ADMIN', client: null };
+    prismaFalso.user.findUnique.mockResolvedValueOnce(adminFalso);
+    const token = jwtService.sign({ sub: 1, email: 'admin@aerocrm.com', clientId: null, role: 'ADMIN' });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/bookings')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ passengers: [], flights: [] });
+
+    expect(res.status).toBe(403);
+  });
+
+  it('POST /api/bookings/:id/pay — admin recibe 403 (TS-027)', async () => {
+    const adminFalso = { id: 1, email: 'admin@aerocrm.com', isActive: true, role: 'ADMIN', client: null };
+    prismaFalso.user.findUnique.mockResolvedValueOnce(adminFalso);
+    const token = jwtService.sign({ sub: 1, email: 'admin@aerocrm.com', clientId: null, role: 'ADMIN' });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/bookings/cld-admin-01/pay')
+      .set('Authorization', `Bearer ${token}`)
+      .send({});
+
+    expect(res.status).toBe(403);
+  });
+
+  it('GET /api/clients/me — admin recibe 403 (TS-027)', async () => {
+    const adminFalso = { id: 1, email: 'admin@aerocrm.com', isActive: true, role: 'ADMIN', client: null };
+    prismaFalso.user.findUnique.mockResolvedValueOnce(adminFalso);
+    const token = jwtService.sign({ sub: 1, email: 'admin@aerocrm.com', clientId: null, role: 'ADMIN' });
+
+    const res = await request(app.getHttpServer())
+      .get('/api/clients/me')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(403);
+  });
+
+  it('PATCH /api/clients/me — admin recibe 403 (TS-027)', async () => {
+    const adminFalso = { id: 1, email: 'admin@aerocrm.com', isActive: true, role: 'ADMIN', client: null };
+    prismaFalso.user.findUnique.mockResolvedValueOnce(adminFalso);
+    const token = jwtService.sign({ sub: 1, email: 'admin@aerocrm.com', clientId: null, role: 'ADMIN' });
+
+    const res = await request(app.getHttpServer())
+      .patch('/api/clients/me')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ phone: '+51 999 000 111' });
+
+    expect(res.status).toBe(403);
+  });
+
   it('PATCH /api/bookings/:id/cancel — cliente cancela reserva PENDIENTE (200)', async () => {
     const usuarioCliente = { id: 99, email: 'cliente@test.pe', isActive: true, role: 'CLIENT', client: { id: 5 } };
     const reservaPendiente = {

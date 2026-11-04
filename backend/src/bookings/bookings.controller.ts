@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, ForbiddenException, Get, Post, Patch, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -111,7 +111,11 @@ export class BookingsController {
   @ApiOkResponse({ description: 'Desglose de precios del paquete', type: QuoteResponseDto })
   @ApiBadRequestResponse({ description: 'Parámetros inválidos, extra o actividad no disponible, o intento de enviar campos de precio' })
   @ApiNotFoundResponse({ description: 'Vuelo no encontrado o inactivo' })
-  quote(@Body() dto: QuoteDto, @Request() req: { body: Record<string, unknown>; user?: { sub: number } }) {
+  @ApiForbiddenResponse({ description: 'El administrador no puede usar rutas de cliente' })
+  quote(@Body() dto: QuoteDto, @Request() req: { body: Record<string, unknown>; user?: { sub: number; role?: string } }) {
+    if (req.user?.role === UserRole.ADMIN) {
+      throw new ForbiddenException('El administrador no puede cotizar paquetes de cliente');
+    }
     // req.body contiene el cuerpo original tal como lo recibió Express, antes de transformación.
     return this.bookingsService.quote(dto, req.body ?? {}, req.user?.sub);
   }
@@ -151,7 +155,9 @@ export class BookingsController {
   @Post()
   @ApiBearerAuth()
   @ApiUnauthorizedResponse({ description: 'Token ausente o vencido' })
-  @UseGuards(JwtAuthGuard)
+  @ApiForbiddenResponse({ description: 'El administrador no puede usar rutas de cliente' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.CLIENT)
   @ApiOperation({
     summary: 'Compra un paquete (pago simulado)',
     description:
@@ -177,7 +183,9 @@ export class BookingsController {
   @Post(':id/pay')
   @ApiBearerAuth()
   @ApiUnauthorizedResponse({ description: 'Token ausente o vencido' })
-  @UseGuards(JwtAuthGuard)
+  @ApiForbiddenResponse({ description: 'El administrador no puede usar rutas de cliente' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.CLIENT)
   @ApiOperation({
     summary: 'Paga una reserva PENDIENTE (pago simulado)',
     description: 'Confirma el pago de la reserva, la avanza a CONFIRMADO y registra los puntos de fidelización.',

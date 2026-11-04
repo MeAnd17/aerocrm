@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, adminGuard, noAuthGuard } from './core/guards/auth.guard';
+import { authGuard, adminGuard, clientOnlyGuard, noAuthGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   // ── Públicas ───────────────────────────────────────────────────────────────
@@ -33,7 +33,7 @@ export const routes: Routes = [
   {
     path: 'home',
     loadComponent: () => import('./features/home/home.component').then(m => m.HomeComponent),
-    canActivate: [authGuard],
+    canActivate: [authGuard, clientOnlyGuard],
   },
   {
     path: 'admin',
@@ -73,6 +73,10 @@ export const routes: Routes = [
         path: 'inquiries',
         loadComponent: () => import('./features/admin/contact/admin-contact.component').then(m => m.AdminContactComponent),
       },
+      {
+        path: 'change-password',
+        loadComponent: () => import('./features/auth/change-password/change-password.component').then(m => m.ChangePasswordComponent),
+      },
     ],
   },
   {
@@ -95,33 +99,33 @@ export const routes: Routes = [
   {
     path: 'my-trips',
     loadComponent: () => import('./features/my-trips/my-trips.component').then(m => m.MyTripsComponent),
-    canActivate: [authGuard],
+    canActivate: [authGuard, clientOnlyGuard],
   },
   {
     // La ruta más específica debe ir antes de my-trips/:id para que el router no la interprete como un ID.
     path: 'my-trips/:id/print',
     loadComponent: () => import('./features/my-trips/trip-print.component').then(m => m.TripPrintComponent),
-    canActivate: [authGuard],
+    canActivate: [authGuard, clientOnlyGuard],
   },
   {
     path: 'my-trips/:id',
     loadComponent: () => import('./features/my-trips/trip-detail.component').then(m => m.TripDetailComponent),
-    canActivate: [authGuard],
+    canActivate: [authGuard, clientOnlyGuard],
   },
   {
     path: 'loyalty',
     loadComponent: () => import('./features/loyalty/loyalty.component').then(m => m.LoyaltyComponent),
-    canActivate: [authGuard],
+    canActivate: [authGuard, clientOnlyGuard],
   },
   {
     path: 'profile',
     loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent),
-    canActivate: [authGuard],
+    canActivate: [authGuard, clientOnlyGuard],
   },
   {
     path: 'profile/change-password',
     loadComponent: () => import('./features/auth/change-password/change-password.component').then(m => m.ChangePasswordComponent),
-    canActivate: [authGuard],
+    canActivate: [authGuard, clientOnlyGuard],
   },
 
   { path: '**', redirectTo: 'explore' },

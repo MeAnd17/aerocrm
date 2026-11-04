@@ -24,6 +24,10 @@ const CLIENT_LINKS: NavLink[] = [
   { label: 'Perfil', path: '/profile' },
 ];
 
+const ADMIN_LINKS: NavLink[] = [
+  { label: 'Panel de administración', path: '/admin' },
+];
+
 /**
  * Barra de navegación común (TS-008). Siempre presente; su contenido cambia según haya sesión.
  * En pantallas angostas se reduce a un menú desplegable.
@@ -106,7 +110,11 @@ export class NavbarComponent {
   readonly draft = inject(PackageBuilderState);
 
   readonly user = this.auth.currentUser;
-  readonly links = computed(() => (this.user() ? CLIENT_LINKS : VISITOR_LINKS));
+  readonly links = computed(() => {
+    const u = this.user();
+    if (!u) return VISITOR_LINKS;
+    return u.role === 'ADMIN' ? ADMIN_LINKS : CLIENT_LINKS;
+  });
   readonly open = signal(false);
 
   constructor() {

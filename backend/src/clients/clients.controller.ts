@@ -1,5 +1,5 @@
 import { Controller, Get, Patch, Post, Delete, Body, Param, ParseIntPipe, Query, UseGuards, Request } from '@nestjs/common';
-import { ApiBearerAuth, ApiForbiddenResponse, ApiNotFoundResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiForbiddenResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { ClientsService } from './clients.service';
 import { UpdateClientDto } from './dto/update-client.dto';
@@ -19,14 +19,20 @@ export class ClientsController {
   constructor(private clientsService: ClientsService) {}
 
   @Get('me')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.CLIENT)
   @ApiOperation({ summary: 'Mi perfil' })
   @ApiNotFoundResponse({ description: 'Perfil no encontrado' })
+  @ApiForbiddenResponse({ description: 'El administrador no puede usar rutas de cliente' })
   getProfile(@Request() req) {
     return this.clientsService.getProfile(req.user.sub);
   }
 
   @Patch('me')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.CLIENT)
   @ApiOperation({ summary: 'Actualiza mi perfil y preferencias' })
+  @ApiForbiddenResponse({ description: 'El administrador no puede usar rutas de cliente' })
   updateProfile(@Request() req, @Body() dto: UpdateClientDto) {
     return this.clientsService.updateProfile(req.user.sub, dto);
   }

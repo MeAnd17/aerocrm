@@ -23,11 +23,21 @@ export const adminGuard: CanActivateFn = (_route, state) => {
   if (!auth.isAuthenticated()) {
     return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
   }
-  if (auth.currentUser()?.mustChangePassword && state.url !== '/profile/change-password') {
-    return router.createUrlTree(['/profile/change-password']);
+  if (auth.currentUser()?.mustChangePassword && state.url !== '/admin/change-password') {
+    return router.createUrlTree(['/admin/change-password']);
   }
   if (auth.currentUser()?.role !== 'ADMIN') {
     return router.createUrlTree(['/home']);
+  }
+  return true;
+};
+
+/** Rutas exclusivas de cliente: si el usuario es ADMIN lo devuelve al panel de gestión. */
+export const clientOnlyGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  if (auth.currentUser()?.role === 'ADMIN') {
+    return router.createUrlTree(['/admin/dashboard']);
   }
   return true;
 };
