@@ -157,8 +157,8 @@ import { apiErrorMessage } from '../../../core/services/api-error';
             </div>
 
             <p class="text-xs text-blue-600">
-              Tenés <strong>{{ state.loyalty().availablePoints }}</strong> puntos
-              · En esta compra podés usar hasta <strong>{{ maxPuntosCanjeables() }}</strong>
+              Tienes <strong>{{ state.loyalty().availablePoints }}</strong> puntos
+              · En esta compra puedes usar hasta <strong>{{ maxPuntosCanjeables() }}</strong>
             </p>
 
             @if (state.loyalty().currentDiscount > 0) {
@@ -253,10 +253,16 @@ import { apiErrorMessage } from '../../../core/services/api-error';
             </div>
           </div>
         } @else {
-          <button (click)="irAlPago()"
-            class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold text-lg transition">
-            Continuar al pago →
-          </button>
+          <div class="space-y-2">
+            <button (click)="irAlPago()"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold text-lg transition">
+              Continuar al pago →
+            </button>
+            <button (click)="state.goTo(6)"
+              class="w-full text-sm text-gray-400 hover:text-gray-600 py-1 transition">
+              ← Volver a pasajeros
+            </button>
+          </div>
         }
       }
     </div>
@@ -282,14 +288,8 @@ export class StepSummaryComponent implements OnInit {
   /** Interruptor de canje: comienza apagado (US-020). */
   readonly canjeActivo = signal(false);
 
-  /** Puntos máximos canjeables: min(disponibles, floor(subtotal × 5)) — tope 50 % a S/ 0.10/pt. */
-  readonly maxPuntosCanjeables = computed(() => {
-    const loyalty = this.state.loyalty();
-    const q = this.quote();
-    if (!loyalty || !q) return 0;
-    const subtotal = Number(q.breakdown?.subtotal ?? 0);
-    return Math.min(loyalty.availablePoints, Math.floor(subtotal * 5));
-  });
+  /** Puntos máximos canjeables: calculado en el servidor incluyendo el bono de nivel (B7, US-020). */
+  readonly maxPuntosCanjeables = computed(() => this.quote()?.maxRedeemablePoints ?? 0);
 
   /** Puntos ingresados por el usuario en el campo de canje (US-020). */
   puntosIngresados = 0;

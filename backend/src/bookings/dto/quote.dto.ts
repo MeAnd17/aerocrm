@@ -129,4 +129,6 @@ export class QuoteResponseDto {
   @ApiProperty({ type: QuoteBreakdownDto }) breakdown: QuoteBreakdownDto;
   @ApiProperty({ example: 500 }) pointsToRedeem: number;
   @ApiProperty({ example: 49 }) pointsToEarn: number;
+  /** Máximo de puntos que el cliente puede canjear en este paquete, calculado en el servidor (B7). */
+  @ApiProperty({ example: 2450 }) maxRedeemablePoints: number;
 }

@@ -113,6 +113,27 @@ export function maxDiscountCents(packageTotalCents: number): number {
   return Math.floor((packageTotalCents * MAX_REDEEM_PERCENT) / 100);
 }
 
+/**
+ * Puntos máximos que un cliente puede canjear en un paquete dado su nivel.
+ * Incluye el bono de nivel en el cálculo del tope (AGENTS.md B7).
+ * Devuelve 0 si el margen que queda bajo el tope no alcanza para el mínimo de canje.
+ */
+export function maxRedeemablePointsForPackage(
+  packageTotalCents: number,
+  availablePoints: number,
+  completedTrips: number,
+): number {
+  const capCents = maxDiscountCents(packageTotalCents);
+  const levelPercent = levelForTrips(completedTrips).redeemDiscountPercent;
+  const levelDiscountCents = Math.min(
+    Math.floor((packageTotalCents * levelPercent) / 100),
+    capCents,
+  );
+  const pointsThatFit = Math.floor((capCents - levelDiscountCents) / POINT_VALUE_CENTS);
+  const result = Math.min(availablePoints, pointsThatFit);
+  return result < MIN_REDEEM_POINTS ? 0 : result;
+}
+
 export interface RedemptionInput {
   packageTotalCents: number;
   pointsToRedeem: number;

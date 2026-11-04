@@ -9,6 +9,7 @@ import {
   RedemptionError,
   computeRedemption,
   fromCents,
+  maxRedeemablePointsForPackage,
   pointsForPurchase,
   toCents,
 } from '../loyalty/loyalty.rules';
@@ -284,11 +285,12 @@ export class BookingsService {
       activityCents.reduce((s, c) => s + c, 0) +
       extraCents.reduce((s, c) => s + c, 0);
 
-    // Canje — si hay userId (usuario autenticado) se usa su saldo y nivel reales (US-020).
+    // Canje — si hay userId (usuario autenticado) se carga su saldo y nivel reales (US-020).
+    // Se carga siempre que haya sesión para poder calcular maxRedeemablePoints.
     const pointsToRedeem = dto.pointsToRedeem ?? 0;
     let availablePoints = pointsToRedeem; // fallback público: solo valida que pida lo que tiene
     let completedTrips = 0;
-    if (userId && pointsToRedeem > 0) {
+    if (userId) {
       const clienteAuth = await this.prisma.client.findFirst({ where: { userId } });
       if (clienteAuth) {
         availablePoints = clienteAuth.availablePoints;
@@ -366,6 +368,7 @@ export class BookingsService {
       },
       pointsToRedeem: redemption.pointsUsed,
       pointsToEarn,
+      maxRedeemablePoints: maxRedeemablePointsForPackage(packageTotalCents, availablePoints, completedTrips),
     };
   }
 
