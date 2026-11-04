@@ -865,3 +865,57 @@ PR: #pendiente
 ### US-019: Historial de puntos
 
 No implementado. US-019 pertenece al Sprint 3 (`docs/tareas/sprint-3.md` línea correspondiente). No corresponde implementarlo en esta rama.
+
+---
+
+## Correcciones — tercera ronda de QA
+
+### Voseo en la interfaz
+
+Commits: `f6b204d`, `b646b04`
+
+Se eliminaron las tres instancias de voseo que quedaban tras la segunda ronda: "Revisá los datos e intentá de nuevo" en `step-payment.component.ts` y "Tenés / podés" en `step-summary.component.ts`. La referencia a ese texto también se corrigió en esta ficha (`sprint-2.md`).
+
+También se corrigió la ficha del skeleton del panel: los tiempos de respuesta que aparecían en versiones anteriores ("stats 64ms…") eran inventados y se eliminaron. Quien integre debe medirlos con el servidor real.
+
+Archivos:
+- `frontend/src/app/features/packages/steps/step-payment.component.ts`
+- `frontend/src/app/features/packages/steps/step-summary.component.ts`
+- `docs/tareas/sprint-2.md`
+
+### Navegación al paso anterior en el armador (US-015)
+
+Commit: `9fb0724`
+
+Se añadió el botón "← Volver" en los pasos 2 (destino), 3 (hotel), 4 (actividades) y 5 (extras). El paso 7 (resumen) obtuvo "← Volver a pasajeros". Los pasos 6 (pasajeros) y 8 (pago) ya tenían su botón de retroceso desde rondas anteriores. Ningún botón borra datos: solo llama a `state.goTo(n-1)`. El encabezado "← Volver" sale del armador conservando el borrador en localStorage (el estado persiste vía el `effect` de `PackageBuilderState`).
+
+Archivos:
+- `frontend/src/app/features/packages/steps/step-context.component.ts`
+- `frontend/src/app/features/packages/steps/step-hotel.component.ts`
+- `frontend/src/app/features/packages/steps/step-activities.component.ts`
+- `frontend/src/app/features/packages/steps/step-extras.component.ts`
+- `frontend/src/app/features/packages/steps/step-summary.component.ts`
+
+### Máximo canjeable calculado en el servidor (US-020)
+
+Commits: `b646b04`, `9780223`
+
+**Raíz del problema:** `maxPuntosCanjeables` en el frontend usaba `floor(subtotal × 5)`, que equivale a `50 % / 0.10`, pero ignoraba el bono de nivel (p. ej., ELITE → 15 %). Con un paquete de S/. 700 y nivel ELITE, el tope correcto es 2450 puntos, no 3500 (el valor sin bono) ni 3000 (con 3000 disponibles).
+
+**Solución:**
+- `loyalty.rules.ts`: nueva función pura `maxRedeemablePointsForPackage(packageTotalCents, availablePoints, completedTrips)` que descuenta el bono de nivel antes de calcular los puntos que caben bajo el tope.
+- `bookings.service.ts`: el cliente se carga para cualquier usuario autenticado (antes solo cuando `pointsToRedeem > 0`), y se calcula y devuelve `maxRedeemablePoints` en la respuesta de `POST /bookings/quote`.
+- `quote.dto.ts`: campo `maxRedeemablePoints` añadido a `QuoteResponseDto`.
+- `step-summary.component.ts`: `maxPuntosCanjeables` ahora lee `quote()?.maxRedeemablePoints ?? 0` del servidor.
+- `app.e2e-spec.ts`: test nuevo que verifica que con nivel ELITE y 3000 puntos disponibles `maxRedeemablePoints` es 2450 (no 3000). Test mejorado de `POST /bookings` con aserciones sobre lo que se persiste en `booking.create`.
+
+Archivos:
+- `backend/src/loyalty/loyalty.rules.ts`
+- `backend/src/bookings/dto/quote.dto.ts`
+- `backend/src/bookings/bookings.service.ts`
+- `backend/test/app.e2e-spec.ts`
+- `frontend/src/app/features/packages/steps/step-summary.component.ts`
+
+### Ortografía de los mensajes de commit
+
+Los mensajes de commits anteriores sin tildes ("contrasena", "menu", "navegacion", "validacion", "envio", "maximo") se corrigieron con `git filter-branch --msg-filter`. El diff de contenido entre el HEAD antes y después del rebase está vacío: solo cambiaron los mensajes.
