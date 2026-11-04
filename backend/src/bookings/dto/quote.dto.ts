@@ -27,10 +27,9 @@ export class QuoteDto {
   @IsInt()
   flightId: number;
 
-  @ApiPropertyOptional({ description: 'ID del vuelo de regreso', example: 12 })
-  @IsOptional()
+  @ApiProperty({ description: 'ID del vuelo de regreso', example: 12 })
   @IsInt()
-  returnFlightId?: number;
+  returnFlightId: number;
 
   @ApiProperty({ description: 'Número de pasajeros', example: 2, minimum: 1 })
   @IsInt()
@@ -119,6 +118,10 @@ export class QuoteBreakdownDto {
   @ApiProperty({ type: [QuoteExtraLineDto] }) extras: QuoteExtraLineDto[];
   @ApiProperty({ example: 5000.00 }) subtotal: number;
   @ApiProperty({ example: 50.00 }) discountByRedemption: number;
+  /** Parte del descuento correspondiente a los puntos canjeados (sin bono de nivel). */
+  @ApiProperty({ example: 50.00 }) pointsDiscountAmount: number;
+  /** Parte del descuento correspondiente al bono adicional por nivel de membresía. */
+  @ApiProperty({ example: 0.00 }) levelDiscountAmount: number;
   @ApiProperty({ example: 4950.00 }) total: number;
 }
 
@@ -126,4 +129,6 @@ export class QuoteResponseDto {
   @ApiProperty({ type: QuoteBreakdownDto }) breakdown: QuoteBreakdownDto;
   @ApiProperty({ example: 500 }) pointsToRedeem: number;
   @ApiProperty({ example: 49 }) pointsToEarn: number;
+  /** Máximo de puntos que el cliente puede canjear en este paquete, calculado en el servidor (B7). */
+  @ApiProperty({ example: 2450 }) maxRedeemablePoints: number;
 }

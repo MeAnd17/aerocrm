@@ -9,7 +9,9 @@ import { StepContextComponent } from './steps/step-context.component';
 import { StepHotelComponent } from './steps/step-hotel.component';
 import { StepActivitiesComponent } from './steps/step-activities.component';
 import { StepExtrasComponent } from './steps/step-extras.component';
+import { StepPassengersComponent } from './steps/step-passengers.component';
 import { StepSummaryComponent } from './steps/step-summary.component';
+import { StepPaymentComponent } from './steps/step-payment.component';
 
 /**
  * Contenedor del armador (TS-009, TS-010): indicador de pasos, navegación y carga de datos.
@@ -29,7 +31,9 @@ import { StepSummaryComponent } from './steps/step-summary.component';
     StepHotelComponent,
     StepActivitiesComponent,
     StepExtrasComponent,
+    StepPassengersComponent,
     StepSummaryComponent,
+    StepPaymentComponent,
   ],
   template: `
     <div class="space-y-5">
@@ -93,7 +97,9 @@ import { StepSummaryComponent } from './steps/step-summary.component';
         @case (3) { <app-step-hotel /> }
         @case (4) { <app-step-activities /> }
         @case (5) { <app-step-extras /> }
-        @case (6) { <app-step-summary /> }
+        @case (6) { <app-step-passengers /> }
+        @case (7) { <app-step-summary /> }
+        @case (8) { <app-step-payment /> }
       }
     </div>
   `,
@@ -107,7 +113,8 @@ export class PackageBuilderComponent implements OnInit {
 
   readonly steps = [
     { n: 1, label: 'Vuelo' }, { n: 2, label: 'Destino' }, { n: 3, label: 'Hotel' },
-    { n: 4, label: 'Actividades' }, { n: 5, label: 'Extras' }, { n: 6, label: 'Resumen' },
+    { n: 4, label: 'Actividades' }, { n: 5, label: 'Extras' },
+    { n: 6, label: 'Pasajeros' }, { n: 7, label: 'Resumen' }, { n: 8, label: 'Pago' },
   ];
 
   ngOnInit() {

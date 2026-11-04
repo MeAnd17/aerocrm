@@ -1,7 +1,26 @@
 import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ToastService } from '../../core/services/toast.service';
 import { PackageDraftService } from './package-draft.service';
+
+/**
+ * Datos de un pasajero mientras se arma el paquete (US-010).
+ * No se persisten en localStorage: se rellenan de nuevo en el paso 6 si se recarga.
+ */
+export interface PassengerDraft {
+  firstName: string;
+  lastName: string;
+  /** DNI o PASAPORTE. */
+  documentType: 'DNI' | 'PASAPORTE';
+  documentNumber: string;
+  /** Fecha de nacimiento en formato ISO AAAA-MM-DD. */
+  birthDate: string;
+  /** El primer pasajero es el titular; sus datos vienen del usuario autenticado. */
+  isHolder: boolean;
+  /** Solo UI: si está marcado, se llama POST /clients/me/travelers al continuar. */
+  saveAsTraveler?: boolean;
+}
 
 /**
  * Lugar único donde vive lo que el cliente va eligiendo en el armador (TS-009, TS-010).
@@ -20,6 +39,7 @@ export class PackageBuilderState {
   private readonly auth = inject(AuthService);
   private readonly draftService = inject(PackageDraftService);
   private readonly api = inject(ApiService);
+  private readonly toast = inject(ToastService);
 
   /** Dueño del paquete en curso: null mientras lo arma un visitante. */
   readonly ownerId = signal<number | null>(null);
@@ -40,6 +60,8 @@ export class PackageBuilderState {
   readonly extraIds = signal<string[]>([]);
   readonly pointsToRedeem = signal(0);
   readonly usePoints = signal(false);
+  /** Datos de cada pasajero ingresados en el paso 6 (US-010). No se persisten en localStorage. */
+  readonly passengerDrafts = signal<PassengerDraft[]>([]);
 
   // ── Objetos completos en memoria (nunca van a localStorage) ─────────────────
   readonly flight = signal<any>(null);
@@ -58,6 +80,7 @@ export class PackageBuilderState {
 
   // ── Vista previa de totales ─────────────────────────────────────────────────
   readonly flightTotal = computed(() => Number(this.flight()?.pricePerPerson ?? 0) * this.passengers());
+  readonly returnFlightTotal = computed(() => Number(this.returnFlight()?.pricePerPerson ?? 0) * this.passengers());
   readonly hotelNights = computed(() => {
     const inDate = this.hotelCheckIn();
     const outDate = this.hotelCheckOut();
@@ -82,7 +105,7 @@ export class PackageBuilderState {
       return s + lineTotal;
     }, 0),
   );
-  readonly totalPrice = computed(() => this.flightTotal() + this.hotelTotal() + this.activitiesTotal() + this.extrasTotal());
+  readonly totalPrice = computed(() => this.flightTotal() + this.returnFlightTotal() + this.hotelTotal() + this.activitiesTotal() + this.extrasTotal());
   /** El descuento lo calcula el motor de fidelización del backend (AGENTS.md B7). */
   readonly pointsDiscount = computed(() => Number(this.redemption()?.totalDiscount ?? 0));
 
@@ -142,10 +165,67 @@ export class PackageBuilderState {
     if (owner === userId) return;
     if (owner === null && userId !== null) {
       this.ownerId.set(userId);
+      this._adoptarBorrador();
       return;
     }
     this.reset();
     this.ownerId.set(userId);
+  }
+
+  /**
+   * Al adoptar el borrador de un visitante que acaba de iniciar sesión, reemplaza
+   * los datos del titular con los del usuario autenticado (US-010).
+   * Solo actúa si el paso 6 ya fue completado (passengerDrafts no vacío);
+   * si está vacío, StepPassengersComponent se encarga al instanciarse.
+   */
+  private _adoptarBorrador() {
+    const drafts = this.passengerDrafts();
+    if (drafts.length === 0) return;
+
+    const usuario = this.auth.currentUser();
+    if (!usuario) return;
+
+    const titular = drafts[0];
+    const nombreDiferente =
+      titular.firstName.trim() !== '' &&
+      (titular.firstName !== usuario.firstName || titular.lastName !== usuario.lastName);
+
+    // Reemplazar nombre del titular de inmediato (disponible sin llamada a la API).
+    this.passengerDrafts.set(
+      drafts.map((p, i) =>
+        i === 0 ? { ...p, firstName: usuario.firstName, lastName: usuario.lastName } : p,
+      ),
+    );
+
+    if (nombreDiferente) {
+      this.toast.info(
+        'El titular de la reserva es el dueño de la cuenta. Si viaja otra persona, agrégala como acompañante.',
+      );
+    }
+
+    // Completar con documento y fecha de nacimiento del perfil si existen.
+    this.api.get<{ documentType?: 'DNI' | 'PASAPORTE'; documentNumber?: string; dateOfBirth?: string }>('clients/me').subscribe({
+      next: (perfil) => {
+        const actual = this.passengerDrafts();
+        if (actual.length === 0) return;
+        const t = actual[0];
+        this.passengerDrafts.set(
+          actual.map((p, i) =>
+            i === 0
+              ? {
+                  ...p,
+                  documentType: perfil.documentType ?? t.documentType,
+                  documentNumber: perfil.documentNumber?.trim() ? perfil.documentNumber : t.documentNumber,
+                  birthDate: perfil.dateOfBirth ? perfil.dateOfBirth.split('T')[0] : t.birthDate,
+                }
+              : p,
+          ),
+        );
+      },
+      error: () => {
+        // No crítico: el titular ya tiene al menos el nombre de la cuenta.
+      },
+    });
   }
 
   // ── Acciones ────────────────────────────────────────────────────────────────
@@ -266,6 +346,7 @@ export class PackageBuilderState {
     this.extras.set([]);
     this.pointsToRedeem.set(0);
     this.usePoints.set(false);
+    this.passengerDrafts.set([]);
     this.flight.set(null);
     this.returnFlight.set(null);
     this.context.set(null);

@@ -1,7 +1,8 @@
-import { IsNumber, IsOptional, IsString, IsArray, ValidateNested, IsEnum, Min, IsInt } from 'class-validator';
+import { IsNumber, IsOptional, IsString, IsArray, ArrayMinSize, ValidateNested, IsEnum, Min, IsInt, IsISO8601, IsBoolean, Matches } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ExtraType } from '@prisma/client';
+import { DocumentType, ExtraType } from '@prisma/client';
+import { EsDocumentoValido, EsFechaNacimientoValida } from '../../common/validators';
 
 // ── Sub-DTOs de cada línea del paquete ────────────────────────────────────────
 // Los campos de precio (priceSnapshot, price, etc.) se eliminaron: el servidor
@@ -54,13 +55,48 @@ export class BookingExtraDto {
   details?: string;
 }
 
+export class BookingPassengerDto {
+  @ApiProperty({ description: 'Nombre del pasajero (2–50 letras)', example: 'Ana' })
+  @Matches(/^[A-Za-záéíóúÁÉÍÓÚñÑüÜ\s\-']{2,50}$/, {
+    message: 'El nombre solo puede contener letras, espacios, guiones y apóstrofos (2–50 caracteres)',
+  })
+  firstName: string;
+
+  @ApiProperty({ description: 'Apellido del pasajero (2–50 letras)', example: 'López' })
+  @Matches(/^[A-Za-záéíóúÁÉÍÓÚñÑüÜ\s\-']{2,50}$/, {
+    message: 'El apellido solo puede contener letras, espacios, guiones y apóstrofos (2–50 caracteres)',
+  })
+  lastName: string;
+
+  @ApiProperty({ description: 'Tipo de documento', enum: DocumentType, example: 'DNI' })
+  @IsEnum(DocumentType)
+  documentType: DocumentType;
+
+  @ApiProperty({ description: 'Número de documento (DNI: 8 dígitos; Pasaporte: 6–12 alfanuméricos)', example: '70000001' })
+  @IsString()
+  @EsDocumentoValido()
+  documentNumber: string;
+
+  @ApiProperty({ description: 'Fecha de nacimiento (ISO 8601, entre 1900 y hoy)', example: '1990-05-12' })
+  @IsISO8601()
+  @EsFechaNacimientoValida()
+  birthDate: string;
+
+  @ApiPropertyOptional({ description: '¿Es el titular de la reserva?', example: true })
+  @IsBoolean()
+  @IsOptional()
+  isHolder?: boolean;
+}
+
 // ── DTO principal de creación ─────────────────────────────────────────────────
 
 export class CreateBookingDto {
-  @ApiProperty({ description: 'Número de pasajeros', example: 2, minimum: 1 })
-  @IsInt()
-  @Min(1)
-  passengers: number;
+  @ApiProperty({ description: 'Lista de pasajeros (al menos uno)', type: [BookingPassengerDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => BookingPassengerDto)
+  passengers: BookingPassengerDto[];
 
   @ApiPropertyOptional({ description: 'Puntos a canjear (mínimo 500)', example: 500 })
   @IsOptional()
@@ -72,8 +108,9 @@ export class CreateBookingDto {
   @IsString()
   notes?: string;
 
-  @ApiProperty({ description: 'Vuelos incluidos en el paquete (ida, y opcionalmente vuelta)', type: [BookingFlightDto] })
+  @ApiProperty({ description: 'Vuelos incluidos en el paquete (ida y regreso)', type: [BookingFlightDto] })
   @IsArray()
+  @ArrayMinSize(2, { message: 'Se requieren al menos dos vuelos (ida y regreso)' })
   @ValidateNested({ each: true })
   @Type(() => BookingFlightDto)
   flights: BookingFlightDto[];

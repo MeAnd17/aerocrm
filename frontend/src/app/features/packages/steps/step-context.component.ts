@@ -88,11 +88,18 @@ import { PackageBuilderState } from '../package-builder.state';
       </div>
     </div>
 
-    <button
-      (click)="state.goTo(3)"
-      class="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition">
-      Continuar → Elegir hotel
-    </button>
+    <div class="flex gap-3">
+      <button
+        (click)="state.goTo(3)"
+        class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition">
+        Continuar → Elegir hotel
+      </button>
+      <button
+        (click)="state.goTo(1)"
+        class="text-sm text-gray-400 px-3 hover:text-gray-600 transition">
+        ← Volver
+      </button>
+    </div>
   `,
   host: { class: 'block space-y-5' },
 })

@@ -156,6 +156,7 @@ async function seedDemoClients(): Promise<Map<string, { userId: number; clientId
       phone: c.phone,
       nationality: 'PE',
       dateOfBirth: new Date(`${c.dateOfBirth}T00:00:00Z`),
+      documentType: c.documentType,
       documentNumber: c.documentNumber,
       travelStyle: c.travelStyle,
       destinationType: c.destinationType,
@@ -287,6 +288,10 @@ async function seedHistory(
       const checkIn = atDay(ref, trip.dayOffset, '15:00');
       const code = `VJ-${key.slice(0, 2).toUpperCase()}${String(index + 1).padStart(4, '0')}`;
 
+      // Datos del titular (cliente dueño de la reserva) para el primer pasajero.
+      const demoClient = DEMO_CLIENTS.find((c) => c.key === key)!;
+      const titularBirthDate = new Date(`${demoClient.dateOfBirth}T00:00:00Z`);
+
       const booking = await prisma.booking.create({
         data: {
           confirmationCode: code,
@@ -313,6 +318,16 @@ async function seedHistory(
           },
           bookingExtras: {
             create: extras.map((e, i) => ({ type: e.type, price: fromCents(extraCents[i]) })),
+          },
+          bookingPassengers: {
+            create: Array.from({ length: pax }, (_, i) => ({
+              firstName: i === 0 ? demoClient.firstName : `Acompañante`,
+              lastName: i === 0 ? demoClient.lastName : `${i}`,
+              documentType: 'DNI',
+              documentNumber: i === 0 ? demoClient.documentNumber : `7000000${i}`,
+              birthDate: i === 0 ? titularBirthDate : new Date('1990-01-01T00:00:00Z'),
+              isHolder: i === 0,
+            })),
           },
         },
       });

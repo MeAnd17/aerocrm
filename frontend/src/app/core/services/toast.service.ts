@@ -17,10 +17,10 @@ export class ToastService {
     setTimeout(() => this.dismiss(id), 4000);
   }
 
-  success(message: string, title = 'Success') { this.show('success', message, title); }
+  success(message: string, title = 'Listo') { this.show('success', message, title); }
   error(message: string, title = 'Error') { this.show('error', message, title); }
-  warning(message: string, title = 'Warning') { this.show('warning', message, title); }
-  info(message: string, title = 'Info') { this.show('info', message, title); }
+  warning(message: string, title = 'Aviso') { this.show('warning', message, title); }
+  info(message: string, title = 'Información') { this.show('info', message, title); }
 
   dismiss(id: string) { this.toasts.update(t => t.filter(x => x.id !== id)); }
 }

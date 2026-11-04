@@ -1,8 +1,9 @@
-import { Component, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { apiErrorMessage } from '../../../core/services/api-error';
 
@@ -24,31 +25,53 @@ import { apiErrorMessage } from '../../../core/services/api-error';
           <!-- Contraseña actual -->
           <div>
             <label class="block text-xs text-gray-500 mb-1">Contraseña actual</label>
-            <input
-              [type]="showCurrent() ? 'text' : 'password'"
-              [(ngModel)]="currentPassword"
-              name="currentPassword"
-              required
-              class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Tu contraseña actual" />
-            <label class="flex items-center gap-2 mt-1.5 cursor-pointer">
-              <input type="checkbox" [checked]="showCurrent()" (change)="showCurrent.set(!showCurrent())" class="w-3 h-3" />
-              <span class="text-xs text-gray-400">Mostrar</span>
-            </label>
+            <div class="relative">
+              <input
+                [type]="showCurrent() ? 'text' : 'password'"
+                [ngModel]="currentPassword()"
+                (ngModelChange)="currentPassword.set($event)"
+                name="currentPassword"
+                required
+                class="w-full border rounded-lg px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Tu contraseña actual" />
+              <button type="button"
+                (click)="showCurrent.set(!showCurrent())"
+                [attr.aria-label]="showCurrent() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 leading-none">
+                @if (showCurrent()) {
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                } @else {
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                }
+              </button>
+            </div>
           </div>
 
           <!-- Nueva contraseña -->
           <div>
             <label class="block text-xs text-gray-500 mb-1">Nueva contraseña</label>
-            <input
-              [type]="showNew() ? 'text' : 'password'"
-              [(ngModel)]="newPassword"
-              name="newPassword"
-              required
-              class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Mínimo 8 caracteres" />
+            <div class="relative">
+              <input
+                [type]="showNew() ? 'text' : 'password'"
+                [ngModel]="newPassword()"
+                (ngModelChange)="newPassword.set($event)"
+                name="newPassword"
+                required
+                class="w-full border rounded-lg px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Mínimo 8 caracteres" />
+              <button type="button"
+                (click)="showNew.set(!showNew())"
+                [attr.aria-label]="showNew() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 leading-none">
+                @if (showNew()) {
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                } @else {
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                }
+              </button>
+            </div>
             <!-- Indicador de requisitos -->
-            @if (newPassword) {
+            @if (newPassword()) {
               <div class="mt-2 grid grid-cols-2 gap-1">
                 @for (req of requirements(); track req.label) {
                   <div class="flex items-center gap-1.5">
@@ -67,21 +90,30 @@ import { apiErrorMessage } from '../../../core/services/api-error';
           <!-- Confirmar nueva contraseña -->
           <div>
             <label class="block text-xs text-gray-500 mb-1">Confirmar nueva contraseña</label>
-            <input
-              [type]="showNew() ? 'text' : 'password'"
-              [(ngModel)]="confirmPassword"
-              name="confirmPassword"
-              required
-              class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              [class.border-red-400]="confirmPassword && confirmPassword !== newPassword"
-              placeholder="Repite la nueva contraseña" />
-            @if (confirmPassword && confirmPassword !== newPassword) {
+            <div class="relative">
+              <input
+                [type]="showNew() ? 'text' : 'password'"
+                [ngModel]="confirmPassword()"
+                (ngModelChange)="confirmPassword.set($event)"
+                name="confirmPassword"
+                required
+                class="w-full border rounded-lg px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                [class.border-red-400]="confirmPassword() && confirmPassword() !== newPassword()"
+                placeholder="Repite la nueva contraseña" />
+              <button type="button"
+                (click)="showNew.set(!showNew())"
+                [attr.aria-label]="showNew() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 leading-none">
+                @if (showNew()) {
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                } @else {
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                }
+              </button>
+            </div>
+            @if (confirmPassword() && confirmPassword() !== newPassword()) {
               <p class="text-xs text-red-500 mt-1">Las contraseñas no coinciden</p>
             }
-            <label class="flex items-center gap-2 mt-1.5 cursor-pointer">
-              <input type="checkbox" [checked]="showNew()" (change)="showNew.set(!showNew())" class="w-3 h-3" />
-              <span class="text-xs text-gray-400">Mostrar nueva contraseña</span>
-            </label>
           </div>
 
           <button
@@ -97,32 +129,34 @@ import { apiErrorMessage } from '../../../core/services/api-error';
   `,
 })
 export class ChangePasswordComponent {
-  currentPassword = '';
-  newPassword = '';
-  confirmPassword = '';
+  readonly currentPassword = signal('');
+  readonly newPassword = signal('');
+  readonly confirmPassword = signal('');
 
   showCurrent = signal(false);
   showNew = signal(false);
   loading = signal(false);
 
   requirements = computed(() => {
-    const p = this.newPassword;
+    const p = this.newPassword();
     return [
       { label: 'Mínimo 8 caracteres', met: p.length >= 8 },
       { label: '1 letra mayúscula', met: /[A-Z]/.test(p) },
       { label: '1 número', met: /[0-9]/.test(p) },
+      { label: 'Distinta a la actual', met: !!p && p !== this.currentPassword() },
     ];
   });
 
   canSubmit = computed(() => {
-    const p = this.newPassword;
+    const p = this.newPassword();
     return (
-      !!this.currentPassword &&
+      !!this.currentPassword() &&
       !!p &&
       p.length >= 8 &&
       /[A-Z]/.test(p) &&
       /[0-9]/.test(p) &&
-      p === this.confirmPassword
+      p !== this.currentPassword() &&
+      p === this.confirmPassword()
     );
   });
 
@@ -130,15 +164,20 @@ export class ChangePasswordComponent {
     private api: ApiService,
     private toast: ToastService,
     private router: Router,
+    private authService: AuthService,
   ) {}
 
   onSubmit() {
     if (!this.canSubmit()) {
-      if (this.newPassword !== this.confirmPassword) {
+      if (this.newPassword() === this.currentPassword()) {
+        this.toast.error('La nueva contraseña debe ser distinta a la actual');
+        return;
+      }
+      if (this.newPassword() !== this.confirmPassword()) {
         this.toast.error('Las contraseñas no coinciden');
         return;
       }
-      if (this.newPassword.length < 8 || !/[A-Z]/.test(this.newPassword) || !/[0-9]/.test(this.newPassword)) {
+      if (this.newPassword().length < 8 || !/[A-Z]/.test(this.newPassword()) || !/[0-9]/.test(this.newPassword())) {
         this.toast.error('La contraseña debe tener al menos 8 caracteres, una mayúscula y un número');
         return;
       }
@@ -147,13 +186,23 @@ export class ChangePasswordComponent {
 
     this.loading.set(true);
     this.api.patch<{ message: string }>('auth/change-password', {
-      currentPassword: this.currentPassword,
-      newPassword: this.newPassword,
+      currentPassword: this.currentPassword(),
+      newPassword: this.newPassword(),
     }).subscribe({
       next: () => {
-        this.loading.set(false);
-        this.toast.success('Contraseña actualizada');
-        this.router.navigate(['/profile']);
+        // Limpia el flag mustChangePassword recargando el perfil del servidor.
+        this.authService.refreshMe().subscribe({
+          next: () => {
+            this.loading.set(false);
+            this.toast.success('Contraseña actualizada');
+            this.router.navigate(['/profile']);
+          },
+          error: () => {
+            this.loading.set(false);
+            this.toast.success('Contraseña actualizada');
+            this.router.navigate(['/profile']);
+          },
+        });
       },
       error: (err) => {
         this.loading.set(false);

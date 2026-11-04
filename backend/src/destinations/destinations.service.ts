@@ -3,6 +3,16 @@ import { DestinationType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import { CreateDestinationDto } from './dto/create-destination.dto';
+import { UpdateDestinationDto } from './dto/update-destination.dto';
+import { CreateFlightDto } from './dto/create-flight.dto';
+import { UpdateFlightDto } from './dto/update-flight.dto';
+import { CreateHotelDto } from './dto/create-hotel.dto';
+import { UpdateHotelDto } from './dto/update-hotel.dto';
+import { CreateActivityDto } from './dto/create-activity.dto';
+import { UpdateActivityDto } from './dto/update-activity.dto';
+import { CreateExtraDto } from './dto/create-extra.dto';
+import { UpdateExtraDto } from './dto/update-extra.dto';
 
 // ── Interfaces para respuestas de APIs externas ────────────────────────────────
 
@@ -339,5 +349,214 @@ export class DestinationsService {
       }
     }
     return result.sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  // ── Administración de destinos (US-027) ────────────────────────────────────
+
+  /** Lista todos los destinos (activos e inactivos) para el panel de administración. */
+  async findAllAdmin() {
+    return this.prisma.destination.findMany({ orderBy: { name: 'asc' } });
+  }
+
+  /** Crea un destino nuevo en el catálogo. */
+  async createDestination(dto: CreateDestinationDto) {
+    return this.prisma.destination.create({ data: dto });
+  }
+
+  /** Actualiza los campos de un destino existente. */
+  async updateDestination(id: number, dto: UpdateDestinationDto) {
+    await this.requireDestination(id);
+    return this.prisma.destination.update({ where: { id }, data: dto });
+  }
+
+  /**
+   * Desactiva un destino. Lanza BadRequestException si alguno de sus vuelos
+   * está en una reserva activa (PENDIENTE, CONFIRMADO o EN_CURSO).
+   */
+  async deactivateDestination(id: number) {
+    await this.requireDestination(id);
+    await this.checkActiveBookingsForDestination(id);
+    return this.prisma.destination.update({ where: { id }, data: { isActive: false } });
+  }
+
+  /** Agrega un vuelo a un destino. */
+  async createFlight(destinationId: number, dto: CreateFlightDto) {
+    await this.requireDestination(destinationId);
+    const dep = new Date(dto.departureDate);
+    const arr = new Date(dto.arrivalDate);
+    if (arr <= dep) throw new BadRequestException('La fecha de llegada debe ser posterior a la de salida');
+    return this.prisma.flight.create({
+      data: {
+        ...dto,
+        destinationId,
+        departureDate: dep,
+        arrivalDate: arr,
+        pricePerPerson: new Prisma.Decimal(dto.pricePerPerson),
+      },
+    });
+  }
+
+  /** Actualiza un vuelo. */
+  async updateFlight(destinationId: number, flightId: number, dto: UpdateFlightDto) {
+    await this.requireDestination(destinationId);
+    await this.requireFlight(flightId, destinationId);
+    const data: Prisma.FlightUpdateInput = { ...dto };
+    if (dto.departureDate) data.departureDate = new Date(dto.departureDate);
+    if (dto.arrivalDate) data.arrivalDate = new Date(dto.arrivalDate);
+    if (dto.pricePerPerson) data.pricePerPerson = new Prisma.Decimal(dto.pricePerPerson);
+    return this.prisma.flight.update({ where: { id: flightId }, data });
+  }
+
+  /** Desactiva un vuelo; falla si tiene reservas activas. */
+  async deactivateFlight(destinationId: number, flightId: number) {
+    await this.requireDestination(destinationId);
+    await this.requireFlight(flightId, destinationId);
+    const activa = await this.prisma.bookingFlight.findFirst({
+      where: {
+        flightId,
+        booking: { status: { in: ['PENDIENTE', 'CONFIRMADO', 'EN_CURSO'] } },
+      },
+    });
+    if (activa) throw new BadRequestException('No se puede desactivar porque ya forma parte de una reserva activa');
+    return this.prisma.flight.update({ where: { id: flightId }, data: { isActive: false } });
+  }
+
+  /** Agrega un hotel a un destino. */
+  async createHotel(destinationId: number, dto: CreateHotelDto) {
+    await this.requireDestination(destinationId);
+    return this.prisma.hotel.create({
+      data: { ...dto, destinationId, pricePerNight: new Prisma.Decimal(dto.pricePerNight) },
+    });
+  }
+
+  /** Actualiza un hotel. */
+  async updateHotel(destinationId: number, hotelId: number, dto: UpdateHotelDto) {
+    await this.requireDestination(destinationId);
+    await this.requireHotel(hotelId, destinationId);
+    const data: Prisma.HotelUpdateInput = { ...dto };
+    if (dto.pricePerNight) data.pricePerNight = new Prisma.Decimal(dto.pricePerNight);
+    return this.prisma.hotel.update({ where: { id: hotelId }, data });
+  }
+
+  /** Desactiva un hotel; falla si tiene reservas activas. */
+  async deactivateHotel(destinationId: number, hotelId: number) {
+    await this.requireDestination(destinationId);
+    await this.requireHotel(hotelId, destinationId);
+    const activa = await this.prisma.bookingHotel.findFirst({
+      where: {
+        hotelId,
+        booking: { status: { in: ['PENDIENTE', 'CONFIRMADO', 'EN_CURSO'] } },
+      },
+    });
+    if (activa) throw new BadRequestException('No se puede desactivar porque ya forma parte de una reserva activa');
+    return this.prisma.hotel.update({ where: { id: hotelId }, data: { isActive: false } });
+  }
+
+  /** Agrega una actividad a un destino. */
+  async createActivity(destinationId: number, dto: CreateActivityDto) {
+    await this.requireDestination(destinationId);
+    return this.prisma.activity.create({
+      data: { ...dto, destinationId, price: new Prisma.Decimal(dto.price) },
+    });
+  }
+
+  /** Actualiza una actividad. */
+  async updateActivity(destinationId: number, activityId: number, dto: UpdateActivityDto) {
+    await this.requireDestination(destinationId);
+    await this.requireActivity(activityId, destinationId);
+    const data: Prisma.ActivityUpdateInput = { ...dto };
+    if (dto.price) data.price = new Prisma.Decimal(dto.price);
+    return this.prisma.activity.update({ where: { id: activityId }, data });
+  }
+
+  /** Desactiva una actividad; falla si tiene reservas activas. */
+  async deactivateActivity(destinationId: number, activityId: number) {
+    await this.requireDestination(destinationId);
+    await this.requireActivity(activityId, destinationId);
+    const activa = await this.prisma.bookingActivity.findFirst({
+      where: {
+        activityId,
+        booking: { status: { in: ['PENDIENTE', 'CONFIRMADO', 'EN_CURSO'] } },
+      },
+    });
+    if (activa) throw new BadRequestException('No se puede desactivar porque ya forma parte de una reserva activa');
+    return this.prisma.activity.update({ where: { id: activityId }, data: { isActive: false } });
+  }
+
+  /** Lista todos los extras del catálogo. */
+  async findAllExtras() {
+    return this.prisma.extraOption.findMany({ orderBy: { type: 'asc' } });
+  }
+
+  /** Crea un extra en el catálogo. */
+  async createExtra(dto: CreateExtraDto) {
+    return this.prisma.extraOption.create({
+      data: { ...dto, price: new Prisma.Decimal(dto.price) },
+    });
+  }
+
+  /** Actualiza un extra del catálogo. */
+  async updateExtra(id: number, dto: UpdateExtraDto) {
+    await this.requireExtra(id);
+    const data: Prisma.ExtraOptionUpdateInput = { ...dto };
+    if (dto.price) data.price = new Prisma.Decimal(dto.price);
+    return this.prisma.extraOption.update({ where: { id }, data });
+  }
+
+  /** Desactiva un extra del catálogo. */
+  async deactivateExtra(id: number) {
+    await this.requireExtra(id);
+    return this.prisma.extraOption.update({ where: { id }, data: { isActive: false } });
+  }
+
+  // ── Helpers de verificación ─────────────────────────────────────────────────
+
+  /** Lanza NotFoundException si el destino no existe. */
+  private async requireDestination(id: number) {
+    const dest = await this.prisma.destination.findUnique({ where: { id } });
+    if (!dest) throw new NotFoundException('Destino no encontrado');
+    return dest;
+  }
+
+  /** Lanza NotFoundException si el vuelo no existe o no pertenece al destino. */
+  private async requireFlight(id: number, destinationId: number) {
+    const flight = await this.prisma.flight.findFirst({ where: { id, destinationId } });
+    if (!flight) throw new NotFoundException('Vuelo no encontrado');
+    return flight;
+  }
+
+  /** Lanza NotFoundException si el hotel no existe o no pertenece al destino. */
+  private async requireHotel(id: number, destinationId: number) {
+    const hotel = await this.prisma.hotel.findFirst({ where: { id, destinationId } });
+    if (!hotel) throw new NotFoundException('Hotel no encontrado');
+    return hotel;
+  }
+
+  /** Lanza NotFoundException si la actividad no existe o no pertenece al destino. */
+  private async requireActivity(id: number, destinationId: number) {
+    const activity = await this.prisma.activity.findFirst({ where: { id, destinationId } });
+    if (!activity) throw new NotFoundException('Actividad no encontrada');
+    return activity;
+  }
+
+  /** Lanza NotFoundException si el extra no existe. */
+  private async requireExtra(id: number) {
+    const extra = await this.prisma.extraOption.findUnique({ where: { id } });
+    if (!extra) throw new NotFoundException('Extra no encontrado');
+    return extra;
+  }
+
+  /**
+   * Verifica que ningún vuelo del destino esté en una reserva activa.
+   * Se usa antes de desactivar el destino completo.
+   */
+  private async checkActiveBookingsForDestination(destinationId: number) {
+    const activa = await this.prisma.bookingFlight.findFirst({
+      where: {
+        flight: { destinationId },
+        booking: { status: { in: ['PENDIENTE', 'CONFIRMADO', 'EN_CURSO'] } },
+      },
+    });
+    if (activa) throw new BadRequestException('No se puede desactivar porque ya forma parte de una reserva activa');
   }
 }

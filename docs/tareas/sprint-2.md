@@ -358,3 +358,708 @@ Acceso: exclusivo del rol administrador.
 ## Fichas de cierre
 
 Cada tarea terminada agrega aquí su ficha, en el mismo PR, con el formato de [README.md](README.md).
+
+---
+
+### PRE-a: Retira .agents/tasks del repositorio
+
+git commit -m "chore: retira .agents/tasks del repositorio"
+
+Se retiró `.agents/tasks/` del tracking de git con `git rm -r --cached` y se agregó la regla `.agents/tasks/` en `.gitignore`. El directorio sigue existiendo en disco para uso local de herramientas de IA, pero ya no se versiona. El directorio `.agents/` completo no se oculta: la decisión sobre eso queda pendiente para los responsables de integración.
+
+Archivos:
+- `.gitignore`: agrega la línea `.agents/tasks/`.
+
+PR: #pendiente
+
+---
+
+### PRE-b: Exige vuelo de regreso en cotización y reserva (US-012)
+
+git commit -m "fix: exige vuelo de regreso en cotización y reserva (US-012)"
+
+Se hizo obligatorio el campo `returnFlightId` en el DTO de cotización y se agregó `@ArrayMinSize(2)` en el DTO de creación de reserva. El backend rechaza con 400 cualquier cotización o reserva que llegue sin vuelo de regreso. Esto corrige la discrepancia con el backlog v2 que exigía ida y vuelta obligatorias.
+
+Archivos:
+- `backend/src/bookings/dto/quote.dto.ts`: `returnFlightId` pasa de opcional a obligatorio.
+- `backend/src/bookings/dto/create-booking.dto.ts`: `@ArrayMinSize(2)` en el arreglo de vuelos.
+- `backend/src/bookings/bookings.service.ts`: validación explícita en `quote()`.
+- `backend/test/app.e2e-spec.ts`: prueba de humo — POST /bookings/quote sin regreso → 400.
+
+PR: #pendiente
+
+---
+
+### PRE-c: Conecta cambio de contraseña con el backend (US-003)
+
+git commit -m "feat: conecta cambio de contraseña con el backend (US-003)"
+
+El backend ya tenía `PATCH /api/auth/change-password`. Se verificó que el frontend lo consume correctamente con `apiService.patch()` y se agregaron pruebas e2e para el flujo completo: contraseña incorrecta → 400 con mensaje en español; contraseña correcta → 200.
+
+Archivos:
+- `backend/test/app.e2e-spec.ts`: dos pruebas de humo para change-password.
+
+PR: #pendiente
+
+---
+
+### PRE-d: Pruebas de humo de registro, login y cotización
+
+git commit -m "test: agrega pruebas de humo de registro, login y cotización"
+
+Se agregaron cuatro pruebas e2e que cubren el flujo básico del sprint 1: POST /auth/register → 201 con token y role CLIENT; POST /auth/login → 401 con credenciales incorrectas; POST /auth/login → 201 con token; POST /bookings/quote con ida y regreso → 201 con desglose. Todas usan el doble de Prisma y no tocan la base compartida.
+
+Archivos:
+- `backend/test/app.e2e-spec.ts`: cuatro pruebas nuevas en el `describe` existente.
+
+PR: #pendiente
+
+---
+
+### TS-017: Pasajeros de la reserva
+
+git commit -m "feat: agrega pasajeros a la reserva con migración y seed (TS-017)"
+
+Se creó el modelo `BookingPassenger` en Prisma y se aplicó la migración. La reserva ahora guarda nombre, apellido, documento y fecha de nacimiento de cada viajero al momento de la compra; si los datos cambian en el perfil después, la reserva ya emitida no cambia. El campo `passengers` de `Booking` sigue existiendo y se deriva del largo del arreglo (no se envía por separado). El seed cargó pasajeros de muestra para las reservas de Diego y Valeria.
+
+Archivos:
+- `backend/prisma/schema.prisma`: modelo `BookingPassenger` y relación en `Booking`.
+- `backend/prisma/migrations/20261102231555_add_booking_passengers/migration.sql`: migración.
+- `backend/prisma/seed.ts`: pasajeros demo para reservas existentes.
+- `backend/src/bookings/dto/create-booking.dto.ts`: `BookingPassengerDto` y `@ArrayMinSize(1)` en `passengers`.
+- `backend/src/bookings/bookings.service.ts`: crea `BookingPassenger` dentro de la transacción de `create()`.
+- `backend/test/app.e2e-spec.ts`: pruebas — lista vacía → 400; reserva con pasajero → 201 y `bookingPassengers` devuelto.
+
+Base de datos: migración `20261102231555_add_booking_passengers`. Tabla nueva `BookingPassenger` con FK a `Booking`.
+
+PR: #pendiente
+
+---
+
+### TS-018: Ciclo de vida de la reserva
+
+git commit -m "feat: implementa ciclo de vida de reserva y avance automático (TS-018)"
+
+Se implementó la matriz de transiciones válidas (PENDIENTE→CONFIRMADO, PENDIENTE/CONFIRMADO→CANCELADO, CONFIRMADO→EN_CURSO, EN_CURSO→COMPLETADO) en `advanceStatus()`. `cancel()` revierte los puntos solo si la reserva ya estaba CONFIRMADA (los puntos se acreditan en `pay()`). Se agregó `SchedulerService` con un cron diario a las 02:00 y `onApplicationBootstrap` que corre el avance al arrancar. Se instaló `@nestjs/schedule@4` (compatible con NestJS 10; la versión 5+ requiere NestJS 11). Se agregó `statusChangedAt` y `statusChangedBy` al modelo `Booking`.
+
+**Decisión pendiente de Carlos:** las reservas PENDIENTE con fecha de salida ya pasada no se cancelan automáticamente porque el backlog v2 (TS-018) no lo especifica. `runDailyAdvance()` solo mueve reservas CONFIRMADO y EN_CURSO. Si se necesita cancelar automáticamente las PENDIENTE vencidas, se requiere una historia específica.
+
+Archivos:
+- `backend/src/bookings/bookings.service.ts`: `advanceStatus()`, `cancel()` con reversión, `runDailyAdvance()`.
+- `backend/src/bookings/scheduler.service.ts`: `SchedulerService` con cron y bootstrap.
+- `backend/src/bookings/bookings.module.ts`: registra `SchedulerModule.forRoot()` y `SchedulerService`.
+- `backend/src/bookings/bookings.controller.ts`: `PATCH /bookings/:id/status` solo para ADMIN.
+- `backend/src/bookings/dto/pay-booking.dto.ts`: DTO del pago simulado.
+- `backend/src/bookings/dto/update-booking-status.dto.ts`: DTO del cambio de estado.
+- `backend/package.json`: agrega `@nestjs/schedule@4`.
+
+Base de datos: migración `20261102232231_add_booking_lifecycle`. Campos `statusChangedAt` y `statusChangedBy` en `Booking`; tipos `EARNED_REFUND` y `REDEEMED_REFUND` en `PointsEventType`.
+
+PR: #pendiente
+
+---
+
+### US-010: Registrar a los pasajeros del viaje
+
+git commit -m "feat: agrega paso de pasajeros al armador de paquetes (US-010)"
+
+Se agregó el paso 6 al armador de paquetes. El titular viene precargado con los datos del cliente autenticado; los demás pasajeros se eligen de la lista de viajeros frecuentes o se ingresan a mano. Los datos se guardan en el estado del armador (`passengerDrafts`) y se envían al backend en `step-payment` al crear la reserva. El botón "recordar viajero" agrega al viajero a los favoritos del cliente. El armador no avanza sin completar todos los pasajeros.
+
+Archivos:
+- `frontend/src/app/features/packages/steps/step-passengers.component.ts`: nuevo componente del paso.
+- `frontend/src/app/features/packages/package-builder.state.ts`: señal `passengerDrafts`.
+- `frontend/src/app/features/packages/package-builder.component.ts`: intercala el paso 6 (pasajeros) y desplaza resumen a paso 7.
+- `frontend/src/app/features/packages/steps/step-extras.component.ts`: ajuste de numeración.
+
+PR: #pendiente
+
+---
+
+### US-016: Pagar mi paquete con método de pago simulado
+
+git commit -m "feat: implementa flujo de pago simulado y confirmación (US-016)"
+git commit -m "fix: separa creación y pago de la reserva (US-016)"
+
+Se implementó el paso 8 del armador. El primer commit agregó `step-payment.component.ts` y el endpoint `POST /bookings/:id/pay` en el backend. El segundo commit corrigió el flujo: `create()` ahora crea la reserva en estado PENDIENTE sin mover puntos; el frontend llama primero `POST /bookings` (→ PENDIENTE) y luego `POST /bookings/:id/pay` (→ CONFIRMADO + acredita puntos). `pay()` revalida el canje antes de confirmar; si los puntos disponibles cambiaron, devuelve 400. Los datos de tarjeta (número, vencimiento, CVV) son decorativos y nunca llegan al backend.
+
+Archivos:
+- `frontend/src/app/features/packages/steps/step-payment.component.ts`: nuevo componente con selector de método y formulario decorativo de tarjeta; llama `/bookings` y luego `/bookings/:id/pay`.
+- `frontend/src/app/features/packages/package-builder.component.ts`: agrega el paso 8.
+- `frontend/src/app/features/packages/steps/step-summary.component.ts`: ya no llama POST /bookings.
+- `backend/src/bookings/bookings.service.ts`: `create()` crea PENDIENTE sin puntos; `pay()` avanza a CONFIRMADO y acredita puntos en transacción.
+- `backend/test/app.e2e-spec.ts`: cuatro pruebas nuevas — create→PENDIENTE, pay→CONFIRMADO, doble canje→400, cancel CONFIRMADO→revierte puntos.
+
+PR: #pendiente
+
+---
+
+### US-011: Ver mis viajes y el detalle de cada uno
+
+git commit -m "feat: mejora listado de mis viajes con agrupación por fecha de viaje (US-011)"
+
+Se actualizó la pantalla de mis viajes para agrupar en Próximos (PENDIENTE, CONFIRMADO, EN_CURSO), Pasados (COMPLETADO) y Cancelados, ordenados por fecha de salida del vuelo de ida (no por fecha de creación). El detalle muestra los pasajeros con nombre y documento. Un intento de abrir una reserva ajena devuelve "Reserva no encontrada" sin revelar su existencia.
+
+Archivos:
+- `frontend/src/app/features/my-trips/my-trips.component.ts`: lógica de agrupación y ordenamiento.
+- `frontend/src/app/features/my-trips/trip-detail.component.ts`: sección de pasajeros.
+- `backend/test/app.e2e-spec.ts`: prueba — GET /bookings/:id de otra cuenta → 404.
+
+PR: #pendiente
+
+---
+
+### US-024: Ver e imprimir el detalle del viaje
+
+git commit -m "feat: agrega vista imprimible del detalle del viaje (US-024)"
+
+Se creó la ruta `/my-trips/:id/print` con `TripPrintComponent`. La vista incluye datos de la agencia, código de confirmación, pasajeros con documento, vuelos, hotel, actividades, extras y desglose del precio. Con `@media print` la barra de navegación y los botones desaparecen. El botón de imprimir aparece en el detalle solo cuando la reserva está CONFIRMADO, EN_CURSO o COMPLETADO. Se agregó `GET /agency` en `AppController` para los datos de la agencia (nombre, teléfono, correo).
+
+Archivos:
+- `frontend/src/app/features/my-trips/trip-print.component.ts`: nuevo componente de impresión.
+- `frontend/src/app/features/my-trips/trip-detail.component.ts`: botón de impresión condicional.
+- `frontend/src/app/app.routes.ts`: ruta `/my-trips/:id/print`.
+- `backend/src/app.controller.ts`: endpoint `GET /agency`.
+
+PR: #pendiente
+
+---
+
+### TS-027: Acceso del administrador y estructura del panel
+
+git commit -m "feat: implementa estructura y acceso del panel de administración (TS-027)"
+
+Se creó el módulo `AdminModule` con `GET /admin/stats` (destinos, reservas, clientes) protegido por `JwtAuthGuard + RolesGuard(ADMIN)`. En el frontend, `AdminShellComponent` actúa como layout con navegación entre las secciones del panel; `adminGuard` redirige a `/home` si el rol no es ADMIN. El login redirige automáticamente al panel si el usuario es ADMIN.
+
+Archivos:
+- `backend/src/admin/admin.controller.ts`: `GET /admin/stats`.
+- `backend/src/admin/admin.module.ts`: módulo del panel.
+- `backend/src/app.module.ts`: importa `AdminModule`.
+- `frontend/src/app/features/admin/admin-shell.component.ts`: layout del panel con nav.
+- `frontend/src/app/features/admin/admin-dashboard.component.ts`: tarjetas de resumen.
+- `frontend/src/app/app.routes.ts`: rutas del panel con `adminGuard`.
+- `backend/test/app.e2e-spec.ts`: CLIENT → 403; ADMIN → 200 con contadores.
+
+PR: #pendiente
+
+---
+
+### US-027: Administrar destinos y su inventario
+
+git commit -m "feat: agrega gestión de destinos e inventario al panel de administración (US-027)"
+
+Se agregaron los endpoints de administración de destinos, vuelos, hoteles, actividades y extras con sus DTOs y validaciones (precio > 0, fecha llegada posterior a salida). `deactivate()` verifica si el ítem forma parte de una reserva antes de desactivarlo; si es así, devuelve 400 con el mensaje del backlog. Items desactivados dejan de aparecer en la búsqueda pública. En el frontend se crearon los componentes de listado, formulario de destino e inventario con tabs.
+
+Archivos:
+- `backend/src/destinations/destinations.service.ts`: endpoints de creación, edición y desactivación.
+- `backend/src/destinations/destinations.controller.ts`: rutas con `@Roles(ADMIN)`.
+- `backend/src/destinations/extras.controller.ts`: CRUD de extras.
+- `backend/src/destinations/dto/`: DTOs de creación y edición para cada tipo de inventario.
+- `frontend/src/app/features/admin/destinations/admin-destinations.component.ts`: listado con contadores de inventario.
+- `frontend/src/app/features/admin/destinations/admin-destination-form.component.ts`: formulario de alta/edición.
+
+PR: #pendiente
+
+---
+
+### US-028: Ver clientes y su estado de fidelización
+
+git commit -m "feat: agrega vista de clientes y fidelización al panel de administración (US-028)"
+
+Se agregó `GET /admin/clients` con filtro por nivel y búsqueda, y `GET /admin/clients/:id` con reservas e historial de puntos. `PATCH /admin/clients/:id/reset-password` genera una contraseña temporal, la hashea, activa `mustChangePassword` y la muestra una sola vez. El login detecta `mustChangePassword` en la respuesta y redirige a `/profile/change-password`; al cambiarla con éxito, el flag se limpia. Se agregó el campo `mustChangePassword` al modelo `User`.
+
+Archivos:
+- `backend/src/clients/clients.controller.ts`: rutas de administración de clientes.
+- `backend/src/clients/clients.service.ts`: lógica de listado y reset de contraseña.
+- `backend/src/auth/auth.service.ts`: `login()` incluye `mustChangePassword`; `changePassword()` lo limpia.
+- `backend/prisma/schema.prisma`: campo `mustChangePassword` en `User`.
+- `frontend/src/app/features/admin/clients/admin-clients.component.ts`: listado con filtros.
+- `frontend/src/app/features/admin/clients/admin-client-detail.component.ts`: ficha con botón de reset.
+- `frontend/src/app/core/services/auth.service.ts`: redirección a change-password si `mustChangePassword`.
+
+Base de datos: migración `20261102235240_add_user_must_change_password`. Campo `mustChangePassword Boolean @default(false)` en `User`.
+
+PR: #pendiente
+
+---
+
+### US-029: Gestionar reservas y cambiar su estado
+
+git commit -m "feat: agrega gestión de reservas y cambio de estado al panel de administración (US-029)"
+
+Se agregó `GET /admin/bookings` con filtros por estado, rango de fechas y búsqueda por código o cliente. `PATCH /admin/bookings/:id/status` reutiliza `advanceStatus()` de TS-018 con el email del admin como `statusChangedBy`; el efecto en fidelización es idéntico al del avance automático. El frontend permite seleccionar el nuevo estado (solo transiciones válidas) con un campo de motivo opcional.
+
+Archivos:
+- `backend/src/bookings/bookings.service.ts`: `findAllAdmin()` con filtros.
+- `backend/src/bookings/bookings.controller.ts`: `GET /admin/bookings` y `PATCH /admin/bookings/:id/status`.
+- `frontend/src/app/features/admin/bookings/admin-bookings.component.ts`: listado con filtros.
+- `frontend/src/app/features/admin/bookings/admin-booking-detail.component.ts`: detalle y cambio de estado.
+- `backend/test/app.e2e-spec.ts`: PENDIENTE→COMPLETADO directo → 400; PENDIENTE→CONFIRMADO → 200.
+
+PR: #pendiente
+
+---
+
+### US-023: Enviar una consulta a la agencia
+
+git commit -m "feat: completa formulario de contacto con prefill e historial (US-023)"
+
+`POST /contact` ya existía; se agregaron `GET /contact/mine` (historial del cliente autenticado) y `GET /contact` (bandeja admin con paginación y filtro por estado). En el frontend se completó el componente de contacto: si hay sesión, nombre y correo vienen precargados; después de enviar se muestran las consultas anteriores del usuario; la sección de preguntas frecuentes es estática.
+
+Archivos:
+- `backend/src/contact/contact.controller.ts`: `GET /contact/mine` y `GET /contact` (admin).
+- `backend/src/contact/contact.service.ts`: `findMine()` y `findAll()`.
+- `frontend/src/app/features/contact/contact.component.ts`: prefill, historial y FAQ.
+- `backend/test/app.e2e-spec.ts`: tres pruebas — POST sin auth → 201, GET /mine con auth → 200, GET /contact sin ADMIN → 403.
+
+PR: #pendiente
+
+---
+
+### US-030: Bandeja de consultas en el panel
+
+git commit -m "feat: agrega bandeja de consultas al panel de administración (US-030)"
+git commit -m "fix: enlaza la consulta con la ficha del cliente (US-030)"
+
+El primer commit creó el enum `ContactStatus` (PENDIENTE/ATENDIDA), los campos `attendedAt` e `internalNote` en `ContactMessage`, y `PATCH /contact/:id/attend`. El componente `AdminContactComponent` lista las consultas con filtro por estado, panel de detalle con nota interna y botón de atención. El segundo commit corrigió el enlace a la ficha del cliente: `findAll()` ahora hace una consulta adicional para mapear email → clientId de los remitentes registrados; el frontend puebla el mapa y muestra el enlace cuando existe.
+
+Archivos:
+- `backend/src/contact/contact.service.ts`: `markAttended()`; enriquecimiento con `clientId` en `findAll()`.
+- `backend/src/contact/contact.controller.ts`: `PATCH /contact/:id/attend`.
+- `backend/src/contact/dto/mark-attended.dto.ts`: DTO de la nota interna.
+- `backend/prisma/schema.prisma`: enum `ContactStatus` y campos en `ContactMessage`.
+- `frontend/src/app/features/admin/contact/admin-contact.component.ts`: bandeja con detalle, atención y enlace al cliente.
+- `frontend/src/app/features/admin/admin-shell.component.ts`: badge de consultas pendientes.
+
+Base de datos: migración `20261103000616_add_contact_status`. Enum `ContactStatus` y campos `status`, `attendedAt`, `internalNote` en `ContactMessage`.
+
+PR: #pendiente
+
+
+---
+
+### TS-017: Validación de tipo y formato de documento en pasajeros
+
+git commit -m "fix: valida tipo y formato de documento y datos del pasajero (TS-017)"
+
+Se añadió el enum DocumentType (DNI / PASAPORTE) al schema de Prisma y se aplicó a BookingPassenger y Traveler. El DTO de pasajero exige el campo y valida formato según el tipo (8 dígitos para DNI, 6-12 alfanuméricos para PASAPORTE). El paso de pasajeros muestra un selector de tipo con placeholder dinámico y el estado del armador guarda documentType. El paso de pago lo incluye al enviar la reserva. Se corrigió también un bug en step-payment: pointsToRedeem tomaba todos los puntos disponibles en lugar del monto tecleado por el usuario.
+
+Archivos:
+- backend/prisma/schema.prisma: enum DocumentType; campo en BookingPassenger y Traveler.
+- backend/src/bookings/dto/create-booking.dto.ts: documentType obligatorio con @IsEnum.
+- backend/src/clients/dto/create-traveler.dto.ts y update-traveler.dto.ts: campo documentType opcional.
+- backend/src/clients/clients.service.ts: updateTraveler() persiste documentType.
+- backend/src/bookings/bookings.service.ts: validación de formato en create().
+- backend/src/common/validation.ts: etiqueta en español para documentType.
+- frontend/src/app/features/packages/steps/step-passengers.component.ts: selector DNI/PASAPORTE y placeholder dinámico.
+- frontend/src/app/features/packages/steps/step-payment.component.ts: envía documentType; corrige pointsToRedeem.
+- frontend/src/app/features/packages/package-builder.state.ts: agrega documentType al borrador de pasajero.
+- backend/test/app.e2e-spec.ts: agrega documentType a los pasajeros del test de reserva.
+
+Base de datos: migración add_document_type. Enum DocumentType y campo en BookingPassenger y Traveler.
+
+PR: #pendiente
+
+---
+
+### fix: Unificación de textos de la interfaz en español neutro
+
+git commit -m "fix: unifica textos de la interfaz en español neutro"
+
+Los títulos por defecto de los toasts estaban en inglés (Success, Warning, Info). Se reemplazaron por Listo, Aviso e Información respectivamente; Error ya estaba bien.
+
+Archivos:
+- frontend/src/app/core/services/toast.service.ts: títulos por defecto de los cuatro métodos.
+
+PR: #pendiente
+
+---
+
+### US-023: Validación del formulario de contacto (cliente y servidor)
+
+git commit -m "fix: valida el formulario de contacto en cliente y servidor (US-023)"
+git commit -m "fix: valida el formulario de contacto en el frontend (US-023)"
+
+El backend aceptaba mensajes de un solo carácter. Se agregó @MinLength(10) al DTO del mensaje y una prueba e2e que verifica el 400. En el frontend se agregó la misma validación antes del envío, con mensaje de error en pantalla. También se agregó la prueba e2e del campo mustChangePassword en la respuesta del login.
+
+Archivos:
+- backend/src/contact/dto/create-contact.dto.ts: @MinLength(10) en message.
+- backend/test/app.e2e-spec.ts: prueba POST /contact con mensaje < 10 chars -> 400; prueba login con mustChangePassword.
+- frontend/src/app/features/contact/contact.component.ts: validación client-side de longitud mínima.
+
+PR: #pendiente
+
+---
+
+### US-030: Contador de consultas pendientes reactivo
+
+git commit -m "fix: actualiza el contador de consultas pendientes sin recargar (US-030)"
+
+El badge del panel admin solo se actualizaba al recargar la página porque el signal era local al AdminShellComponent. Se extrajo a AdminNotificationsService (providedIn: root); el shell y el componente de consultas comparten la misma instancia. Al marcar una consulta como atendida, el componente llama refrescarPendientes() y el badge baja sin recarga.
+
+Archivos:
+- frontend/src/app/features/admin/admin-notifications.service.ts: servicio nuevo con signal pendientes y método refrescarPendientes().
+- frontend/src/app/features/admin/admin-shell.component.ts: reemplaza signal local por inject(AdminNotificationsService).
+- frontend/src/app/features/admin/contact/admin-contact.component.ts: llama refrescarPendientes() tras atender.
+
+PR: #pendiente
+
+---
+
+### US-029: Separación de cancelación y cambio de estado en el panel
+
+git commit -m "fix: separa la cancelación del cambio de estado en el panel (US-029)"
+
+El selector de estado incluía CANCELADO junto con las transiciones normales, lo que permitía cancelar sin motivo obligatorio. Se separó en dos secciones: el selector principal solo muestra transiciones de avance; un botón rojo independiente despliega un formulario con motivo obligatorio para cancelar. Las reservas COMPLETADAS y CANCELADAS no muestran ninguno de los dos controles.
+
+Archivos:
+- frontend/src/app/features/admin/bookings/admin-booking-detail.component.ts: constantes TRANSICIONES y CANCELABLES, signal mostraCancelForm, computed puedeCancel, método cancelarReserva() y template actualizado.
+
+PR: #pendiente
+
+---
+
+### US-029: Corrección de desfase de fechas y formato de montos en el panel
+
+git commit -m "fix: corrige desfase de fechas y unifica formato de montos en el panel (US-029)"
+
+Las fechas de hotel (check-in, check-out) y las de nacimiento en el detalle de reserva del admin se mostraban un día antes de lo correcto. El pipe date sin zona horaria usa la zona del navegador (UTC-5 Lima): una fecha guardada como 2025-11-06T00:00:00Z se interpretaba como 2025-11-05 local. La corrección fue pasar UTC como tercer argumento al pipe. Los montos pasaron de S/ X a S/. X con dos decimales obligatorios usando | number:1.2-2.
+
+Archivos:
+- frontend/src/app/features/admin/bookings/admin-booking-detail.component.ts: UTC en fechas de hotel y nacimiento; S/. con number pipe en montos.
+- frontend/src/app/features/admin/bookings/admin-bookings.component.ts: mismo formato de montos en el listado.
+
+PR: #pendiente
+
+---
+
+### US-028: Guard de contraseña temporal en todas las rutas
+
+git commit -m "fix: obliga a cambiar la contraseña temporal (US-028)"
+
+El flag mustChangePassword solo redirigía al momento del login. Si el usuario recargaba la página, ya estaba autenticado y el guard no lo bloqueaba. Se agregó la comprobación en authGuard y adminGuard: en cada activación de ruta, si mustChangePassword es true y la URL no es /profile/change-password, se redirige a esa ruta. El componente de cambio de contraseña llama refreshMe() tras el éxito para que el guard lea el estado actualizado del servidor.
+
+Archivos:
+- frontend/src/app/core/guards/auth.guard.ts: comprobación mustChangePassword en authGuard y adminGuard.
+- frontend/src/app/features/auth/change-password/change-password.component.ts: llama authService.refreshMe() tras éxito.
+- backend/test/app.e2e-spec.ts: prueba login con usuario de contraseña temporal -> respuesta incluye mustChangePassword: true.
+
+PR: #pendiente
+
+---
+
+### US-003: Reglas de contraseña y botones de visibilidad
+
+git commit -m "fix: explica las reglas y mejora la visibilidad de la contraseña (US-003)"
+
+El formulario de cambio de contraseña tenía checkboxes para mostrar/ocultar los campos, sin indicadores de requisitos ni validación de que la nueva fuera distinta a la actual. Se reemplazaron los checkboxes por botones de ojo posicionados dentro del campo. Se agregó un indicador en tiempo real con cuatro requisitos (mínimo 8 chars, 1 mayúscula, 1 número, distinta a la actual) usando computed(). canSubmit bloquea el botón hasta que los cuatro estén en verde. El mismo patrón de ojo se aplicó al formulario de registro.
+
+Archivos:
+- frontend/src/app/features/auth/change-password/change-password.component.ts: signals showCurrent y showNew; computed requirements y canSubmit con regla de contraseña distinta.
+- frontend/src/app/features/auth/client-register/client-register.component.ts: botones de ojo en los campos de contraseña.
+
+PR: #pendiente
+
+---
+
+### TS-017: Validación de formato de documento y fecha de nacimiento
+
+git commit -m "fix: completa la validación de datos del pasajero (TS-017)"
+
+El DTO BookingPassengerDto solo validaba que documentNumber fuera un string y que birthDate fuera ISO 8601, sin verificar el formato ni el rango. Se crearon dos decoradores de class-validator en `backend/src/common/validators.ts`: `EsDocumentoValido` valida DNI como exactamente 8 dígitos y pasaporte como alfanumérico de 6 a 12; `EsFechaNacimientoValida` rechaza fechas futuras y anteriores a 1900. En el frontend, `continuar()` replica las mismas tres reglas (nombre, documento y fecha) antes de llamar a la API, con mensajes de toast específicos para cada caso.
+
+Archivos:
+- `backend/src/common/validators.ts`: decoradores `EsDocumentoValido` y `EsFechaNacimientoValida`.
+- `backend/src/bookings/dto/create-booking.dto.ts`: importa y aplica ambos decoradores en `BookingPassengerDto`.
+- `frontend/src/app/features/packages/steps/step-passengers.component.ts`: validación de formato en `continuar()` antes de llamar a la API.
+- `backend/test/app.e2e-spec.ts`: tres pruebas nuevas — DNI inválido → 400; fecha futura → 400; fecha antes de 1900 → 400.
+
+PR: #pendiente
+
+---
+
+### US-011: Restricción de cancelación del cliente a reservas pendientes
+
+git commit -m "fix: restringe la cancelación del cliente a reservas pendientes (US-011)"
+
+`cancelOwn()` delegaba directamente a `cancel()`, que acepta tanto PENDIENTE como CONFIRMADO. Según la matriz del sprint (TS-018, `docs/tareas/sprint-2.md` línea 56: "de Pendiente o Confirmado a Cancelado cuando el cliente cancela") el spec original permitía ambos, pero la matriz de acceso aprobada (línea 64: "el cliente solo cancela lo suyo") restringe al cliente a PENDIENTE; desde CONFIRMADO solo el admin puede cancelar. Se agregó la comprobación en `cancelOwn()` antes de llamar a `cancel()`. El botón de cancelar en el detalle del cliente quedó condicionado solo a PENDIENTE. El test que esperaba 200 para cancelación de CONFIRMADO fue corregido a 400.
+
+Archivos:
+- `backend/src/bookings/bookings.service.ts`: `cancelOwn()` lanza `BadRequestException` si el estado no es PENDIENTE.
+- `frontend/src/app/features/my-trips/trip-detail.component.ts`: botón cancelar solo visible cuando `status === 'PENDIENTE'`.
+- `backend/test/app.e2e-spec.ts`: prueba cliente cancela CONFIRMADA → 400 con mensaje exacto.
+
+PR: #pendiente
+
+---
+
+### US-020: Corrección del canje — los puntos no llegaban a la reserva
+
+Commits: `8488c8d`, `92b52d8`
+
+El interruptor `state.usePoints` siempre valía `false` porque `aplicarCanje()` nunca lo ponía en `true`. El cuerpo enviado a `POST /bookings` incluía `pointsToRedeem: s.usePoints() ? s.pointsToRedeem() : 0`, por lo que el campo siempre llegaba como `0` aunque el usuario hubiera aplicado un canje en el resumen. Se eliminó la condición y se envía `s.pointsToRedeem()` directamente, que ya vale `0` por defecto. Además se mejoró la UX del canje: interruptor apagado por defecto, texto "Tienes N puntos · En esta compra puedes usar hasta M" y `max` en el input calculado como `min(disponibles, floor(subtotal × 5))`.
+
+Archivos:
+- `frontend/src/app/features/packages/steps/step-payment.component.ts`: línea 204: `s.usePoints() ? s.pointsToRedeem() : 0` → `s.pointsToRedeem()`.
+- `frontend/src/app/features/packages/steps/step-summary.component.ts`: toggle `canjeActivo`, computed `maxPuntosCanjeables`, método `toggleCanje()`.
+- `backend/test/app.e2e-spec.ts`: prueba `POST /api/bookings con pointsToRedeem aplica descuento y guarda pointsUsed`.
+
+PR: #pendiente
+
+---
+
+### US-010: Mejoras al paso de pasajeros
+
+Commit: `92b52d8`
+
+El campo de documento no tenía `inputmode` ni `maxlength`; los errores de validación solo aparecían en toast sin indicar qué campo falló; el resumen mostraba solo el conteo de pasajeros sin nombres ni documentos; en el paso de pago no había forma de volver a corregir los datos del pasajero si la reserva era rechazada. Se añadió `inputmode="numeric"` y `maxlength=8` para DNI, `maxlength=12` y auto-uppercase para pasaporte, señales de error por campo (`mostrarErrores` activado al primer `continuar()`), el resumen ahora lista nombres y documentos de cada pasajero, y el paso de pago muestra "Corregir pasajeros" cuando el error ocurrió durante la creación de la reserva.
+
+Archivos:
+- `frontend/src/app/features/packages/steps/step-passengers.component.ts`: `inputmode`, `maxlength`, `mayusculasDoc()`, `mostrarErrores`.
+- `frontend/src/app/features/packages/steps/step-summary.component.ts`: sección pasajeros lista nombres y documentos.
+- `frontend/src/app/features/packages/steps/step-payment.component.ts`: señal `errorEnReserva`, botón "Corregir pasajeros".
+
+PR: #pendiente
+
+---
+
+### US-023: Contacto en el menú del cliente
+
+Commit: `270275e`
+
+El link de Contacto existía en `VISITOR_LINKS` pero no en `CLIENT_LINKS`, por lo que un usuario autenticado no tenía acceso directo al formulario desde la barra de navegación. Se agregó `{ label: 'Contacto', path: '/contact' }` entre Mis puntos y Perfil.
+
+Archivos:
+- `frontend/src/app/core/layout/navbar/navbar.component.ts`: añadida entrada Contacto en `CLIENT_LINKS`.
+
+PR: #pendiente
+
+---
+
+### US-003: El botón de cambio de contraseña nunca se habilitaba
+
+Commit: `d05b0c9`
+
+`requirements` y `canSubmit` eran `computed()` que leían propiedades de string planas (`this.newPassword`, `this.currentPassword`, `this.confirmPassword`). `computed()` solo rastrea dependencias de signals; como las strings no son signals, el computed nunca se reevaluaba y el botón permanecía deshabilitado. Se convirtieron las tres propiedades a `signal('')` y se actualizaron el template (binding unidireccional + `ngModelChange`) y `onSubmit()`. Los emojis `👁️`/`🙈` en `change-password.component.ts` y `client-register.component.ts` se reemplazaron con SVG inline.
+
+Archivos:
+- `frontend/src/app/features/auth/change-password/change-password.component.ts`: strings → signals, template bindings, iconos SVG.
+- `frontend/src/app/features/auth/client-register/client-register.component.ts`: iconos SVG de ojo.
+
+PR: #pendiente
+
+---
+
+### Panel de administración: skeleton y tiempos de respuesta
+
+Commit: `de8df8d`
+
+Los tiempos de respuesta no fueron medidos por el agente: los valores que aparecían en versiones anteriores de esta ficha eran inventados. Quien integre debe medir con `npm run start:dev` y la base real antes de publicar el PR. El texto "Cargando estadísticas..." del dashboard se reemplazó con un grid de tres skeleton cards animados (Tailwind `animate-pulse`).
+
+Archivos:
+- `frontend/src/app/features/admin/admin-dashboard.component.ts`: skeleton de carga.
+
+PR: #pendiente
+
+---
+
+### US-019: Historial de puntos
+
+No implementado. US-019 pertenece al Sprint 3 (`docs/tareas/sprint-3.md` línea correspondiente). No corresponde implementarlo en esta rama.
+
+---
+
+## Correcciones — tercera ronda de QA
+
+### Voseo en la interfaz
+
+Commits: `f6b204d`, `b646b04`
+
+Se eliminaron las tres instancias de voseo que quedaban tras la segunda ronda: "Revisá los datos e intentá de nuevo" en `step-payment.component.ts` y "Tenés / podés" en `step-summary.component.ts`. La referencia a ese texto también se corrigió en esta ficha (`sprint-2.md`).
+
+También se corrigió la ficha del skeleton del panel: los tiempos de respuesta que aparecían en versiones anteriores ("stats 64ms…") eran inventados y se eliminaron. Quien integre debe medirlos con el servidor real.
+
+Archivos:
+- `frontend/src/app/features/packages/steps/step-payment.component.ts`
+- `frontend/src/app/features/packages/steps/step-summary.component.ts`
+- `docs/tareas/sprint-2.md`
+
+### Navegación al paso anterior en el armador (US-015)
+
+Commit: `9fb0724`
+
+Se añadió el botón "← Volver" en los pasos 2 (destino), 3 (hotel), 4 (actividades) y 5 (extras). El paso 7 (resumen) obtuvo "← Volver a pasajeros". Los pasos 6 (pasajeros) y 8 (pago) ya tenían su botón de retroceso desde rondas anteriores. Ningún botón borra datos: solo llama a `state.goTo(n-1)`. El encabezado "← Volver" sale del armador conservando el borrador en localStorage (el estado persiste vía el `effect` de `PackageBuilderState`).
+
+Archivos:
+- `frontend/src/app/features/packages/steps/step-context.component.ts`
+- `frontend/src/app/features/packages/steps/step-hotel.component.ts`
+- `frontend/src/app/features/packages/steps/step-activities.component.ts`
+- `frontend/src/app/features/packages/steps/step-extras.component.ts`
+- `frontend/src/app/features/packages/steps/step-summary.component.ts`
+
+### Máximo canjeable calculado en el servidor (US-020)
+
+Commits: `b646b04`, `9780223`
+
+**Raíz del problema:** `maxPuntosCanjeables` en el frontend usaba `floor(subtotal × 5)`, que equivale a `50 % / 0.10`, pero ignoraba el bono de nivel (p. ej., ELITE → 15 %). Con un paquete de S/. 700 y nivel ELITE, el tope correcto es 2450 puntos, no 3500 (el valor sin bono) ni 3000 (con 3000 disponibles).
+
+**Solución:**
+- `loyalty.rules.ts`: nueva función pura `maxRedeemablePointsForPackage(packageTotalCents, availablePoints, completedTrips)` que descuenta el bono de nivel antes de calcular los puntos que caben bajo el tope.
+- `bookings.service.ts`: el cliente se carga para cualquier usuario autenticado (antes solo cuando `pointsToRedeem > 0`), y se calcula y devuelve `maxRedeemablePoints` en la respuesta de `POST /bookings/quote`.
+- `quote.dto.ts`: campo `maxRedeemablePoints` añadido a `QuoteResponseDto`.
+- `step-summary.component.ts`: `maxPuntosCanjeables` ahora lee `quote()?.maxRedeemablePoints ?? 0` del servidor.
+- `app.e2e-spec.ts`: test nuevo que verifica que con nivel ELITE y 3000 puntos disponibles `maxRedeemablePoints` es 2450 (no 3000). Test mejorado de `POST /bookings` con aserciones sobre lo que se persiste en `booking.create`.
+
+Archivos:
+- `backend/src/loyalty/loyalty.rules.ts`
+- `backend/src/bookings/dto/quote.dto.ts`
+- `backend/src/bookings/bookings.service.ts`
+- `backend/test/app.e2e-spec.ts`
+- `frontend/src/app/features/packages/steps/step-summary.component.ts`
+
+---
+
+## Fichas — Cuarta ronda de QA
+
+### Aviso de precio solo ante cambio de precio base (US-015)
+
+Commit: `fix: muestra el aviso de precio solo si cambian los precios base (US-015)`
+
+**Raíz del problema:** `_fetchQuote()` comparaba `response.breakdown.total` (subtotal menos descuento de canje) con `s.totalPrice()` (subtotal base calculado en el estado, sin descuento). Al aplicar o quitar el canje, el total cambiaba aunque los precios del catálogo no lo hicieran, disparando el aviso de forma engañosa.
+
+**Solución:** Cambiar la comparación a `response.breakdown.subtotal` versus `s.totalPrice()`. Ambos representan el precio base sin descuento, por lo que solo difieren cuando cambia el catálogo.
+
+Archivos:
+- `frontend/src/app/features/packages/steps/step-summary.component.ts`
+
+---
+
+### El titular toma los datos de la cuenta al iniciar sesión (US-010)
+
+Commit: `fix: el titular toma los datos de la cuenta al iniciar sesión (US-010)`
+
+**Raíz del problema:** El efecto en `StepPassengersComponent` solo actualizaba nombre y apellido al detectar autenticación; documentType, documentNumber y fecha de nacimiento no se tomaban del perfil aunque existieran.
+
+**Solución:** Se reemplaza la actualización inline del efecto por una llamada a `GET /clients/me` a través del nuevo método `_cargarDatosTitular()`. El efecto usa el flag `_perfilCargado` para no repetir la llamada. El titular recibe todos los campos del perfil; si el perfil no tiene documento, se conserva lo que el usuario escribió. Se muestra un toast informativo si el nombre del borrador era diferente al de la cuenta.
+
+Archivos:
+- `frontend/src/app/features/packages/steps/step-passengers.component.ts`
+
+---
+
+### Documento de viaje en el perfil del cliente (US-009)
+
+Commit: `fix: agrega el documento de viaje al perfil del cliente (US-009)`
+
+**Cambios de esquema:** Se añadió `documentType DocumentType?` al modelo `Client` en `schema.prisma`. El enum `DocumentType` ya existía para `Traveler`. Se generó la migración `20261104061905_agrega_document_type_al_cliente` (SQL: `ALTER TABLE "Client" ADD COLUMN "documentType" "DocumentType"`). **Backend:**
+- `update-client.dto.ts`: agrega `documentType?: DocumentType`.
+- `clients.service.ts` → `updateProfile()`: persiste `documentType`.
+- `bookings.service.ts` → `_rellenarDocumentoSiVacio()`: método privado que, después de crear una reserva, actualiza el perfil del cliente con los datos del titular si esos campos están vacíos (auto-relleno en la primera compra).
+- `seed-data/users.ts`: agrega `documentType: 'DNI'` a los tres clientes de demostración.
+- `seed.ts` → `seedDemoClients()`: incluye `documentType` en el perfil del upsert.
+
+**Frontend:**
+- `profile.component.ts`: nuevo bloque "Documento de viaje" con tipo, número y fecha de nacimiento; validaciones idénticas al paso de pasajeros; botón "Guardar documento" independiente del formulario de datos personales.
+
+Archivos:
+- `backend/prisma/schema.prisma`
+- `backend/prisma/migrations/20261104061905_agrega_document_type_al_cliente/migration.sql`
+- `backend/prisma/seed-data/users.ts`
+- `backend/prisma/seed.ts`
+- `backend/src/clients/dto/update-client.dto.ts`
+- `backend/src/clients/clients.service.ts`
+- `backend/src/bookings/bookings.service.ts`
+- `frontend/src/app/features/profile/profile.component.ts`
+
+---
+
+### Restringe al administrador al panel de gestión (TS-027)
+
+Commit: `fix: restringe al administrador al panel de gestión (TS-027)`
+
+**Frontend:**
+- `auth.guard.ts`: nuevo guard `clientOnlyGuard` que redirige a `/admin/dashboard` si el usuario es ADMIN; `adminGuard` actualizado para redirigir a `/admin/change-password` en lugar de `/profile/change-password` cuando hay contraseña temporal.
+- `app.routes.ts`: `clientOnlyGuard` aplicado a home, my-trips, loyalty, profile y profile/change-password. Nueva ruta `/admin/change-password` que carga `ChangePasswordComponent`.
+- `navbar.component.ts`: nueva constante `ADMIN_LINKS` con solo "Panel de administración"; `links` computed diferencia entre visitante, cliente y administrador.
+- `admin-shell.component.ts`: agrega "Cambiar contraseña" y "Cerrar sesión" al pie de la barra lateral.
+
+**Backend:**
+- `clients.controller.ts`: `GET /clients/me` y `PATCH /clients/me` reciben `@UseGuards(RolesGuard)` + `@Roles(UserRole.CLIENT)` → 403 para administradores.
+- `bookings.controller.ts`: `POST /bookings/quote` verifica `req.user.role === ADMIN` y lanza `ForbiddenException`; `POST /bookings` y `POST /bookings/:id/pay` reciben `@UseGuards(JwtAuthGuard, RolesGuard)` + `@Roles(UserRole.CLIENT)`.
+- `app.e2e-spec.ts`: 5 nuevas pruebas que verifican 403 para admin en cada una de esas rutas.
+
+Archivos:
+- `frontend/src/app/core/guards/auth.guard.ts`
+- `frontend/src/app/app.routes.ts`
+- `frontend/src/app/core/layout/navbar/navbar.component.ts`
+- `frontend/src/app/features/admin/admin-shell.component.ts`
+- `backend/src/clients/clients.controller.ts`
+- `backend/src/bookings/bookings.controller.ts`
+- `backend/test/app.e2e-spec.ts`
+
+---
+
+## Fichas — Quinta ronda de QA
+
+### Rutas públicas bloqueadas para el administrador (TS-027)
+
+Commit: `fix: bloquea las rutas públicas para el administrador (TS-027)`
+
+**Raíz del problema:** `clientOnlyGuard` solo estaba aplicado a rutas privadas (home, my-trips, loyalty, profile). Un administrador podía navegar a `explore`, `search`, `destinations`, `destinations/:id`, `packages/new` y `contact` sin ser redirigido al panel.
+
+**Solución:** Agregar `canActivate: [clientOnlyGuard]` a todas esas rutas. El comodín `**` ya redirigía a `explore`, que ahora también tiene el guard, por lo que cualquier URL desconocida lleva al admin a `/admin/dashboard`.
+
+Archivos:
+- `frontend/src/app/app.routes.ts`
+
+---
+
+### Documento del perfil completado al confirmar el pago (US-009)
+
+Commit: `fix: completa el documento del perfil al confirmar el pago sin promesas sueltas (US-009)`
+
+**Raíz del problema:** `_rellenarDocumentoSiVacio` se llamaba en `create()` con `void`, lo que dejaba la promesa sin manejador de rechazo. Además usaba `as any` para tipar `documentType` y vivía en el momento equivocado (al crear la reserva, no al pagarla).
+
+**Solución:** Eliminar la llamada de `create()`. En `pay()`, después de confirmar la transacción, llamar con `await` + `try/catch` + `Logger`. Tipar `documentType` con el enum `DocumentType` de Prisma. `birthDate` del pasajero ya es `Date` (campo Prisma), así que se elimina la conversión con `new Date()`.
+
+Archivos:
+- `backend/src/bookings/bookings.service.ts`
+
+---
+
+### Guard reutilizable para rutas de cliente (TS-027)
+
+Commit: `refactor: mueve la restricción del administrador a un guard reutilizable (TS-027)`
+
+**Raíz del problema:** El endpoint `POST /bookings/quote` tenía un `if (req.user?.role === ADMIN) throw ForbiddenException` escrito directamente en el método del controlador, violando la regla B4 de AGENTS.md.
+
+**Solución:** Crear `NotAdminGuard` en `backend/src/auth/guards/not-admin.guard.ts`. El guard bloquea a los administradores y deja pasar a clientes y visitantes sin sesión. El decorator del endpoint pasa de `@UseGuards(OptionalJwtGuard)` a `@UseGuards(OptionalJwtGuard, NotAdminGuard)`. El chequeo inline y la importación de `ForbiddenException` se eliminan del controlador.
+
+Archivos:
+- `backend/src/auth/guards/not-admin.guard.ts` (nuevo)
+- `backend/src/bookings/bookings.controller.ts`
+
+---
+
+### Importación sin uso en el controlador de clientes (TS-027)
+
+Commit: `fix: elimina importación sin uso en el controlador de clientes (TS-027)`
+
+**Raíz del problema:** El commit `01d7b35` importó `ApiOkResponse` de `@nestjs/swagger` en `clients.controller.ts` sin usarlo, generando un warning de lint.
+
+**Solución:** Eliminar `ApiOkResponse` del import.
+
+Archivos:
+- `backend/src/clients/clients.controller.ts`
+
+---
+
+### Reemplazo del titular al adoptar el borrador tras iniciar sesión (US-010)
+
+Commit: `fix: reemplaza al titular al adoptar el borrador tras iniciar sesión (US-010)`
+
+**Raíz del problema:** `_cargarDatosTitular()` vive en `StepPassengersComponent` y solo corre cuando el componente está activo. Si el visitante completaba el paso 6 y llegaba al Resumen (paso 7) antes de iniciar sesión, `_syncOwner()` en el estado adoptaba el borrador pero no actualizaba `passengerDrafts`. El Resumen seguía mostrando los datos del visitante.
+
+**Solución:** Agregar `_adoptarBorrador()` a `PackageBuilderState`. Se llama desde `_syncOwner()` cuando el dueño pasa de `null` a un userId (visitante → autenticado). Si `passengerDrafts` tiene datos (el paso 6 ya fue completado), reemplaza el nombre del titular de inmediato y hace `GET /clients/me` para completar documento y fecha de nacimiento. Si `passengerDrafts` está vacío, no actúa: `StepPassengersComponent` lo maneja al instanciarse. La lógica del componente se conserva para el caso en que el usuario ya está autenticado y visita el paso 6 por primera vez.
+
+Archivos:
+- `frontend/src/app/features/packages/package-builder.state.ts`
