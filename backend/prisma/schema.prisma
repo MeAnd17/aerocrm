@@ -41,6 +41,7 @@ model Client {
   phone              String?
   nationality        String?
   dateOfBirth        DateTime?
+  documentType       DocumentType?
   documentNumber     String?
 
   // Preferencias opcionales del registro

@@ -47,6 +47,38 @@ import { apiErrorMessage } from '../../core/services/api-error';
           </button>
         </div>
 
+        <!-- Documento de viaje -->
+        <div class="bg-white rounded-xl border shadow-sm p-5">
+          <h2 class="font-semibold text-gray-800 mb-1">Documento de viaje</h2>
+          <p class="text-sm text-gray-500 mb-4">Se usará para pre-rellenar el titular en tu próxima reserva.</p>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Tipo</label>
+              <select [(ngModel)]="docForm.documentType"
+                class="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="DNI">DNI</option>
+                <option value="PASAPORTE">Pasaporte</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Número</label>
+              <input type="text" [(ngModel)]="docForm.documentNumber"
+                [attr.maxlength]="docForm.documentType === 'PASAPORTE' ? 12 : 8"
+                [placeholder]="docForm.documentType === 'PASAPORTE' ? 'Ej. AB123456' : 'Ej. 12345678'"
+                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Fecha de nacimiento</label>
+              <input type="date" [(ngModel)]="docForm.dateOfBirth"
+                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+          </div>
+          <button (click)="saveDoc()" [disabled]="savingDoc()"
+            class="mt-4 bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50">
+            {{ savingDoc() ? 'Guardando...' : 'Guardar documento' }}
+          </button>
+        </div>
+
         <!-- Preferencias -->
         <div class="bg-white rounded-xl border shadow-sm p-5">
           <h2 class="font-semibold text-gray-800 mb-4">Preferencias de viaje</h2>
@@ -193,10 +225,12 @@ export class ProfileComponent implements OnInit {
   profile = signal<any>(null);
   travelers = signal<any[]>([]);
   saving = signal(false);
+  savingDoc = signal(false);
   showAddTraveler = signal(false);
   editingTravelerId = signal<number | null>(null);
   deletingTravelerId = signal<number | null>(null);
   editForm: any = {};
+  docForm: any = {};
   newTraveler: any = {};
   editTravelerForm: any = {};
 
@@ -214,7 +248,16 @@ export class ProfileComponent implements OnInit {
   ngOnInit() {
     this.api.get<any>('clients/me').subscribe(p => {
       this.profile.set(p);
-      this.editForm = { firstName: p.firstName, lastName: p.lastName, phone: p.phone, nationality: p.nationality, travelStyle: p.travelStyle, destinationType: p.destinationType };
+      this.editForm = {
+        firstName: p.firstName, lastName: p.lastName,
+        phone: p.phone, nationality: p.nationality,
+        travelStyle: p.travelStyle, destinationType: p.destinationType,
+      };
+      this.docForm = {
+        documentType: p.documentType ?? 'DNI',
+        documentNumber: p.documentNumber ?? '',
+        dateOfBirth: p.dateOfBirth ? new Date(p.dateOfBirth).toISOString().split('T')[0] : '',
+      };
     });
     this.api.get<any[]>('clients/me/travelers').subscribe(t => this.travelers.set(t));
   }
@@ -224,6 +267,37 @@ export class ProfileComponent implements OnInit {
     this.api.patch<any>('clients/me', this.editForm).subscribe({
       next: () => { this.saving.set(false); this.toast.success('Datos actualizados'); },
       error: () => this.saving.set(false),
+    });
+  }
+
+  saveDoc() {
+    const regexDni = /^\d{8}$/;
+    const regexPasaporte = /^[A-Z0-9]{6,12}$/i;
+    const { documentType, documentNumber, dateOfBirth } = this.docForm;
+
+    if (documentNumber) {
+      if (documentType === 'DNI' && !regexDni.test(documentNumber)) {
+        this.toast.error('El DNI debe tener exactamente 8 dígitos');
+        return;
+      }
+      if (documentType === 'PASAPORTE' && !regexPasaporte.test(documentNumber)) {
+        this.toast.error('El pasaporte debe ser alfanumérico de 6 a 12 caracteres');
+        return;
+      }
+    }
+
+    if (dateOfBirth) {
+      const fecha = new Date(dateOfBirth);
+      if (isNaN(fecha.getTime()) || fecha >= new Date() || fecha < new Date('1900-01-01')) {
+        this.toast.error('La fecha de nacimiento debe estar entre 1900 y hoy');
+        return;
+      }
+    }
+
+    this.savingDoc.set(true);
+    this.api.patch<any>('clients/me', { documentType, documentNumber, dateOfBirth }).subscribe({
+      next: () => { this.savingDoc.set(false); this.toast.success('Documento guardado'); },
+      error: (err) => { this.savingDoc.set(false); this.toast.error(apiErrorMessage(err, 'No se pudo guardar el documento')); },
     });
   }
 

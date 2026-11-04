@@ -566,7 +566,35 @@ export class BookingsService {
       return newBooking;
     });
 
+    // Auto-rellena el documento del perfil con los datos del titular si están vacíos (US-009).
+    const titular = dto.passengers.find(p => p.isHolder);
+    if (titular) void this._rellenarDocumentoSiVacio(client.id, titular);
+
     return booking;
+  }
+
+  /**
+   * Actualiza el tipo de documento, número y fecha de nacimiento del perfil solo
+   * si esos campos aún están vacíos. No sobreescribe datos que el cliente ya guardó.
+   */
+  private async _rellenarDocumentoSiVacio(
+    clientId: number,
+    titular: { documentType: string; documentNumber: string; birthDate: string },
+  ) {
+    const perfil = await this.prisma.client.findUnique({
+      where: { id: clientId },
+      select: { documentType: true, documentNumber: true, dateOfBirth: true },
+    });
+    if (!perfil) return;
+    if (perfil.documentType && perfil.documentNumber && perfil.dateOfBirth) return;
+    await this.prisma.client.update({
+      where: { id: clientId },
+      data: {
+        documentType: perfil.documentType ?? (titular.documentType as any),
+        documentNumber: perfil.documentNumber ?? titular.documentNumber,
+        dateOfBirth: perfil.dateOfBirth ?? new Date(titular.birthDate),
+      },
+    });
   }
 
   /** GET /bookings/extras — lista los extras activos del catálogo con precio y modo de cobro. */

@@ -156,6 +156,7 @@ async function seedDemoClients(): Promise<Map<string, { userId: number; clientId
       phone: c.phone,
       nationality: 'PE',
       dateOfBirth: new Date(`${c.dateOfBirth}T00:00:00Z`),
+      documentType: c.documentType,
       documentNumber: c.documentNumber,
       travelStyle: c.travelStyle,
       destinationType: c.destinationType,

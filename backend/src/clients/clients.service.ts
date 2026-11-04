@@ -47,6 +47,7 @@ export class ClientsService {
     const data: Prisma.ClientUpdateInput = {
       phone: dto.phone,
       nationality: dto.nationality,
+      documentType: dto.documentType,
       documentNumber: dto.documentNumber,
       travelStyle: dto.travelStyle,
       destinationType: dto.destinationType,
