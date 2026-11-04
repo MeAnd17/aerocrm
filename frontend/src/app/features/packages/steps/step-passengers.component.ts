@@ -17,6 +17,15 @@ interface ViajeroBD {
   dateOfBirth: string;
 }
 
+/** Subconjunto de GET /clients/me necesario para pre-rellenar el titular (US-010). */
+interface ClienteMe {
+  firstName: string;
+  lastName: string;
+  documentType?: 'DNI' | 'PASAPORTE';
+  documentNumber?: string;
+  dateOfBirth?: string;
+}
+
 /**
  * Paso 6 · Datos de los pasajeros (US-010).
  *
@@ -178,18 +187,20 @@ export class StepPassengersComponent implements OnInit {
 
   readonly estaAutenticado = () => this.auth.isAuthenticated();
 
+  /** Evita llamar varias veces al perfil si ya se cargó para el usuario actual. */
+  private _perfilCargado = false;
+
   constructor() {
-    // Cuando el visitante inicia sesión mientras está en este paso, actualiza
-    // el nombre y apellido del titular con los del usuario autenticado (US-006).
+    // Cuando el usuario se autentica (o ya lo estaba al entrar), carga los datos
+    // completos del perfil (nombre, documento, fecha de nacimiento) para pre-rellenar
+    // el titular. Usa _perfilCargado para no repetir la llamada al actualizar borradores.
     effect(() => {
       const usuario = this.auth.currentUser();
-      if (!usuario) return;
+      if (!usuario) { this._perfilCargado = false; return; }
       const lista = this.borradores();
       if (lista.length === 0) return;
-      if (lista[0].firstName === usuario.firstName && lista[0].lastName === usuario.lastName) return;
-      const copia = [...lista];
-      copia[0] = { ...copia[0], firstName: usuario.firstName, lastName: usuario.lastName };
-      this.borradores.set(copia);
+      if (this._perfilCargado) return;
+      this._cargarDatosTitular();
     });
   }
 
@@ -251,6 +262,49 @@ export class StepPassengersComponent implements OnInit {
       next: (viajeros) => this.viajerosFrecuentes.set(viajeros),
       error: () => {
         // Los viajeros frecuentes son una comodidad; si falla, el paso sigue funcionando.
+      },
+    });
+  }
+
+  /**
+   * Obtiene el perfil completo del cliente y actualiza el titular con nombre,
+   * tipo/número de documento y fecha de nacimiento (US-010).
+   *
+   * Nombre: siempre se sobreescribe (el titular debe ser el dueño de la cuenta).
+   * Documento / fecha: se sobreescribe con el dato del perfil si existe; si el
+   * perfil no tiene ese dato, se conserva lo que el usuario ya escribió.
+   */
+  private _cargarDatosTitular() {
+    this._perfilCargado = true;
+    this.api.get<ClienteMe>('clients/me').subscribe({
+      next: (perfil) => {
+        const lista = this.borradores();
+        if (lista.length === 0) return;
+        const titular = lista[0];
+
+        const nombreDiferente =
+          titular.firstName.trim() !== '' &&
+          (titular.firstName !== perfil.firstName || titular.lastName !== perfil.lastName);
+
+        const copia = [...lista];
+        copia[0] = {
+          ...titular,
+          firstName: perfil.firstName,
+          lastName: perfil.lastName,
+          documentType: perfil.documentType ?? titular.documentType,
+          documentNumber: perfil.documentNumber?.trim() ? perfil.documentNumber : titular.documentNumber,
+          birthDate: perfil.dateOfBirth ? perfil.dateOfBirth.split('T')[0] : titular.birthDate,
+        };
+        this.borradores.set(copia);
+
+        if (nombreDiferente) {
+          this.toast.info(
+            'El titular de la reserva es el dueño de la cuenta. Si viaja otra persona, agrégala como acompañante.',
+          );
+        }
+      },
+      error: () => {
+        // Error no crítico: el titular ya tiene al menos el nombre de la sesión.
       },
     });
   }
