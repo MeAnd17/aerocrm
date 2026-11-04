@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { BookingStatus, Prisma } from '@prisma/client';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { BookingStatus, DocumentType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -66,6 +66,8 @@ const TRANSICIONES_VALIDAS: Record<BookingStatus, BookingStatus[]> = {
 
 @Injectable()
 export class BookingsService {
+  private readonly logger = new Logger(BookingsService.name);
+
   constructor(
     private prisma: PrismaService,
     private loyaltyService: LoyaltyService,
@@ -566,10 +568,6 @@ export class BookingsService {
       return newBooking;
     });
 
-    // Auto-rellena el documento del perfil con los datos del titular si están vacíos (US-009).
-    const titular = dto.passengers.find(p => p.isHolder);
-    if (titular) void this._rellenarDocumentoSiVacio(client.id, titular);
-
     return booking;
   }
 
@@ -579,7 +577,7 @@ export class BookingsService {
    */
   private async _rellenarDocumentoSiVacio(
     clientId: number,
-    titular: { documentType: string; documentNumber: string; birthDate: string },
+    titular: { documentType: DocumentType; documentNumber: string; birthDate: Date },
   ) {
     const perfil = await this.prisma.client.findUnique({
       where: { id: clientId },
@@ -590,9 +588,9 @@ export class BookingsService {
     await this.prisma.client.update({
       where: { id: clientId },
       data: {
-        documentType: perfil.documentType ?? (titular.documentType as any),
+        documentType: perfil.documentType ?? titular.documentType,
         documentNumber: perfil.documentNumber ?? titular.documentNumber,
-        dateOfBirth: perfil.dateOfBirth ?? new Date(titular.birthDate),
+        dateOfBirth: perfil.dateOfBirth ?? titular.birthDate,
       },
     });
   }
@@ -658,7 +656,7 @@ export class BookingsService {
       }
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const confirmed = await this.prisma.$transaction(async (tx) => {
       // Avanzar estado
       await tx.booking.update({
         where: { id: bookingId },
@@ -711,6 +709,18 @@ export class BookingsService {
         },
       });
     });
+
+    // Auto-rellena el documento del perfil con los datos del titular si están vacíos (US-009).
+    const titular = confirmed?.bookingPassengers.find(p => p.isHolder);
+    if (titular) {
+      try {
+        await this._rellenarDocumentoSiVacio(client.id, titular);
+      } catch (err) {
+        this.logger.error('No se pudo rellenar el documento del perfil', err);
+      }
+    }
+
+    return confirmed;
   }
 
   /** Cancela una reserva PENDIENTE o CONFIRMADA, revirtiendo puntos si corresponde. */
