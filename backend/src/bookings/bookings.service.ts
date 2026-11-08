@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
-import { BookingStatus, DocumentType, Prisma } from '@prisma/client';
+import { BookingStatus, DocumentType, PointsEventType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -759,27 +759,19 @@ export class BookingsService {
               availablePoints: { decrement: actualDecrement },
             },
           });
+          const ajusteMsg =
+            actualDecrement < pointsEarned
+              ? ` (${pointsEarned - actualDecrement} puntos ya utilizados no fueron devueltos)`
+              : '';
           await tx.pointsHistory.create({
             data: {
               clientId:    client.id,
-              type:        'EARNED_REFUND',
+              type:        'EARNED_REFUND' as unknown as PointsEventType,
               points:      -actualDecrement,
-              description: `Reversión de puntos por cancelación de ${booking.confirmationCode}`,
+              description: `Reversión de puntos por cancelación de ${booking.confirmationCode}${ajusteMsg}`,
               bookingId,
             },
           });
-          // Si el cliente ya había gastado parte, registrar ajuste informativo.
-          if (actualDecrement < pointsEarned) {
-            await tx.pointsHistory.create({
-              data: {
-                clientId:    client.id,
-                type:        'EARNED_REFUND' as any,
-                points:      0,
-                description: `Ajuste: ${pointsEarned - actualDecrement} puntos ya utilizados no devueltos por cancelación de ${booking.confirmationCode}`,
-                bookingId,
-              },
-            });
-          }
         }
 
         if (pointsUsed > 0) {

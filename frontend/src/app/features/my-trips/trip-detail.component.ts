@@ -194,10 +194,28 @@ interface ReservaDetalle {
 
         <!-- Cancelar (US-018: desde PENDIENTE o CONFIRMADO) -->
         @if (reserva()!.status === 'PENDIENTE' || reserva()!.status === 'CONFIRMADO') {
-          <button (click)="cancelar()" [disabled]="cancelando()"
-            class="w-full border border-red-300 text-red-600 py-2.5 rounded-xl text-sm font-medium hover:bg-red-50 transition disabled:opacity-50">
-            {{ cancelando() ? 'Cancelando...' : 'Cancelar reserva' }}
-          </button>
+          @if (!confirmandoCancelacion()) {
+            <button (click)="solicitarCancelacion()" [disabled]="cancelando()"
+              class="w-full border border-red-300 text-red-600 py-2.5 rounded-xl text-sm font-medium hover:bg-red-50 transition disabled:opacity-50">
+              Cancelar reserva
+            </button>
+          } @else {
+            <div class="rounded-xl border border-red-300 bg-red-50 p-4 space-y-3">
+              <p class="text-sm font-semibold text-red-700">
+                ¿Cancelar tu viaje a {{ destinoCancelacion() }}? Esta acción no se puede deshacer
+              </p>
+              <div class="flex gap-3">
+                <button (click)="confirmarCancelacion()" [disabled]="cancelando()"
+                  class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-semibold transition disabled:opacity-50">
+                  {{ cancelando() ? 'Cancelando...' : 'Sí, cancelar' }}
+                </button>
+                <button (click)="descartarCancelacion()" [disabled]="cancelando()"
+                  class="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition disabled:opacity-50">
+                  No, volver
+                </button>
+              </div>
+            </div>
+          }
         }
       }
     </div>
@@ -208,6 +226,10 @@ export class TripDetailComponent implements OnInit {
   cargando = signal(true);
   cancelando = signal(false);
   noEncontrada = signal(false);
+  /** Indica que el usuario pidió cancelar y espera confirmación (dos pasos). */
+  confirmandoCancelacion = signal(false);
+  /** Destino del vuelo de ida, usado en el mensaje de confirmación. */
+  destinoCancelacion = signal('este destino');
 
   constructor(
     private api: ApiService,
@@ -241,27 +263,37 @@ export class TripDetailComponent implements OnInit {
     void this.router.navigate(['/my-trips', id, 'print']);
   }
 
-  cancelar() {
-    const id = this.reserva()?.id;
-    if (!id) return;
-
-    // US-018: confirmación antes de cancelar.
+  /** Primer paso: muestra el diálogo de confirmación inline. */
+  solicitarCancelacion() {
     const vueloIda = this.reserva()?.bookingFlights?.[0]?.flight;
     const destino = vueloIda?.destination?.city ?? vueloIda?.origin?.city ?? 'este destino';
-    const confirmado = window.confirm(`¿Cancelar tu viaje a ${destino}? Esta acción no se puede deshacer`);
-    if (!confirmado) return;
+    this.destinoCancelacion.set(destino);
+    this.confirmandoCancelacion.set(true);
+  }
+
+  /** Segundo paso: el usuario confirmó — ejecutar la cancelación. */
+  confirmarCancelacion() {
+    const id = this.reserva()?.id;
+    if (!id) return;
 
     this.cancelando.set(true);
     this.api.patch<ReservaDetalle>(`bookings/${id}/cancel`, {}).subscribe({
       next: (actualizada) => {
         this.reserva.set(actualizada);
         this.cancelando.set(false);
+        this.confirmandoCancelacion.set(false);
         this.toast.success('Tu viaje fue cancelado');
       },
       error: (err: unknown) => {
         this.cancelando.set(false);
+        this.confirmandoCancelacion.set(false);
         this.toast.error(apiErrorMessage(err, 'No pudimos cancelar la reserva'));
       },
     });
+  }
+
+  /** El usuario descartó la cancelación — ocultar el diálogo. */
+  descartarCancelacion() {
+    this.confirmandoCancelacion.set(false);
   }
 }
