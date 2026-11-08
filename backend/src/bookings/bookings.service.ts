@@ -766,7 +766,7 @@ export class BookingsService {
           await tx.pointsHistory.create({
             data: {
               clientId:    client.id,
-              type:        'EARNED_REFUND' as unknown as PointsEventType,
+              type:        PointsEventType.EARNED_REFUND,
               points:      -actualDecrement,
               description: `Reversión de puntos por cancelación de ${booking.confirmationCode}${ajusteMsg}`,
               bookingId,
