@@ -208,8 +208,7 @@ import { apiErrorMessage } from '../../../core/services/api-error';
           </div>
         } @else if (isLoggedIn() && state.loyalty() && !state.loyalty().canRedeem) {
           <p class="text-xs text-gray-500 bg-gray-50 rounded-lg p-3">
-            Necesitas al menos 500 puntos para canjear.
-            Tienes {{ state.loyalty().availablePoints }}.
+            Necesitas al menos 500 puntos para canjear (tienes {{ state.loyalty().availablePoints }})
           </p>
         }
 

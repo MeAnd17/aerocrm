@@ -174,6 +174,12 @@ export class StepPaymentComponent {
           next: (confirmada) => {
             s.reset();
             const codigo = confirmada.confirmationCode ?? '';
+            if (confirmada.pointsEarned > 0) {
+              this.toast.success(
+                `¡Ganaste ${confirmada.pointsEarned} puntos con esta compra!`,
+                'Puntos acreditados',
+              );
+            }
             this.toast.success(
               `¡Tu viaje está confirmado! Código ${codigo}`,
               'Reserva confirmada',

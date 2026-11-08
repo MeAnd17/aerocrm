@@ -47,7 +47,7 @@ import { ApiService } from '../../core/services/api.service';
           <div class="bg-white rounded-xl border shadow-sm p-5">
             <p class="text-sm text-gray-600 mb-2">
               Te faltan <strong>{{ status()?.nextLevel?.tripsNeeded }} viajes</strong>
-              para alcanzar el nivel <strong>{{ status()?.nextLevel?.level | label }}</strong>
+              para ser <strong>{{ status()?.nextLevel?.levelLabel }}</strong>
               y obtener {{ status()?.nextLevel?.discount }}% de descuento al canjear
             </p>
             <div class="h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -56,7 +56,7 @@ import { ApiService } from '../../core/services/api.service';
           </div>
         } @else {
           <div class="bg-purple-50 border border-purple-200 rounded-xl p-4 text-center">
-            <p class="text-purple-800 font-semibold">🏆 ¡Eres ELITE! El nivel más alto</p>
+            <p class="text-purple-800 font-semibold">🏆 Estás en el nivel más alto</p>
           </div>
         }
 
@@ -64,20 +64,28 @@ import { ApiService } from '../../core/services/api.service';
         <div class="bg-white rounded-xl border shadow-sm p-5">
           <h2 class="font-semibold text-gray-800 mb-4">Todos los niveles</h2>
           <div class="space-y-3">
-            @for (level of status()?.levels; track level.level) {
+            @for (level of status()?.levels; track level.level; let i = $index; let last = $last) {
               <div class="flex items-center gap-3 p-3 rounded-lg"
                 [class.bg-blue-50]="level.level === status()?.level"
                 [class.border]="level.level === status()?.level"
-                [class.border-blue-200]="level.level === status()?.level">
+                [class.border-blue-200]="level.level === status()?.level"
+                [class.ring-2]="level.level === status()?.level"
+                [class.ring-blue-300]="level.level === status()?.level">
                 <span class="text-xl">
                   {{ level.level === 'EXPLORADOR' ? '🌱' : level.level === 'VIAJERO' ? '✈️' : level.level === 'FRECUENTE' ? '⭐' : '👑' }}
                 </span>
                 <div class="flex-1">
-                  <p class="font-medium text-gray-800">{{ level.level | label }}</p>
-                  <p class="text-xs text-gray-500">Desde {{ level.minTrips }} viajes</p>
+                  <p class="font-medium text-gray-800">{{ level.levelLabel }}</p>
+                  <p class="text-xs text-gray-500">
+                    {{ last ? (level.minTrips + '+ viajes') : (level.minTrips + '–' + ((status()!.levels[i + 1].minTrips) - 1) + ' viajes') }}
+                  </p>
                 </div>
                 <span class="text-sm font-semibold text-blue-700">+{{ level.discount }}%</span>
-                @if (level.reached) { <span class="text-green-500 text-xs">✓ Alcanzado</span> }
+                @if (level.level === status()?.level) {
+                  <span class="text-blue-600 text-xs font-semibold">Actual</span>
+                } @else if (level.reached) {
+                  <span class="text-green-500 text-xs">✓ Alcanzado</span>
+                }
               </div>
             }
           </div>
@@ -104,16 +112,26 @@ import { ApiService } from '../../core/services/api.service';
                 <div class="flex items-center justify-between py-2 border-b last:border-0">
                   <div>
                     <p class="text-sm text-gray-700">{{ item.description }}</p>
+                    @if (item.bookingId) {
+                      <p class="text-xs text-blue-500">Ref. reserva: {{ item.bookingId }}</p>
+                    }
                     <p class="text-xs text-gray-400">{{ item.createdAt | date:'dd/MM/yyyy' }}</p>
                   </div>
                   <span class="font-semibold text-sm"
-                    [class.text-green-600]="item.type === 'EARNED'"
-                    [class.text-red-500]="item.type === 'REDEEMED'">
-                    {{ item.type === 'EARNED' ? '+' : '' }}{{ item.points }} pts
+                    [class.text-green-600]="item.type === 'EARNED' || item.type === 'REDEEMED_REFUND'"
+                    [class.text-red-500]="item.type === 'REDEEMED' || item.type === 'EARNED_REFUND'">
+                    {{ (item.type === 'EARNED' || item.type === 'REDEEMED_REFUND') ? '+' : '' }}{{ item.points }} pts
                   </span>
                 </div>
               }
             </div>
+          </div>
+        } @else {
+          <div class="bg-white rounded-xl border shadow-sm p-5">
+            <h2 class="font-semibold text-gray-800 mb-3">Historial de puntos</h2>
+            <p class="text-sm text-gray-500 text-center py-4">
+              Aún no tienes movimientos. Tus puntos aparecerán al confirmar tu primer viaje
+            </p>
           </div>
         }
       }

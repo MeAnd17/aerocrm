@@ -192,8 +192,8 @@ interface ReservaDetalle {
           </button>
         }
 
-        <!-- Cancelar (US-011: solo desde PENDIENTE; desde CONFIRMADO en adelante, solo el admin) -->
-        @if (reserva()!.status === 'PENDIENTE') {
+        <!-- Cancelar (US-018: desde PENDIENTE o CONFIRMADO) -->
+        @if (reserva()!.status === 'PENDIENTE' || reserva()!.status === 'CONFIRMADO') {
           <button (click)="cancelar()" [disabled]="cancelando()"
             class="w-full border border-red-300 text-red-600 py-2.5 rounded-xl text-sm font-medium hover:bg-red-50 transition disabled:opacity-50">
             {{ cancelando() ? 'Cancelando...' : 'Cancelar reserva' }}
@@ -244,11 +244,19 @@ export class TripDetailComponent implements OnInit {
   cancelar() {
     const id = this.reserva()?.id;
     if (!id) return;
+
+    // US-018: confirmación antes de cancelar.
+    const vueloIda = this.reserva()?.bookingFlights?.[0]?.flight;
+    const destino = vueloIda?.destination?.city ?? vueloIda?.origin?.city ?? 'este destino';
+    const confirmado = window.confirm(`¿Cancelar tu viaje a ${destino}? Esta acción no se puede deshacer`);
+    if (!confirmado) return;
+
     this.cancelando.set(true);
     this.api.patch<ReservaDetalle>(`bookings/${id}/cancel`, {}).subscribe({
       next: (actualizada) => {
         this.reserva.set(actualizada);
         this.cancelando.set(false);
+        this.toast.success('Tu viaje fue cancelado');
       },
       error: (err: unknown) => {
         this.cancelando.set(false);
