@@ -8,6 +8,8 @@ import { BookingsModule } from './bookings/bookings.module';
 import { LoyaltyModule } from './loyalty/loyalty.module';
 import { ContactModule } from './contact/contact.module';
 import { AdminModule } from './admin/admin.module';
+import { ReviewsModule } from './reviews/reviews.module';
+import { RecommendationsModule } from './recommendations/recommendations.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -21,6 +23,8 @@ import { AppController } from './app.controller';
     LoyaltyModule,
     ContactModule,
     AdminModule,
+    ReviewsModule,
+    RecommendationsModule,
   ],
   controllers: [AppController],
 })

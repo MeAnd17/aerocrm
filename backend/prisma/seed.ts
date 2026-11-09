@@ -368,6 +368,55 @@ async function seedHistory(
   }
 }
 
+async function seedReviews(
+  clients: Map<string, { userId: number; clientId: number }>,
+) {
+  // Reseñas de demostración para reservas COMPLETADO de lucia (nuevo), diego (viajero) y valeria (elite).
+  // Cada reseña está ligada a una reserva completada; se buscan por clientId + status.
+  const reviewSeeds: Array<{
+    clientKey: string;
+    bookingIndex: number; // índice en las reservas COMPLETADO del cliente
+    rating: number;
+    comment?: string;
+  }> = [
+    // Lucía (nuevo) – sin compras, no tiene reseñas
+    // Diego (viajero) – 4 viajes COMPLETADO
+    { clientKey: 'viajero', bookingIndex: 0, rating: 5, comment: 'Increíble experiencia en Cancún, volvería sin dudarlo.' },
+    { clientKey: 'viajero', bookingIndex: 1, rating: 4, comment: 'Medellín es hermosa y el parapente fue lo mejor del viaje.' },
+    { clientKey: 'viajero', bookingIndex: 2, rating: 5, comment: 'Río de Janeiro superó todas mis expectativas. El Pan de Azúcar es impresionante.' },
+    // Valeria (elite) – múltiples viajes COMPLETADO, reseñar algunos
+    { clientKey: 'elite', bookingIndex: 0, rating: 4, comment: 'Madrid tiene una energía única. El Prado no tiene precio.' },
+    { clientKey: 'elite', bookingIndex: 1, rating: 5, comment: 'Cancún siempre es una fiesta, el Hyatt Ziva es excelente para familia.' },
+    { clientKey: 'elite', bookingIndex: 2, rating: 4, comment: 'Panamá es un destino subestimado, el Biomuseo vale mucho la pena.' },
+  ];
+
+  for (const seed of reviewSeeds) {
+    const owner = clients.get(seed.clientKey);
+    if (!owner) continue;
+
+    // Buscar la reserva completada en el índice indicado
+    const completedBookings = await prisma.booking.findMany({
+      where: { clientId: owner.clientId, status: 'COMPLETADO' },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    });
+
+    const booking = completedBookings[seed.bookingIndex];
+    if (!booking) continue;
+
+    await prisma.review.upsert({
+      where: { bookingId: booking.id },
+      update: { rating: seed.rating, comment: seed.comment ?? null },
+      create: {
+        bookingId: booking.id,
+        clientId: owner.clientId,
+        rating: seed.rating,
+        comment: seed.comment ?? null,
+      },
+    });
+  }
+}
+
 // ── Principal ─────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -383,6 +432,7 @@ async function main() {
   await seedReferenceData(ids);
   const clients = await seedDemoClients();
   await seedHistory(ids, ref, clients);
+  await seedReviews(clients);
 
   const counts = {
     destinos: await prisma.destination.count(),
@@ -397,6 +447,7 @@ async function main() {
     climaMensual: await prisma.destinationClimate.count(),
     feriados: await prisma.holiday.count(),
     cacheApiExternas: await prisma.externalApiCache.count(),
+    resenas: await prisma.review.count(),
   };
   console.log('Registros:', JSON.stringify(counts));
   console.log(`Credenciales de demostración (contraseña ${DEMO_PASSWORD}):`);

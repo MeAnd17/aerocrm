@@ -2,10 +2,12 @@ import { Component, OnInit, signal } from '@angular/core';
 import { LabelPipe } from '../../shared/pipes/label.pipe';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { HttpErrorResponse } from '@angular/common/http';
+import { RatingStarsComponent } from '../../shared/ui/rating-stars.component';
 
 /** Pasajero incluido en la reserva. */
 interface Pasajero {
@@ -59,10 +61,17 @@ interface ReservaDetalle {
   bookingPassengers: Pasajero[];
 }
 
+interface Resena {
+  id: number;
+  rating: number;
+  comment: string | null;
+  updatedAt: string;
+}
+
 @Component({
   selector: 'app-trip-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, LabelPipe],
+  imports: [CommonModule, RouterLink, LabelPipe, FormsModule, RatingStarsComponent],
   template: `
     <div class="space-y-5">
       <div class="flex items-center gap-3">
@@ -184,6 +193,75 @@ interface ReservaDetalle {
           </div>
         </div>
 
+        <!-- Calificación (US-025) — solo para viajes COMPLETADO -->
+        @if (reserva()!.status === 'COMPLETADO') {
+          <div class="bg-white rounded-xl border shadow-sm p-5">
+            <h3 class="font-semibold text-gray-800 mb-3">⭐ Calificación</h3>
+
+            @if (cargandoResena()) {
+              <p class="text-sm text-gray-400">Cargando calificación...</p>
+            } @else if (resena() && !editandoResena()) {
+              <!-- Reseña existente -->
+              <div class="space-y-2">
+                <ui-stars [rating]="resena()!.rating" />
+                @if (resena()!.comment) {
+                  <p class="text-sm text-gray-700">{{ resena()!.comment }}</p>
+                }
+                <p class="text-xs text-gray-400">{{ resena()!.updatedAt | date:'dd/MM/yyyy':'':'es-PE' }}</p>
+                <div class="flex gap-2 mt-2">
+                  <button (click)="iniciarEdicion()"
+                    class="text-sm text-blue-600 hover:underline">Editar</button>
+                  <button (click)="solicitarEliminacion()"
+                    class="text-sm text-red-500 hover:underline">Eliminar</button>
+                </div>
+              </div>
+
+              <!-- Confirmar eliminación (inline, sin window.confirm) -->
+              @if (confirmandoEliminar()) {
+                <div class="mt-3 p-3 bg-red-50 rounded-lg border border-red-200 space-y-2">
+                  <p class="text-sm font-semibold text-red-700">¿Eliminar tu calificación de este viaje?</p>
+                  <div class="flex gap-2">
+                    <button (click)="confirmarEliminar()" [disabled]="guardandoResena()"
+                      class="flex-1 bg-red-600 text-white text-sm py-1.5 rounded-lg hover:bg-red-700 transition disabled:opacity-50">
+                      {{ guardandoResena() ? 'Eliminando...' : 'Sí, eliminar' }}
+                    </button>
+                    <button (click)="cancelarEliminar()" [disabled]="guardandoResena()"
+                      class="flex-1 border border-gray-300 text-gray-600 text-sm py-1.5 rounded-lg hover:bg-gray-50 transition disabled:opacity-50">
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              }
+            } @else {
+              <!-- Formulario de calificación (nueva o edición) -->
+              <div class="space-y-3">
+                <div>
+                  <p class="text-sm text-gray-600 mb-1">Calificación</p>
+                  <ui-stars [rating]="nuevaCalif()" [editable]="true" (ratingChange)="nuevaCalif.set($event)" />
+                </div>
+                <div>
+                  <label class="text-sm text-gray-600 block mb-1">Comentario (opcional)</label>
+                  <textarea [(ngModel)]="nuevoComentario" rows="3" maxlength="500"
+                    placeholder="Cuéntanos cómo fue tu experiencia..."
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                </div>
+                <div class="flex gap-2">
+                  <button (click)="guardarResena()" [disabled]="guardandoResena() || nuevaCalif() === 0"
+                    class="flex-1 bg-blue-600 text-white text-sm py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50">
+                    {{ guardandoResena() ? 'Guardando...' : (editandoResena() ? 'Actualizar' : 'Enviar calificación') }}
+                  </button>
+                  @if (editandoResena()) {
+                    <button (click)="cancelarEdicion()"
+                      class="flex-1 border border-gray-300 text-gray-600 text-sm py-2 rounded-lg hover:bg-gray-50 transition">
+                      Cancelar
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+
         <!-- Imprimir / Guardar PDF -->
         @if (reserva()!.status === 'CONFIRMADO' || reserva()!.status === 'EN_CURSO' || reserva()!.status === 'COMPLETADO') {
           <button (click)="irAImprimir()"
@@ -231,6 +309,17 @@ export class TripDetailComponent implements OnInit {
   /** Destino del vuelo de ida, usado en el mensaje de confirmación. */
   destinoCancelacion = signal('este destino');
 
+  /** Reseña existente del cliente para esta reserva. */
+  resena = signal<Resena | null>(null);
+  cargandoResena = signal(false);
+  guardandoResena = signal(false);
+  editandoResena = signal(false);
+  confirmandoEliminar = signal(false);
+
+  /** Estado del formulario de reseña. */
+  nuevaCalif = signal(0);
+  nuevoComentario = '';
+
   constructor(
     private api: ApiService,
     private route: ActivatedRoute,
@@ -244,6 +333,9 @@ export class TripDetailComponent implements OnInit {
       next: (data) => {
         this.reserva.set(data);
         this.cargando.set(false);
+        if (data.status === 'COMPLETADO') {
+          this.cargarResena(data.id);
+        }
       },
       error: (err: unknown) => {
         this.cargando.set(false);
@@ -252,6 +344,106 @@ export class TripDetailComponent implements OnInit {
         } else {
           this.toast.error(apiErrorMessage(err, 'No pudimos cargar el detalle de la reserva'));
         }
+      },
+    });
+  }
+
+  private cargarResena(bookingId: string) {
+    this.cargandoResena.set(true);
+    this.api.get<Resena | null>(`reviews/booking/${bookingId}`).subscribe({
+      next: (r) => {
+        this.resena.set(r);
+        this.cargandoResena.set(false);
+      },
+      error: () => this.cargandoResena.set(false),
+    });
+  }
+
+  guardarResena() {
+    if (this.nuevaCalif() === 0) return;
+    const bookingId = this.reserva()?.id;
+    if (!bookingId) return;
+
+    this.guardandoResena.set(true);
+
+    if (this.editandoResena() && this.resena()) {
+      // PATCH
+      this.api.patch<Resena>(`reviews/${this.resena()!.id}`, {
+        rating: this.nuevaCalif(),
+        comment: this.nuevoComentario || undefined,
+      }).subscribe({
+        next: (r) => {
+          this.resena.set(r);
+          this.editandoResena.set(false);
+          this.guardandoResena.set(false);
+          this.toast.success('Calificación actualizada');
+        },
+        error: (err: unknown) => {
+          this.guardandoResena.set(false);
+          this.toast.error(apiErrorMessage(err, 'No pudimos actualizar la calificación'));
+        },
+      });
+    } else {
+      // POST
+      this.api.post<Resena>('reviews', {
+        bookingId,
+        rating: this.nuevaCalif(),
+        comment: this.nuevoComentario || undefined,
+      }).subscribe({
+        next: (r) => {
+          this.resena.set(r);
+          this.guardandoResena.set(false);
+          this.nuevaCalif.set(0);
+          this.nuevoComentario = '';
+          this.toast.success('Gracias por tu calificación');
+        },
+        error: (err: unknown) => {
+          this.guardandoResena.set(false);
+          this.toast.error(apiErrorMessage(err, 'No pudimos guardar la calificación'));
+        },
+      });
+    }
+  }
+
+  iniciarEdicion() {
+    const r = this.resena();
+    if (!r) return;
+    this.nuevaCalif.set(r.rating);
+    this.nuevoComentario = r.comment ?? '';
+    this.editandoResena.set(true);
+    this.confirmandoEliminar.set(false);
+  }
+
+  cancelarEdicion() {
+    this.editandoResena.set(false);
+    this.nuevaCalif.set(0);
+    this.nuevoComentario = '';
+  }
+
+  solicitarEliminacion() {
+    this.confirmandoEliminar.set(true);
+  }
+
+  cancelarEliminar() {
+    this.confirmandoEliminar.set(false);
+  }
+
+  confirmarEliminar() {
+    const r = this.resena();
+    if (!r) return;
+    this.guardandoResena.set(true);
+    this.api.delete<void>(`reviews/${r.id}`).subscribe({
+      next: () => {
+        this.resena.set(null);
+        this.confirmandoEliminar.set(false);
+        this.guardandoResena.set(false);
+        this.nuevaCalif.set(0);
+        this.nuevoComentario = '';
+        this.toast.success('Calificación eliminada');
+      },
+      error: (err: unknown) => {
+        this.guardandoResena.set(false);
+        this.toast.error(apiErrorMessage(err, 'No pudimos eliminar la calificación'));
       },
     });
   }
