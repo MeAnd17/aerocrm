@@ -68,16 +68,45 @@ export class ClientsService {
     if (!user?.client) throw new NotFoundException('Perfil no encontrado');
     const client = user.client;
 
-    // Próxima reserva confirmada
-    const nextBooking = await this.prisma.booking.findFirst({
-      where: { clientId: client.id, status: { in: ['CONFIRMADO', 'EN_CURSO'] } },
-      orderBy: { createdAt: 'desc' },
+    // Próxima reserva confirmada (la de fecha de salida más cercana)
+    const nextBookingRaw = await this.prisma.booking.findFirst({
+      where: { clientId: client.id, status: { in: ['PENDIENTE', 'CONFIRMADO', 'EN_CURSO'] } },
+      orderBy: { createdAt: 'desc' }, // fallback; el orden real es por departureDate del vuelo
       include: {
-        bookingFlights: { include: { flight: { include: { destination: true, origin: true } } } },
+        bookingFlights: {
+          include: { flight: { include: { destination: true, origin: true } } },
+          orderBy: { id: 'asc' },
+        },
         bookingHotels: { include: { hotel: true } },
         bookingActivities: { include: { activity: true } },
       },
     });
+
+    // Reordenar: tomar la reserva activa cuyo vuelo de ida tenga la fecha de salida más próxima
+    const activeBookings = await this.prisma.booking.findMany({
+      where: { clientId: client.id, status: { in: ['PENDIENTE', 'CONFIRMADO', 'EN_CURSO'] } },
+      include: {
+        bookingFlights: {
+          include: { flight: { include: { destination: true, origin: true } } },
+          orderBy: { id: 'asc' },
+        },
+        bookingHotels: { include: { hotel: true } },
+        bookingActivities: { include: { activity: true } },
+      },
+    });
+
+    // Encontrar la reserva con el vuelo de ida (primer vuelo) de departureDate más próxima
+    const now = new Date();
+    const nextBooking = activeBookings
+      .filter((b) => b.bookingFlights.length > 0)
+      .sort((a, b) => {
+        const dateA = new Date(a.bookingFlights[0].flight.departureDate).getTime();
+        const dateB = new Date(b.bookingFlights[0].flight.departureDate).getTime();
+        // Preferir fechas futuras más cercanas
+        const diffA = Math.abs(dateA - now.getTime());
+        const diffB = Math.abs(dateB - now.getTime());
+        return diffA - diffB;
+      })[0] ?? nextBookingRaw;
 
     // Puntos y nivel
     const loyalty = this.loyalty.buildStatus(client);
@@ -90,8 +119,13 @@ export class ClientsService {
     });
 
     // Temporadas próximas (festividades de los próximos 3 meses)
+    const currentMonth = new Date().getMonth() + 1; // 1-12
+    const upcomingMonths: number[] = [];
+    for (let i = 0; i <= 3; i++) {
+      upcomingMonths.push(((currentMonth - 1 + i) % 12) + 1);
+    }
     const upcomingFestivities = await this.prisma.festivity.findMany({
-      where: { isActive: true },
+      where: { isActive: true, startMonth: { in: upcomingMonths } },
       include: { destination: true },
       take: 6,
     });

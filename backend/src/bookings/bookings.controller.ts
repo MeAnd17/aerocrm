@@ -170,8 +170,12 @@ export class BookingsController {
   @Patch(':id/cancel')
   @ApiBearerAuth()
   @ApiUnauthorizedResponse({ description: 'Token ausente o vencido' })
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Cancela una reserva propia' })
+  @ApiForbiddenResponse({ description: 'El administrador no puede cancelar desde este endpoint' })
+  @UseGuards(JwtAuthGuard, NotAdminGuard)
+  @ApiOperation({
+    summary: 'Cancela una reserva propia (US-018)',
+    description: 'El cliente puede cancelar su reserva desde estado PENDIENTE o CONFIRMADO. En cualquier otro estado devuelve error.',
+  })
   @ApiBadRequestResponse({ description: 'La reserva está en un estado que no permite cancelación' })
   @ApiNotFoundResponse({ description: 'Reserva no encontrada' })
   cancelOwn(@Request() req, @Param('id') id: string) {

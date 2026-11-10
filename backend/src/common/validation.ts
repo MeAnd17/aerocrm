@@ -58,6 +58,15 @@ const FIELD_LABELS: Record<string, string> = {
   reason: 'motivo',
   // Campos del DTO de atención de consultas (US-030)
   note: 'nota interna',
+  // Campos de DTOs de reseñas (TS-024)
+  bookingId: 'reserva',
+  rating: 'calificación',
+  comment: 'comentario',
+  // Campos de DTOs de recomendaciones (TS-020)
+  searchSignals: 'señales de búsqueda',
+  viewedDestinationTypes: 'tipos de destino vistos',
+  priceRangeFilter: 'filtro de precio',
+  destinationId: 'destino',
   // Campos de DTOs de destinos e inventario (US-027)
   country: 'país',
   countryCode: 'código de país',

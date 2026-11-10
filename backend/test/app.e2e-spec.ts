@@ -940,18 +940,18 @@ describe('API (e2e)', () => {
     expect(res.status).toBe(400);
   });
 
-  // ─── US-011: Cliente solo cancela reservas PENDIENTE ─────────────────────────
+  // ─── US-018: Cliente solo cancela reservas PENDIENTE o CONFIRMADO ───────────
 
-  it('PATCH /api/bookings/:id/cancel — cliente no puede cancelar reserva CONFIRMADA (400) (US-011)', async () => {
+  it('PATCH /api/bookings/:id/cancel — cliente no puede cancelar reserva EN_CURSO (400) (US-018)', async () => {
     const usuarioCliente = { id: 99, email: 'cliente@test.pe', isActive: true, role: 'CLIENT', client: { id: 5 } };
-    const reservaConfirmada = {
+    const reservaEnCurso = {
       id: 'cld-cancel-02', confirmationCode: 'VJ-CANCEL02',
-      status: 'CONFIRMADO', userId: 99, clientId: 5,
+      status: 'EN_CURSO', userId: 99, clientId: 5,
     };
 
     prismaFalso.user.findUnique.mockResolvedValueOnce(usuarioCliente);
     prismaFalso.user.findUnique.mockResolvedValueOnce(usuarioCliente);
-    prismaFalso.booking.findFirst.mockResolvedValueOnce(reservaConfirmada);
+    prismaFalso.booking.findFirst.mockResolvedValueOnce(reservaEnCurso);
 
     const token = jwtService.sign({ sub: 99, email: 'cliente@test.pe', clientId: 5, role: 'CLIENT' });
     const res = await request(app.getHttpServer())
@@ -959,6 +959,6 @@ describe('API (e2e)', () => {
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(400);
-    expect(res.body.message).toBe('Solo puedes cancelar una reserva en estado pendiente');
+    expect(res.body.message).toBe('Este viaje ya no se puede cancelar');
   });
 });

@@ -1,9 +1,12 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { LabelPipe } from '../../shared/pipes/label.pipe';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
+import { PackageDraftService } from '../packages/package-draft.service';
+import { ToastService } from '../../core/services/toast.service';
+import { apiErrorMessage } from '../../core/services/api-error';
 
 @Component({
   selector: 'app-home',
@@ -68,8 +71,13 @@ import { AuthService } from '../../core/services/auth.service';
                   → {{ home()?.nextBooking?.bookingFlights?.[0]?.flight?.destination?.city }}
                 </p>
                 <p class="text-sm text-gray-500">
-                  {{ home()?.nextBooking?.bookingFlights?.[0]?.flight?.departureDate | date:'dd MMM yyyy' }}
+                  {{ home()?.nextBooking?.bookingFlights?.[0]?.flight?.departureDate | date:'dd MMM yyyy':'UTC':'es-PE' }}
                 </p>
+                @if (home()?.nextBooking?.bookingHotels?.[0]?.hotel) {
+                  <p class="text-xs text-gray-500 mt-0.5">
+                    🏨 {{ home()?.nextBooking?.bookingHotels?.[0]?.hotel?.name }}
+                  </p>
+                }
               </div>
             }
             <span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
@@ -106,24 +114,112 @@ import { AuthService } from '../../core/services/auth.service';
           </div>
         </div>
       }
+
+      <!-- Elegidos para ti -->
+      @if (recommendations().length > 0) {
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+          <h2 class="font-semibold text-gray-800 mb-3">✨ Elegidos para ti</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            @for (rec of recommendations(); track rec.destination.id) {
+              <div class="border rounded-xl p-4 space-y-2">
+                <div>
+                  <p class="font-semibold text-gray-800">{{ rec.destination.city }}</p>
+                  <p class="text-xs text-gray-500">{{ rec.destination.country }}</p>
+                  <span class="text-xs mt-1 inline-block px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                    {{ rec.destination.type | label }}
+                  </span>
+                </div>
+                <p class="text-xs text-gray-500 italic">{{ rec.reason }}</p>
+                @if (rec.isReturn) {
+                  <span class="text-xs text-amber-600 font-medium">↩ Vuelve a visitarlo</span>
+                }
+                <button (click)="armarViaje(rec.destination.id)"
+                  [disabled]="armando() === rec.destination.id"
+                  class="w-full bg-blue-600 text-white text-sm py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50">
+                  {{ armando() === rec.destination.id ? 'Preparando...' : 'Armar mi viaje' }}
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Sin compras y sin preferencias -->
+      @if (!home()?.nextBooking && home()?.membership?.completedTrips === 0 && recommendations().length === 0) {
+        <div class="bg-amber-50 border border-amber-100 rounded-xl p-5 text-center">
+          <p class="text-gray-700 font-medium mb-2">Cuéntanos más de ti</p>
+          <p class="text-sm text-gray-500 mb-3">Con tus preferencias podemos mostrarte los mejores destinos para ti.</p>
+          <a routerLink="/profile" class="bg-amber-500 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-amber-600 transition">
+            Completar mi perfil
+          </a>
+        </div>
+      }
     </div>
   `,
 })
 export class HomeComponent implements OnInit {
   home = signal<any>(null);
   user = signal<any>(null);
+  recommendations = signal<any[]>([]);
+  armando = signal<number | null>(null);
 
-  constructor(private api: ApiService, private auth: AuthService) {}
+  constructor(
+    private api: ApiService,
+    private auth: AuthService,
+    private draftService: PackageDraftService,
+    private router: Router,
+    private toast: ToastService,
+  ) {}
 
   ngOnInit() {
     this.user.set(this.auth.currentUser());
     this.api.get<any>('clients/me/home').subscribe({
-      next: (data) => this.home.set(data),
+      next: (data) => {
+        this.home.set(data);
+        this.cargarRecomendaciones();
+      },
     });
   }
 
   levelProgress(): number {
-    // El avance lo calcula el motor de fidelización del backend (AGENTS.md B7).
     return this.home()?.membership?.nextLevel?.progressPercent ?? 100;
+  }
+
+  private cargarRecomendaciones() {
+    const signals = this.draftService.getSearchSignals();
+    this.api.post<any[]>('recommendations', { searchSignals: signals }).subscribe({
+      next: (data) => this.recommendations.set(data?.slice(0, 6) ?? []),
+      error: () => {}, // silencioso: las recomendaciones son complementarias
+    });
+  }
+
+  /** Botón "Armar mi viaje": pide un quick-package y navega al armador. */
+  armarViaje(destinationId: number) {
+    this.armando.set(destinationId);
+    this.api.post<any>('recommendations/quick-package', { destinationId }).subscribe({
+      next: (draft) => {
+        this.draftService.save({
+          ownerId: this.user()?.id ?? null,
+          step: 1,
+          destinationId: draft.destinationId,
+          flightId: draft.flightId,
+          returnFlightId: null,
+          departureDate: draft.departureDate,
+          passengers: 1,
+          hotelId: draft.hotelId ?? null,
+          checkIn: draft.departureDate,
+          checkOut: draft.departureDate,
+          activitySelections: (draft.activityIds ?? []).map((id: number) => ({ activityId: id, quantity: 1 })),
+          extraIds: [],
+          pointsToRedeem: 0,
+        });
+        this.armando.set(null);
+        void this.router.navigate(['/packages/new']);
+      },
+      error: (err: unknown) => {
+        this.armando.set(null);
+        this.toast.error(apiErrorMessage(err, 'No pudimos preparar tu viaje'));
+      },
+    });
   }
 }

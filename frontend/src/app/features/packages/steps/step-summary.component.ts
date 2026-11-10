@@ -174,10 +174,10 @@ import { apiErrorMessage } from '../../../core/services/api-error';
                 <input
                   type="number"
                   [(ngModel)]="puntosIngresados"
-                  min="500"
+                  [min]="state.loyalty()?.minRedeemPoints"
                   [max]="maxPuntosCanjeables()"
                   step="100"
-                  placeholder="Puntos a canjear (min. 500)"
+                  [placeholder]="'Puntos a canjear (min. ' + state.loyalty()?.minRedeemPoints + ')'"
                   class="flex-1 px-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <button
@@ -208,8 +208,7 @@ import { apiErrorMessage } from '../../../core/services/api-error';
           </div>
         } @else if (isLoggedIn() && state.loyalty() && !state.loyalty().canRedeem) {
           <p class="text-xs text-gray-500 bg-gray-50 rounded-lg p-3">
-            Necesitas al menos 500 puntos para canjear.
-            Tienes {{ state.loyalty().availablePoints }}.
+            Necesitas al menos 500 puntos para canjear (tienes {{ state.loyalty().availablePoints }})
           </p>
         }
 

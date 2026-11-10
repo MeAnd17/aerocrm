@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
-import { BookingStatus, DocumentType, Prisma } from '@prisma/client';
+import { BookingStatus, DocumentType, PointsEventType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -746,19 +746,29 @@ export class BookingsService {
         const { pointsEarned, pointsUsed, client } = booking;
 
         if (pointsEarned > 0) {
+          // US-018: saldo nunca negativo — decrementar solo hasta lo disponible.
+          const clientActual = await tx.client.findUnique({
+            where: { id: client.id },
+            select: { availablePoints: true },
+          });
+          const actualDecrement = Math.min(pointsEarned, clientActual?.availablePoints ?? 0);
           await tx.client.update({
             where: { id: client.id },
             data: {
-              totalPoints:     { decrement: pointsEarned },
-              availablePoints: { decrement: pointsEarned },
+              totalPoints:     { decrement: actualDecrement },
+              availablePoints: { decrement: actualDecrement },
             },
           });
+          const ajusteMsg =
+            actualDecrement < pointsEarned
+              ? ` (${pointsEarned - actualDecrement} puntos ya utilizados no fueron devueltos)`
+              : '';
           await tx.pointsHistory.create({
             data: {
               clientId:    client.id,
-              type:        'EARNED_REFUND',
-              points:      pointsEarned,
-              description: `Reversión de puntos por cancelación de ${booking.confirmationCode}`,
+              type:        PointsEventType.EARNED_REFUND,
+              points:      -actualDecrement,
+              description: `Reversión de puntos por cancelación de ${booking.confirmationCode}${ajusteMsg}`,
               bookingId,
             },
           });
@@ -786,7 +796,7 @@ export class BookingsService {
     });
   }
 
-  /** Cancela la reserva propia de un cliente autenticado (solo desde PENDIENTE). */
+  /** Cancela la reserva propia de un cliente autenticado (desde PENDIENTE o CONFIRMADO). */
   async cancelOwn(userId: number, bookingId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId }, include: { client: true } });
     if (!user?.client) throw new NotFoundException('Cliente no encontrado');
@@ -796,10 +806,9 @@ export class BookingsService {
     });
     if (!booking) throw new NotFoundException('Reserva no encontrada');
 
-    // US-011: el cliente solo puede cancelar reservas en estado PENDIENTE.
-    // Desde CONFIRMADO en adelante, solo el administrador puede cancelar.
-    if (booking.status !== 'PENDIENTE') {
-      throw new BadRequestException('Solo puedes cancelar una reserva en estado pendiente');
+    // US-018: el cliente puede cancelar desde PENDIENTE o CONFIRMADO.
+    if (!['PENDIENTE', 'CONFIRMADO'].includes(booking.status)) {
+      throw new BadRequestException('Este viaje ya no se puede cancelar');
     }
 
     return this.cancel(bookingId, user.email);

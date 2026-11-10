@@ -63,6 +63,7 @@ model Client {
   bookings           Booking[]
   pointsHistory      PointsHistory[]
   savedDestinations  SavedDestination[]
+  reviews            Review[]
 }
 
 enum TravelStyle {
@@ -267,6 +268,7 @@ model Booking {
   bookingActivities  BookingActivity[]
   bookingExtras      BookingExtra[]
   bookingPassengers  BookingPassenger[]
+  review             Review?
 }
 
 enum BookingStatus {
@@ -479,5 +481,18 @@ model ExternalApiCache {
   data      Json
   fetchedAt DateTime @default(now())
   expiresAt DateTime
+}
+
+// ─── REVIEWS (TS-024) ─────────────────────────────────────────────────────────
+
+model Review {
+  id          Int      @id @default(autoincrement())
+  bookingId   String   @unique
+  clientId    Int
+  rating      Int      // 1-5
+  comment     String?  @db.VarChar(500)
+  updatedAt   DateTime @updatedAt
+  booking     Booking  @relation(fields: [bookingId], references: [id])
+  client      Client   @relation(fields: [clientId], references: [id])
 }
 

@@ -6,6 +6,9 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { PackageDraftService } from '../packages/package-draft.service';
+import { ToastService } from '../../core/services/toast.service';
+import { AuthService } from '../../core/services/auth.service';
+import { apiErrorMessage } from '../../core/services/api-error';
 
 /** Opciones de filtro de escala. */
 type StopsFilter = 'todos' | 'directo' | '1' | '2+';
@@ -196,6 +199,31 @@ type StopsFilter = 'todos' | 'directo' | '1' | '2+';
         </div>
       }
 
+      <!-- Recomendaciones (basadas en búsquedas anteriores) -->
+      @if (!searched() && recommendations().length > 0) {
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+          <h2 class="font-semibold text-gray-800 mb-3">
+            Porque buscaste {{ busquedaTipos() }}
+          </h2>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            @for (rec of recommendations(); track rec.destination.id) {
+              <div class="border rounded-xl p-3 space-y-2">
+                <div>
+                  <p class="font-medium text-sm text-gray-800">{{ rec.destination.city }}</p>
+                  <p class="text-xs text-gray-500">{{ rec.destination.country }}</p>
+                  <p class="text-xs text-gray-400 italic mt-0.5">{{ rec.reason }}</p>
+                </div>
+                <button (click)="armarViaje(rec.destination.id)"
+                  [disabled]="armando() === rec.destination.id"
+                  class="w-full bg-blue-600 text-white text-xs py-1.5 rounded-lg hover:bg-blue-700 transition disabled:opacity-50">
+                  {{ armando() === rec.destination.id ? 'Preparando...' : 'Armar mi viaje' }}
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
       <!-- Destinos populares (solo antes de buscar) -->
       @if (!searched()) {
         <div>
@@ -233,6 +261,10 @@ export class SearchComponent implements OnInit {
   loading = signal(false);
   searched = signal(false);
   dateError = signal('');
+  /** Recomendaciones basadas en señales de búsqueda. */
+  recommendations = signal<any[]>([]);
+  /** ID del destino cuyo quick-package se está preparando. */
+  armando = signal<number | null>(null);
 
   searchForm = { origin: 'LIM', destinationId: '', departureDate: '', passengers: 1 };
 
@@ -319,6 +351,8 @@ export class SearchComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private draftService: PackageDraftService,
+    private toast: ToastService,
+    private auth: AuthService,
   ) {}
 
   ngOnInit() {
@@ -331,6 +365,12 @@ export class SearchComponent implements OnInit {
         this.searchForm.destinationId = destId;
       }
     });
+
+    // Cargar recomendaciones si hay señales de búsqueda previas
+    const signals = this.draftService.getSearchSignals();
+    if (signals.viewedDestinationTypes.length > 0) {
+      this.cargarRecomendaciones(signals);
+    }
   }
 
   search() {
@@ -368,12 +408,63 @@ export class SearchComponent implements OnInit {
           this.filters.maxDuration = max;
           this.loading.set(false);
           this.searched.set(true);
+          // Actualizar recomendaciones con la nueva señal
+          const signals = this.draftService.getSearchSignals();
+          if (signals.viewedDestinationTypes.length > 0) {
+            this.cargarRecomendaciones(signals);
+          }
         },
         error: () => {
           this.loading.set(false);
           this.searched.set(true);
         },
       });
+  }
+
+  /** Carga recomendaciones del backend con las señales actuales. */
+  private cargarRecomendaciones(signals: { viewedDestinationTypes: string[]; priceRangeFilter: { min: number; max: number } | null }) {
+    this.api.post<any[]>('recommendations', { searchSignals: signals }).subscribe({
+      next: (data) => this.recommendations.set(data ?? []),
+      error: () => {}, // silencioso
+    });
+  }
+
+  /** Texto que resume los tipos buscados para el encabezado de recomendaciones. */
+  busquedaTipos(): string {
+    const tipos = this.draftService.getSearchSignals().viewedDestinationTypes;
+    const MAP: Record<string, string> = { PLAYA: 'playa', CIUDAD: 'ciudad', AVENTURA: 'aventura', CULTURA: 'cultura' };
+    return tipos.map((t) => MAP[t] ?? t.toLowerCase()).join(' y ');
+  }
+
+  /** Botón "Armar mi viaje": pide un quick-package y navega al armador. */
+  armarViaje(destinationId: number) {
+    this.armando.set(destinationId);
+    const user = this.auth.currentUser();
+    this.api.post<any>('recommendations/quick-package', { destinationId }).subscribe({
+      next: (draft) => {
+        this.draftService.save({
+          ownerId: user?.id ?? null,
+          step: 1,
+          destinationId: draft.destinationId,
+          flightId: draft.flightId,
+          returnFlightId: null,
+          departureDate: draft.departureDate,
+          passengers: 1,
+          hotelId: draft.hotelId ?? null,
+          checkIn: draft.departureDate,
+          checkOut: draft.departureDate,
+          activitySelections: (draft.activityIds ?? []).map((id: number) => ({ activityId: id, quantity: 1 })),
+          extraIds: [],
+          pointsToRedeem: 0,
+        });
+        this.armando.set(null);
+        void this.router.navigate(['/packages/new']);
+      },
+      error: (err: unknown) => {
+        this.armando.set(null);
+        this.toast.error(apiErrorMessage(err, 'No pudimos preparar tu viaje'));
+      },
+    });
   }
 
   /** Texto de cercanía a la fecha elegida: "Tu fecha", "1 día antes", "2 días después". */
