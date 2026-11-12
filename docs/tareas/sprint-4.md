@@ -159,6 +159,18 @@ Archivos:
 
 PR: pendiente
 
+### TS-023: Guion de demostración, ensayos y video
+
+git commit -m "docs: agrega guion de demostración de 8 minutos y plantilla de ensayo (TS-023)"
+
+Escribí el guion de demostración (`docs/GUION-DEMO.md`) con 8 tramos clic a clic que cubren el ciclo completo del cliente: búsqueda sin registro, registro con preferencias, armado del paquete en 6 pasos, pago y puntos ganados, inicio personalizado del cliente Elite, canje con descuento de nivel, calificación de un viaje y panel del administrador. Cada tramo tiene quién habla (con reparto de voz por integrante según lo que construyó), qué pantalla se muestra, los pasos exactos y una frase clave para la sustentación. También preparé `docs/PLANTILLA-ENSAYO.md` con el checklist previo, el registro de tiempos por tramo y el checklist posterior para los dos ensayos obligatorios. El guion incluye instrucciones para el video de respaldo y el protocolo de falla en vivo.
+
+Archivos:
+- `docs/GUION-DEMO.md`: guion de 8 tramos con reparto de voz, pasos y frases clave.
+- `docs/PLANTILLA-ENSAYO.md`: plantilla para registrar los dos ensayos con tiempos y problemas.
+
+PR: pendiente
+
 ### TS-028: Ronda completa de pruebas manuales y registro de defectos
 
 git commit -m "docs: agrega plan de pruebas manuales, registro de defectos y ficha de cierre (TS-028)"
