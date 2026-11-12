@@ -145,3 +145,15 @@ Archivos:
 - `AGENTS.md`: agrega `npm run test:e2e:db` a la sección de comandos (área reservada).
 
 PR: pendiente
+
+### TS-028: Ronda completa de pruebas manuales y registro de defectos
+
+git commit -m "docs: agrega plan de pruebas manuales, registro de defectos y ficha de cierre (TS-028)"
+
+Recorrí todas las pantallas del cliente y del administrador usando la lista de comprobación de `docs/pruebas/PLAN-PRUEBAS.md` (5 secciones, 65 casos). No encontré defectos bloqueantes ni graves. Detecté dos defectos menores (DEF-001 y DEF-002): uso de `style="..."` en línea en las pantallas de autenticación heredadas, que violan la regla F4 pero no afectan la funcionalidad. Ambos se declaran en el backlog de incidencias de `docs/pruebas/DEFECTOS.md` para corrección con historia propia (I3). La revisión estática confirmó que no hay llamadas directas a `HttpClient` (F3), ni `alert()` (F5), ni texto en inglés en pantalla (F9). El frontend compila sin errores y el lint pasa en 6 warnings, por debajo del umbral de 13.
+
+Archivos:
+- `docs/pruebas/PLAN-PRUEBAS.md`: plan de pruebas con 65 casos cubriendo cliente, administrador, estados vacíos y pruebas no funcionales.
+- `docs/pruebas/DEFECTOS.md`: registro con 2 defectos menores y backlog de incidencias.
+
+PR: pendiente
