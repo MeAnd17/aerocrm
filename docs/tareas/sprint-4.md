@@ -128,3 +128,20 @@ Acceso: no tiene pantalla. El guion y el video quedan en el repositorio de evide
 ## Fichas de cierre
 
 Cada tarea terminada agrega aquí su ficha, en el mismo PR, con el formato de [README.md](README.md).
+
+### TS-021: Pruebas automáticas de los tres flujos críticos
+
+git commit -m "test: agrega las pruebas de los tres flujos críticos contra base real y limpia los datos de demostración (TS-021)"
+
+Creé la suite `app.e2e-db-spec.ts` con 25 casos contra una base Postgres real (variable `DATABASE_URL_TEST`), que cubre los siete flujos obligatorios: registro con y sin preferencias, compra con cotización y pago, canje con dos niveles y tope del 50 %, cancelación con reversión de puntos, revalidación de saldo entre cotización y pago, aislamiento de datos entre clientes, y bloqueo del rol ADMIN en rutas de cliente. Agregué la suite de humo `reviews.service.spec.ts` para el Sprint 3 (8 casos: crear solo sobre COMPLETADO propio, una por reserva, editar y eliminar). Corregí el seed: los acompañantes de las reservas de demostración ahora tienen nombres peruanos reales (array `DATOS_ACOMPANANTE`) y DNIs únicos secuenciales desde 61000001, sin colisión con los DNIs de los clientes de demostración. Actualicé CI (área reservada: `.github/workflows/ci.yml`) con el servicio `postgres:16` y el paso `npm run test:e2e:db`. Agregué `npm run test:e2e:db` a la sección 3 de `AGENTS.md` (área reservada). La suite verifica al inicio que `DATABASE_URL_TEST` esté definida (falla con mensaje en español si no lo está) y, antes de que `AppModule` inicialice `PrismaService`, asigna `process.env.DATABASE_URL = DATABASE_URL_TEST` para que Prisma apunte a la base de test; así `DATABASE_URL` nunca apunta a la base de producción durante las pruebas.
+
+Archivos:
+- `backend/test/app.e2e-db-spec.ts`: suite nueva de 25 casos contra Postgres real.
+- `backend/test/jest-e2e-db.json`: configuración de Jest para la suite de base real.
+- `backend/package.json`: agrega el script `test:e2e:db`.
+- `backend/src/reviews/reviews.service.spec.ts`: 8 casos unitarios de humo del Sprint 3.
+- `backend/prisma/seed.ts`: reemplaza nombres genéricos y DNIs repetidos de acompañantes; agrega array `DATOS_ACOMPANANTE`.
+- `.github/workflows/ci.yml`: añade servicio `postgres:16` y paso de migraciones + pruebas de base real (área reservada).
+- `AGENTS.md`: agrega `npm run test:e2e:db` a la sección de comandos (área reservada).
+
+PR: pendiente
