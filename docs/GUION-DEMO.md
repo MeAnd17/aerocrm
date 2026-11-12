@@ -1,23 +1,25 @@
 # Guion de demostración — AeroCRM (TS-023)
 
 Duración objetivo: 8 minutos
-Fecha de sustentación: semana del 9 al 13 de noviembre de 2026
+Fecha de sustentación: [COMPLETAR]
 Entorno: Docker Compose local (`docker-compose.local.yml`), sin internet
 
 ---
 
 ## Reparto de voz
 
+> [ASIGNAR] Cada integrante presenta la parte que construyó. Estar listo para responder preguntas sobre el código propio.
+
 | Tramo | Quién habla | Pantalla |
 |-------|------------|---------|
-| 1–2 | Integrante A | Búsqueda y recomendaciones |
-| 3–4 | Integrante B | Registro y armado del paquete |
-| 5–6 | Integrante A | Pago y puntos ganados |
-| 7 | Integrante B | Cliente con historial — inicio personalizado y canje |
-| 8 | Integrante A | Reseña |
-| 9 | Integrante B | Panel del administrador |
-
-> Cada integrante presenta la parte que construyó. Estar listo para responder preguntas sobre el código propio.
+| 1 — Búsqueda y recomendaciones | [ASIGNAR] | Destinos, búsqueda |
+| 2 — Registro | [ASIGNAR] | `/client/login` → crear cuenta |
+| 3 — Armado del paquete | [ASIGNAR] | Armador, pasos 1–6 |
+| 4 — Pago y puntos | [ASIGNAR] | Paso 6, Mis viajes |
+| 5 — Inicio personalizado (Elite) | [ASIGNAR] | Home, recomendaciones |
+| 6 — Canje con descuento de nivel | [ASIGNAR] | Armador paso 6, canje |
+| 7 — Reseña | [ASIGNAR] | Mis viajes, reserva COMPLETADO |
+| 8 — Panel del administrador | [ASIGNAR] | `/admin` |
 
 ---
 

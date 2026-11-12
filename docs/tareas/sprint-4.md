@@ -192,10 +192,10 @@ PR: pendiente
 
 git commit -m "docs: agrega plan de pruebas manuales, registro de defectos y ficha de cierre (TS-028)"
 
-Recorrí todas las pantallas del cliente y del administrador usando la lista de comprobación de `docs/pruebas/PLAN-PRUEBAS.md` (5 secciones, 65 casos). No encontré defectos bloqueantes ni graves. Detecté dos defectos menores (DEF-001 y DEF-002): uso de `style="..."` en línea en las pantallas de autenticación heredadas, que violan la regla F4 pero no afectan la funcionalidad. Ambos se declaran en el backlog de incidencias de `docs/pruebas/DEFECTOS.md` para corrección con historia propia (I3). La revisión estática confirmó que no hay llamadas directas a `HttpClient` (F3), ni `alert()` (F5), ni texto en inglés en pantalla (F9). El frontend compila sin errores y el lint pasa en 6 warnings, por debajo del umbral de 13.
+Preparé el plan de pruebas `docs/pruebas/PLAN-PRUEBAS.md` con 65 casos en 5 secciones (pantallas del cliente, pantallas del administrador, pruebas no funcionales, estados vacíos). Realicé la revisión estática del código: confirmé que no hay `HttpClient` directo en componentes (F3), ni `alert()` (F5), ni texto en inglés en pantalla en los archivos modificados (F9); el frontend compila sin errores y el lint pasa en 2 warnings heredados de auth (por debajo del umbral de 13 tras eliminar los `any` del sprint). Realicé el barrido de API con 20 casos contra el backend Docker (`http://127.0.0.1:3100/api`) con tres roles: visitante, cliente y admin; verifiqué códigos HTTP, mensajes en español, aislamiento entre clientes y ausencia de errores 500 ante entradas inválidas. No se encontraron defectos bloqueantes ni graves en ninguna de las dos fases. Detecté dos defectos menores de código heredado (DEF-001 y DEF-002: estilos en línea en las pantallas de autenticación, violación F4). La ronda manual en navegador con capturas queda pendiente del equipo; es el paso necesario para completar el criterio de aceptación de TS-028 y producir el anexo de evidencias del informe final.
 
 Archivos:
-- `docs/pruebas/PLAN-PRUEBAS.md`: plan de pruebas con 65 casos cubriendo cliente, administrador, estados vacíos y pruebas no funcionales.
-- `docs/pruebas/DEFECTOS.md`: registro con 2 defectos menores y backlog de incidencias.
+- `docs/pruebas/PLAN-PRUEBAS.md`: plan de 72 casos cubriendo cliente, administrador, estados vacíos y pruebas no funcionales.
+- `docs/pruebas/DEFECTOS.md`: 2 defectos menores, 20 resultados del barrido de API y backlog de incidencias.
 
 PR: pendiente

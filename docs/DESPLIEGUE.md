@@ -42,7 +42,7 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 docker inspect aerocrm-db-init --format '{{.State.ExitCode}}'
 # Debe devolver: 0
 
-# 5. Verificar que el backend respondede
+# 5. Verificar que el backend responde
 curl http://127.0.0.1:3100/api/health
 # Debe devolver: {"status":"ok","app":"AeroCRM API","database":"ok","timestamp":"..."}
 ```
@@ -72,7 +72,8 @@ docker compose up -d --build
 | Cliente Elite | `valeria.torres@demo.pe` | `Demo1234!` | Elite · 16 viajes |
 | Administrador | `admin@aerocrm.com` | `Admin1234!` | — |
 
-> El administrador puede cambiar la contraseña desde `/admin/perfil`; las credenciales anteriores son las de la carga de arranque.
+> Estas credenciales pertenecen exclusivamente a la carga de arranque del entorno local/demo. No son credenciales de producción.
+> El administrador puede cambiar la contraseña desde `/admin/perfil`; hacerlo no afecta la guía de despliegue.
 
 ---
 

@@ -3,6 +3,8 @@
 Plataforma CRM de viajes para Expertia Travel S.A.C.
 Versión: Sprint 4 · 2026-11-11
 
+> Las capturas de pantalla van en `docs/capturas/`. Ver la lista de capturas pendientes en `docs/capturas/LISTA.md`.
+
 ---
 
 ## Acceso a la plataforma
@@ -12,6 +14,8 @@ Abrir el navegador y ir a `http://127.0.0.1:8100`.
 La pantalla inicial muestra dos portales:
 - **Portal del Pasajero** — para clientes que compran paquetes de viaje.
 - **Portal del Staff** — para el equipo de Expertia Travel (administradores).
+
+> [CAPTURA: cap-01-portal-selector.png — pantalla de selección de portal]
 
 ---
 
@@ -26,6 +30,8 @@ La pantalla inicial muestra dos portales:
 
 Al registrarse se asigna el nivel **Explorador** con 0 puntos.
 
+> [CAPTURA: cap-02-registro.png — formulario de registro completo]
+
 ### Iniciar sesión
 
 1. Pulsar **Portal del Pasajero** → **Iniciar sesión**.
@@ -33,6 +39,9 @@ Al registrarse se asigna el nivel **Explorador** con 0 puntos.
 3. Pulsar **Ingresar**.
 
 ### Pantalla de inicio
+
+> [CAPTURA: cap-03-inicio-explorador.png — inicio de cliente Explorador sin historial]
+> [CAPTURA: cap-04-inicio-elite.png — inicio de cliente Elite con recomendaciones y próximo viaje]
 
 Muestra:
 - **Nivel de membresía** y puntos disponibles.
@@ -49,6 +58,9 @@ Muestra:
 4. Desde el detalle se puede pulsar **Armar paquete** para ir directamente al armador con ese destino.
 
 ### Armar y comprar un paquete
+
+> [CAPTURA: cap-05-armador-vuelo.png — paso 1 del armador con vuelos seleccionados]
+> [CAPTURA: cap-06-armador-resumen.png — paso 6 con desglose de precios y botón de pago]
 
 El armador tiene 6 pasos:
 
@@ -80,6 +92,9 @@ El armador tiene 6 pasos:
 Tras el pago la reserva queda en estado **Confirmado** y se acreditan los puntos ganados.
 
 ### Mis viajes
+
+> [CAPTURA: cap-07-mis-viajes.png — lista de reservas con estados en español]
+> [CAPTURA: cap-08-detalle-reserva.png — detalle de reserva con pasajeros y puntos ganados]
 
 Muestra la lista de reservas ordenadas por fecha. Para cada reserva se puede:
 
@@ -114,6 +129,9 @@ Enviar consultas al equipo de Expertia Travel. No requiere iniciar sesión. Las 
 ---
 
 ## Portal del Staff (Administrador)
+
+> [CAPTURA: cap-09-panel-admin.png — panel de administrador con contadores]
+> [CAPTURA: cap-10-admin-reservas.png — gestión de reservas con filtros y botones de estado]
 
 ### Acceso
 

@@ -34,7 +34,7 @@ describe('RecommendationsService', () => {
     it('devuelve destinos del tipo buscado cuando hay viewedDestinationTypes', async () => {
       const resultado = await service.getRecommendations(null, señalesPlaya);
 
-      const playas = resultado.filter((r) => (r.destination as any).type === 'PLAYA');
+      const playas = resultado.filter((r) => (r.destination as Record<string, unknown>).type === 'PLAYA');
       expect(playas.length).toBeGreaterThan(0);
       expect(playas[0]).toMatchObject({ reason: expect.stringContaining('Playa') });
     });
@@ -69,7 +69,7 @@ describe('RecommendationsService', () => {
 
       const resultado = await service.getRecommendations(10, señalesVacias);
 
-      const retorno = resultado.find((r) => (r.destination as any).iataCode === 'CUN');
+      const retorno = resultado.find((r) => (r.destination as Record<string, unknown>).iataCode === 'CUN');
       expect(retorno).toBeDefined();
       expect(retorno!.isReturn).toBe(true);
     });
@@ -88,7 +88,7 @@ describe('RecommendationsService', () => {
 
       const resultado = await service.getRecommendations(10, señalesVacias);
 
-      const visitado = resultado.find((r) => (r.destination as any).iataCode === 'MAD');
+      const visitado = resultado.find((r) => (r.destination as Record<string, unknown>).iataCode === 'MAD');
       expect(visitado).toBeDefined();
       expect(visitado!.isReturn).toBe(true);
       expect(visitado!.reason).toContain('Madrid');
@@ -106,7 +106,7 @@ describe('RecommendationsService', () => {
 
       const resultado = await service.getRecommendations(10, señalesPlaya);
 
-      const idsDestinos = resultado.map((r) => (r.destination as any).id);
+      const idsDestinos = resultado.map((r) => (r.destination as Record<string, unknown>).id);
       expect(new Set(idsDestinos).size).toBe(idsDestinos.length);
     });
   });
