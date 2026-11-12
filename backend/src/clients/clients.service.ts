@@ -51,6 +51,7 @@ export class ClientsService {
       documentNumber: dto.documentNumber,
       travelStyle: dto.travelStyle,
       destinationType: dto.destinationType,
+      spendingRange: dto.spendingRange,
     };
     if (dto.dateOfBirth) data.dateOfBirth = new Date(dto.dateOfBirth);
 
@@ -130,6 +131,27 @@ export class ClientsService {
       take: 6,
     });
 
+    // Precio "desde" por destino: vuelo más barato con fecha futura
+    const destIds = [...new Set(upcomingFestivities.map((f) => f.destinationId))];
+    const cheapestByDest: Record<number, number> = {};
+    if (destIds.length > 0) {
+      const flights = await this.prisma.flight.findMany({
+        where: { destinationId: { in: destIds }, departureDate: { gte: now } },
+        select: { destinationId: true, pricePerPerson: true },
+        orderBy: { pricePerPerson: 'asc' },
+      });
+      for (const f of flights) {
+        if (!(f.destinationId in cheapestByDest)) {
+          cheapestByDest[f.destinationId] = Number(f.pricePerPerson);
+        }
+      }
+    }
+
+    const festivitiesWithPrice = upcomingFestivities.map((f) => ({
+      ...f,
+      priceFrom: cheapestByDest[f.destinationId] ?? null,
+    }));
+
     return {
       user: { firstName: user.firstName, lastName: user.lastName },
       membership: {
@@ -143,7 +165,7 @@ export class ClientsService {
       },
       nextBooking: nextBooking ?? null,
       savedDestinations,
-      upcomingFestivities,
+      upcomingFestivities: festivitiesWithPrice,
     };
   }
 
@@ -280,6 +302,11 @@ export class ClientsService {
           },
         },
         pointsHistory: { orderBy: { createdAt: 'desc' }, take: 30 },
+        reviews: {
+          orderBy: { updatedAt: 'desc' },
+          take: 10,
+          include: { booking: { select: { confirmationCode: true } } },
+        },
       },
     });
 
@@ -307,6 +334,13 @@ export class ClientsService {
       fechaRegistro: cliente.user.createdAt,
       reservas: cliente.bookings,
       historialPuntos: cliente.pointsHistory,
+      resenas: cliente.reviews.map((r) => ({
+        id: r.id,
+        rating: r.rating,
+        comment: r.comment,
+        updatedAt: r.updatedAt,
+        codigoReserva: r.booking.confirmationCode,
+      })),
     };
   }
 

@@ -108,6 +108,9 @@ import { apiErrorMessage } from '../../core/services/api-error';
                 <div>
                   <p class="font-medium text-sm text-gray-800">{{ fest.name }}</p>
                   <p class="text-xs text-gray-500">{{ fest.destination?.city }}, {{ fest.destination?.country }}</p>
+                  @if (fest.priceFrom) {
+                    <p class="text-xs font-semibold text-blue-700 mt-0.5">desde S/&nbsp;{{ fest.priceFrom | number:'1.0-0' }}</p>
+                  }
                 </div>
               </a>
             }

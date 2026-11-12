@@ -28,6 +28,15 @@ interface HistorialPuntos {
   createdAt: string;
 }
 
+/** Reseña reducida que llega en el detalle del cliente (admin). */
+interface ResenaResumen {
+  id: number;
+  rating: number;
+  comment: string | null;
+  updatedAt: string;
+  codigoReserva: string;
+}
+
 /** Perfil completo del cliente que devuelve GET /clients/admin/:id. */
 interface ClienteDetalle {
   id: number;
@@ -51,6 +60,7 @@ interface ClienteDetalle {
   fechaRegistro: string;
   reservas: ReservaResumen[];
   historialPuntos: HistorialPuntos[];
+  resenas: ResenaResumen[];
 }
 
 /**
@@ -139,6 +149,29 @@ interface ClienteDetalle {
                 <div>
                   <p class="text-gray-400 text-xs uppercase tracking-wider mb-0.5">Documento</p>
                   <p class="text-gray-700">{{ cliente()!.documentNumber }}</p>
+                </div>
+              }
+            </div>
+          }
+
+          @if (cliente()!.travelStyle || cliente()!.destinationType || cliente()!.spendingRange) {
+            <div class="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 border-t pt-4">
+              @if (cliente()!.travelStyle) {
+                <div>
+                  <p class="text-gray-400 text-xs uppercase tracking-wider mb-0.5">Forma de viajar</p>
+                  <p class="text-gray-700">{{ cliente()!.travelStyle | label }}</p>
+                </div>
+              }
+              @if (cliente()!.destinationType) {
+                <div>
+                  <p class="text-gray-400 text-xs uppercase tracking-wider mb-0.5">Tipo de destino</p>
+                  <p class="text-gray-700">{{ cliente()!.destinationType | label }}</p>
+                </div>
+              }
+              @if (cliente()!.spendingRange) {
+                <div>
+                  <p class="text-gray-400 text-xs uppercase tracking-wider mb-0.5">Rango de gasto</p>
+                  <p class="text-gray-700">{{ cliente()!.spendingRange | label }}</p>
                 </div>
               }
             </div>
@@ -268,6 +301,37 @@ interface ClienteDetalle {
                     </td>
                     <td class="px-4 py-3 text-gray-600">{{ h.description }}</td>
                     <td class="px-4 py-3 text-gray-600">{{ h.createdAt | date:'dd/MM/yyyy':'':'es-PE' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+
+        <!-- Reseñas -->
+        <div class="bg-white border rounded-xl shadow-sm overflow-hidden">
+          <div class="px-6 py-4 border-b">
+            <h2 class="text-base font-semibold text-gray-700">Calificaciones ({{ cliente()!.resenas?.length ?? 0 }})</h2>
+          </div>
+          @if (!cliente()!.resenas?.length) {
+            <p class="px-6 py-4 text-sm text-gray-500">Sin calificaciones registradas.</p>
+          } @else {
+            <table class="w-full text-sm">
+              <thead class="bg-gray-50 border-b">
+                <tr>
+                  <th class="text-left px-4 py-3 font-semibold text-gray-600">Reserva</th>
+                  <th class="text-center px-4 py-3 font-semibold text-gray-600">Estrellas</th>
+                  <th class="text-left px-4 py-3 font-semibold text-gray-600">Comentario</th>
+                  <th class="text-left px-4 py-3 font-semibold text-gray-600">Fecha</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                @for (r of cliente()!.resenas; track r.id) {
+                  <tr class="hover:bg-gray-50 transition">
+                    <td class="px-4 py-3 font-mono text-gray-700">{{ r.codigoReserva }}</td>
+                    <td class="px-4 py-3 text-center text-yellow-500">{{ '★'.repeat(r.rating) }}{{ '☆'.repeat(5 - r.rating) }}</td>
+                    <td class="px-4 py-3 text-gray-600">{{ r.comment ?? '—' }}</td>
+                    <td class="px-4 py-3 text-gray-600">{{ r.updatedAt | date:'dd/MM/yyyy':'':'es-PE' }}</td>
                   </tr>
                 }
               </tbody>
