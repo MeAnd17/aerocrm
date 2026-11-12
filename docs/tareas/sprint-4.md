@@ -146,6 +146,19 @@ Archivos:
 
 PR: pendiente
 
+### TS-022: Entrega final reproducible y manuales
+
+git commit -m "docs: agrega guía de despliegue, manual técnico y manual de usuario (TS-022)"
+
+Escribí los tres documentos de entrega: `DESPLIEGUE.md` con los pasos para levantar el sistema desde cero en la opción local (sin internet) y en la opción Supabase, incluyendo verificación paso a paso, recarga de datos, fecha de referencia del seed y tabla de problemas frecuentes; `MANUAL-TECNICO.md` con la arquitectura, el stack, la estructura del repositorio, el esquema de la base de datos con sus 11 migraciones, las reglas de negocio, el flujo de autenticación y las decisiones de arquitectura con sus alternativas descartadas; y `MANUAL-USUARIO.md` con el recorrido completo del cliente (registro, búsqueda, armador de 6 pasos, mis viajes, fidelización, perfil y contacto) y el recorrido del administrador (reservas, clientes, destinos, inventario y consultas). La demostración sin red funciona porque el contenedor `aerocrm-db-init` carga los datos de respaldo de clima y feriados al arrancar. La variable `SEED_REFERENCE_DATE` permite fijar la fecha de los vuelos para la semana de la sustentación.
+
+Archivos:
+- `docs/DESPLIEGUE.md`: guía paso a paso para levantar el sistema desde cero, con solución de problemas.
+- `docs/MANUAL-TECNICO.md`: arquitectura, stack, esquema, migraciones, reglas de negocio y decisiones.
+- `docs/MANUAL-USUARIO.md`: recorrido del cliente y del administrador con todas las pantallas.
+
+PR: pendiente
+
 ### TS-028: Ronda completa de pruebas manuales y registro de defectos
 
 git commit -m "docs: agrega plan de pruebas manuales, registro de defectos y ficha de cierre (TS-028)"
