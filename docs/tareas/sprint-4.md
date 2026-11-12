@@ -129,6 +129,23 @@ Acceso: no tiene pantalla. El guion y el video quedan en el repositorio de evide
 
 Cada tarea terminada agrega aquí su ficha, en el mismo PR, con el formato de [README.md](README.md).
 
+### TS-028 (F0): Correcciones de backlog detectadas en la auditoría final
+
+git commit -m "fix: completa los criterios pendientes del backlog detectados en la auditoría final (TS-028)"
+
+Apliqué cuatro correcciones que quedaron pendientes después de la auditoría del sprint anterior. En el backend: añadí `@ApiProperty` al campo `spendingRange` del DTO `UpdateClientDto` para que Swagger lo muestre correctamente, y extendí `clients.service.ts` con dos mejoras de `getHome` (el campo `priceFrom` en las festividades y el array `resenas` en `findOneAdmin`). En el frontend: actualicé `admin-client-detail.component.ts` para mostrar la tabla de reseñas del cliente y las preferencias de viaje, y `home.component.ts` para mostrar el precio mínimo de vuelo (`priceFrom`) junto a cada festividad. Agregué las cuatro entradas de `SpendingRange` al pipe `etiqueta` para que el panel de administrador muestre los rangos en español (F9). Creé `clients.service.spec.ts` con los primeros 7 casos de `getHome` (priceFrom, festividades vacías, NotFoundException, nivel/puntos con historial, destinos guardados, próxima reserva).
+
+Archivos:
+- `backend/src/clients/dto/update-client.dto.ts`: agrega `@ApiProperty` a `spendingRange`.
+- `backend/src/clients/clients.service.ts`: añade `priceFrom` en festividades y `resenas` en `findOneAdmin`.
+- `backend/src/clients/clients.service.spec.ts`: 7 casos unitarios de `getHome`.
+- `backend/test/app.e2e-spec.ts`: 2 casos e2e nuevos (spendingRange persiste, admin ve reseñas).
+- `frontend/src/app/features/admin/clients/admin-client-detail.component.ts`: tabla de reseñas y sección de preferencias.
+- `frontend/src/app/features/home/home.component.ts`: muestra `priceFrom` en festividades.
+- `frontend/src/app/shared/pipes/label.pipe.ts`: agrega las cuatro entradas de `SpendingRange` en español.
+
+PR: pendiente
+
 ### TS-021: Pruebas automáticas de los tres flujos críticos
 
 git commit -m "test: agrega las pruebas de los tres flujos críticos contra base real y limpia los datos de demostración (TS-021)"
