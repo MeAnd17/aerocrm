@@ -22,6 +22,7 @@ const prismaFalso = {
   },
   flight: {
     findUnique: jest.fn(),
+    findMany: jest.fn().mockResolvedValue([]),
   },
   booking: {
     findFirst: jest.fn(),
@@ -58,6 +59,26 @@ const prismaFalso = {
     count: jest.fn().mockResolvedValue(0),
     findUnique: jest.fn(),
     update: jest.fn(),
+  },
+  savedDestination: {
+    findMany: jest.fn().mockResolvedValue([]),
+  },
+  festivity: {
+    findMany: jest.fn().mockResolvedValue([]),
+  },
+  traveler: {
+    findMany: jest.fn().mockResolvedValue([]),
+    findFirst: jest.fn().mockResolvedValue(null),
+    create: jest.fn().mockResolvedValue({}),
+    update: jest.fn().mockResolvedValue({}),
+    delete: jest.fn().mockResolvedValue({}),
+  },
+  review: {
+    create: jest.fn().mockResolvedValue({}),
+    findUnique: jest.fn(),
+    findMany: jest.fn().mockResolvedValue([]),
+    update: jest.fn().mockResolvedValue({}),
+    delete: jest.fn().mockResolvedValue({}),
   },
 };
 
@@ -960,5 +981,81 @@ describe('API (e2e)', () => {
 
     expect(res.status).toBe(400);
     expect(res.body.message).toBe('Este viaje ya no se puede cancelar');
+  });
+
+  // ─── US-009: spendingRange persiste al actualizar perfil (F0 brecha #1) ──────
+
+  it('PATCH /api/clients/me con spendingRange persiste el campo en el cliente (US-009)', async () => {
+    const usuarioCliente = {
+      id: 101, email: 'perfil@test.pe', isActive: true, role: 'CLIENT',
+      client: { id: 20, membershipLevel: 'EXPLORADOR', availablePoints: 0, completedTrips: 0 },
+    };
+    const clienteActualizado = { id: 20, spendingRange: 'RANGE_500_1500', membershipLevel: 'EXPLORADOR' };
+
+    // JwtStrategy.validate
+    prismaFalso.user.findUnique.mockResolvedValueOnce(usuarioCliente);
+    // ClientsService.updateProfile → user.findUnique con include client
+    prismaFalso.user.findUnique.mockResolvedValueOnce(usuarioCliente);
+    // ClientsService.updateProfile → client.update
+    prismaFalso.client.update.mockResolvedValueOnce(clienteActualizado);
+
+    const token = jwtService.sign({ sub: 101, email: 'perfil@test.pe', clientId: 20, role: 'CLIENT' });
+    const res = await request(app.getHttpServer())
+      .patch('/api/clients/me')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ spendingRange: 'RANGE_500_1500' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.spendingRange).toBe('RANGE_500_1500');
+    expect(prismaFalso.client.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ spendingRange: 'RANGE_500_1500' }),
+      }),
+    );
+  });
+
+  // ─── US-028: findOneAdmin incluye reseñas en la ficha del cliente (F0 brecha #3) ──
+
+  it('GET /api/clients/admin/:id incluye array resenas con rating y codigoReserva (US-028)', async () => {
+    const adminFalso = { id: 1, email: 'admin@aerocrm.com', isActive: true, role: 'ADMIN', client: null };
+    const clienteConResenas = {
+      id: 7,
+      userId: 55,
+      user: { id: 55, email: 'cli@test.pe', firstName: 'Rosa', lastName: 'Paz', isActive: true, mustChangePassword: false, createdAt: new Date() },
+      membershipLevel: 'EXPLORADOR',
+      availablePoints: 0,
+      totalPoints: 0,
+      completedTrips: 0,
+      phone: null, nationality: null, documentNumber: null, dateOfBirth: null,
+      travelStyle: null, destinationType: null, spendingRange: null,
+      createdAt: new Date(),
+      bookings: [],
+      pointsHistory: [],
+      reviews: [
+        {
+          id: 1,
+          rating: 5,
+          comment: 'Excelente viaje',
+          updatedAt: new Date(),
+          booking: { confirmationCode: 'VJ-TEST99' },
+        },
+      ],
+    };
+
+    // JwtStrategy.validate
+    prismaFalso.user.findUnique.mockResolvedValueOnce(adminFalso);
+    // ClientsService.findOneAdmin → client.findUnique
+    prismaFalso.client.findUnique.mockResolvedValueOnce(clienteConResenas);
+
+    const token = jwtService.sign({ sub: 1, email: 'admin@aerocrm.com', clientId: null, role: 'ADMIN' });
+    const res = await request(app.getHttpServer())
+      .get('/api/clients/admin/7')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.resenas)).toBe(true);
+    expect(res.body.resenas).toHaveLength(1);
+    expect(res.body.resenas[0].rating).toBe(5);
+    expect(res.body.resenas[0].codigoReserva).toBe('VJ-TEST99');
   });
 });

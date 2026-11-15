@@ -29,7 +29,8 @@ Gestor de paquetes: **npm** (hay `package-lock.json`). No se usa pnpm ni yarn. S
     npm run build
     npm run lint               # solo revisa; npm run lint:fix corrige
     npm test                   # pruebas unitarias
-    npm run test:e2e           # pruebas de flujo completo
+    npm run test:e2e           # pruebas de flujo completo (doble de Prisma)
+    npm run test:e2e:db        # pruebas de flujo completo contra Postgres real (requiere DATABASE_URL_TEST)
     npx prisma migrate dev     # SOLO contra base local (regla D2)
     npx prisma db seed
 

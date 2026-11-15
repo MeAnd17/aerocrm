@@ -48,6 +48,11 @@ const LABELS: Record<string, string> = {
   MUSICAL: 'Musical',
   CARNAVAL: 'Carnaval',
   NACIONAL: 'Nacional',
+  // Rango de gasto del cliente
+  LESS_500: 'Menos de S/ 500',
+  RANGE_500_1500: 'S/ 500 – S/ 1 500',
+  RANGE_1500_3000: 'S/ 1 500 – S/ 3 000',
+  MORE_3000: 'Más de S/ 3 000',
   // Estado de consulta de contacto
   ATENDIDA: 'Atendida',
   // Historial de puntos

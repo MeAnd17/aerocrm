@@ -47,6 +47,36 @@ function addMinutes(d: Date, minutes: number): Date {
   return new Date(d.getTime() + minutes * 60_000);
 }
 
+// ── Datos de acompañantes ─────────────────────────────────────────────────────
+
+/**
+ * Nombres peruanos para los acompañantes de las reservas de demostración.
+ * Los DNI se asignan secuencialmente desde 61000001; al ciclar la lista los nombres
+ * pueden repetirse pero los documentos siempre son únicos.
+ */
+const DATOS_ACOMPANANTE: Array<{ firstName: string; lastName: string }> = [
+  { firstName: 'Rodrigo',   lastName: 'Mendoza' },
+  { firstName: 'Camila',    lastName: 'Flores' },
+  { firstName: 'Sebastián', lastName: 'Ríos' },
+  { firstName: 'Daniela',   lastName: 'Paredes' },
+  { firstName: 'Alejandro', lastName: 'Gutiérrez' },
+  { firstName: 'Valentina', lastName: 'Espinoza' },
+  { firstName: 'Mateo',     lastName: 'Vargas' },
+  { firstName: 'Isabella',  lastName: 'Morales' },
+  { firstName: 'Emilio',    lastName: 'Castro' },
+  { firstName: 'Sofía',     lastName: 'Herrera' },
+  { firstName: 'Joaquín',   lastName: 'Sánchez' },
+  { firstName: 'Mariana',   lastName: 'López' },
+  { firstName: 'Nicolás',   lastName: 'Torres' },
+  { firstName: 'Ximena',    lastName: 'Ramírez' },
+  { firstName: 'Andrés',    lastName: 'Palacios' },
+  { firstName: 'Paola',     lastName: 'Vega' },
+  { firstName: 'Gabriel',   lastName: 'Ruiz' },
+  { firstName: 'Natalia',   lastName: 'Ortiz' },
+  { firstName: 'Fernando',  lastName: 'Peña' },
+  { firstName: 'Carla',     lastName: 'Cárdenas' },
+];
+
 // ── Secciones ─────────────────────────────────────────────────────────────────
 
 async function seedAdminUser() {
@@ -216,6 +246,7 @@ async function seedHistory(
   clients: Map<string, { userId: number; clientId: number }>,
 ) {
   const counters = new Map<string, number>();
+  let numAcompanante = 0; // contador global para DNIs únicos de acompañantes (61000001+)
   const historyFlight = async (from: string, to: string, iata: string, dayOffset: number, trip: HistoryTrip) => {
     const route = ROUTES.find((r) => r.to === iata);
     if (!route) throw new Error(`No hay ruta para ${iata}`);
@@ -251,6 +282,7 @@ async function seedHistory(
     const owner = clients.get(key);
     if (!owner) throw new Error(`Cliente de demostración "${key}" no existe`);
 
+    await prisma.review.deleteMany({ where: { booking: { clientId: owner.clientId } } });
     await prisma.booking.deleteMany({ where: { clientId: owner.clientId } });
     await prisma.pointsHistory.deleteMany({ where: { clientId: owner.clientId } });
 
@@ -320,14 +352,29 @@ async function seedHistory(
             create: extras.map((e, i) => ({ type: e.type, price: fromCents(extraCents[i]) })),
           },
           bookingPassengers: {
-            create: Array.from({ length: pax }, (_, i) => ({
-              firstName: i === 0 ? demoClient.firstName : `Acompañante`,
-              lastName: i === 0 ? demoClient.lastName : `${i}`,
-              documentType: 'DNI',
-              documentNumber: i === 0 ? demoClient.documentNumber : `7000000${i}`,
-              birthDate: i === 0 ? titularBirthDate : new Date('1990-01-01T00:00:00Z'),
-              isHolder: i === 0,
-            })),
+            create: Array.from({ length: pax }, (_, i) => {
+              if (i === 0) {
+                return {
+                  firstName: demoClient.firstName,
+                  lastName: demoClient.lastName,
+                  documentType: 'DNI',
+                  documentNumber: demoClient.documentNumber,
+                  birthDate: titularBirthDate,
+                  isHolder: true,
+                };
+              }
+              const datos = DATOS_ACOMPANANTE[numAcompanante % DATOS_ACOMPANANTE.length];
+              const dni = String(61000001 + numAcompanante);
+              numAcompanante += 1;
+              return {
+                firstName: datos.firstName,
+                lastName: datos.lastName,
+                documentType: 'DNI',
+                documentNumber: dni,
+                birthDate: new Date('1990-01-01T00:00:00Z'),
+                isHolder: false,
+              };
+            }),
           },
         },
       });

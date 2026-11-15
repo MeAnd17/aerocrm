@@ -1,5 +1,6 @@
 import { IsString, IsOptional, IsEnum } from 'class-validator';
-import { TravelStyle, DestinationType, DocumentType } from '@prisma/client';
+import { ApiProperty } from '@nestjs/swagger';
+import { TravelStyle, DestinationType, DocumentType, SpendingRange } from '@prisma/client';
 
 export class UpdateClientDto {
   @IsOptional() @IsString() phone?: string;
@@ -9,4 +10,6 @@ export class UpdateClientDto {
   @IsOptional() @IsString() documentNumber?: string;
   @IsOptional() @IsEnum(TravelStyle) travelStyle?: TravelStyle;
   @IsOptional() @IsEnum(DestinationType) destinationType?: DestinationType;
+  @ApiProperty({ enum: SpendingRange, enumName: 'SpendingRange', required: false })
+  @IsOptional() @IsEnum(SpendingRange) spendingRange?: SpendingRange;
 }
