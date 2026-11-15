@@ -1,7 +1,5 @@
 # Sprint 2 · Reservas, ventas y panel de administración
 
-Semana 10 · 19 al 25 de octubre de 2026.
-
 > Módulos 1.4.3 Gestión de Viajes y Reservas, 1.4.4 Ventas (flujo de pago simulado) y el panel de administración, que vive dentro de 1.4.1 Plataforma Web CRM.
 > Demostración de cierre: el cliente carga a sus pasajeros, paga en el flujo simulado, ve su reserva confirmada con su código en Mis viajes e imprime el detalle; el administrador da de alta un destino con su inventario y cambia el estado de una reserva.
 
