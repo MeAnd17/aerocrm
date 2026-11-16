@@ -1,7 +1,5 @@
 # Sprint 4 · Pruebas, estabilización y cierre
 
-Semana 12 · 2 al 8 de noviembre de 2026.
-
 > Módulos 1.5 Pruebas, 1.6 Despliegue y 1.7 Cierre del EDT. Cero funcionalidades nuevas: congelación de código el lunes 2 de noviembre.
 > Presentación en la semana 13.
 
