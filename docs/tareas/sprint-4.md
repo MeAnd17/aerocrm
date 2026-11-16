@@ -214,4 +214,4 @@ Archivos:
 - `frontend/src/app/features/packages/steps/`, `home/`, `destinations/`, `my-trips/trip-detail.component.ts`, `profile/`, `contact/`, `auth/login`, `auth/register`, `auth/change-password`: colores pasados a los tokens, tarjetas y botón principal con el estilo nuevo.
 - `docs/interfaz.md`: tokens, piezas nuevas, pie de página y panel del armador.
 
-PR: pendiente
+PR: #12
