@@ -14,75 +14,75 @@ const TRASLADO_TYPES = ['TRASLADO_IDA', 'TRASLADO_VUELTA', 'TRASLADO_COMPLETO'] 
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="bg-white rounded-xl border shadow-sm p-5">
-      <h3 class="font-semibold text-gray-800 mb-1">
-        ➕ Extras <span class="text-gray-400 font-normal text-sm">(opcional)</span>
+    <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-5">
+      <h3 class="font-bold text-primary-700 mb-1">
+        ➕ Extras <span class="text-slate-400 font-normal text-sm">(opcional)</span>
       </h3>
-      <p class="text-xs text-gray-500 mb-4">Precios calculados por el servidor.</p>
+      <p class="text-xs text-slate-500 mb-4">Precios calculados por el servidor.</p>
 
       @if (cargando()) {
-        <div class="flex items-center justify-center py-8 text-gray-400 text-sm">
+        <div class="flex items-center justify-center py-8 text-slate-400 text-sm">
           Cargando extras…
         </div>
       } @else {
 
         <!-- Traslados (opciones excluyentes) -->
         <div class="mb-4">
-          <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Traslado al aeropuerto</p>
-          <p class="text-xs text-gray-400 mb-2">Elige una opción (precio por reserva, independiente de pasajeros).</p>
+          <p class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Traslado al aeropuerto</p>
+          <p class="text-xs text-slate-400 mb-2">Elige una opción (precio por reserva, independiente de pasajeros).</p>
           <div class="space-y-2">
             @for (extra of traslados(); track extra.type) {
               <div
                 (click)="state.selectTransfer(extra)"
                 [class.ring-2]="state.isExtraSelected(extra.type)"
-                [class.ring-blue-500]="state.isExtraSelected(extra.type)"
-                [class.bg-blue-50]="state.isExtraSelected(extra.type)"
-                class="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:border-blue-300 transition select-none">
-                <div class="flex items-center gap-2">
+                [class.ring-primary-500]="state.isExtraSelected(extra.type)"
+                [class.bg-primary-50]="state.isExtraSelected(extra.type)"
+                class="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:border-primary-300 transition select-none">
+                <div class="flex flex-wrap items-center gap-2">
                   <!-- indicador radio visual -->
                   <span
-                    [class.bg-blue-600]="state.isExtraSelected(extra.type)"
-                    [class.border-blue-600]="state.isExtraSelected(extra.type)"
-                    [class.border-gray-300]="!state.isExtraSelected(extra.type)"
+                    [class.bg-primary-600]="state.isExtraSelected(extra.type)"
+                    [class.border-primary-600]="state.isExtraSelected(extra.type)"
+                    [class.border-slate-300]="!state.isExtraSelected(extra.type)"
                     class="w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition">
                     @if (state.isExtraSelected(extra.type)) {
                       <span class="w-2 h-2 rounded-full bg-white"></span>
                     }
                   </span>
                   <div>
-                    <p class="font-medium text-sm text-gray-800">{{ traslado_icon(extra.type) }} {{ extra.name }}</p>
+                    <p class="font-medium text-sm text-slate-800">{{ traslado_icon(extra.type) }} {{ extra.name }}</p>
                     @if (extra.description) {
-                      <p class="text-xs text-gray-400 mt-0.5">{{ extra.description }}</p>
+                      <p class="text-xs text-slate-400 mt-0.5">{{ extra.description }}</p>
                     }
                   </div>
                 </div>
-                <p class="font-bold text-blue-900 text-sm whitespace-nowrap ml-3">
+                <p class="font-bold text-primary-900 text-sm whitespace-nowrap ml-3">
                   S/. {{ extra.price | number:'1.2-2' }}
                 </p>
               </div>
             }
             @if (traslados().length === 0) {
-              <p class="text-xs text-gray-400 italic">No hay traslados disponibles.</p>
+              <p class="text-xs text-slate-400 italic">No hay traslados disponibles.</p>
             }
           </div>
         </div>
 
         <!-- Seguro de viaje (checkbox, por pasajero) -->
         <div class="mb-4">
-          <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Seguro de viaje</p>
+          <p class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Seguro de viaje</p>
           @for (extra of seguros(); track extra.type) {
             <div
               (click)="state.toggleExtra(extra)"
               [class.ring-2]="state.isExtraSelected(extra.type)"
-              [class.ring-blue-500]="state.isExtraSelected(extra.type)"
-              [class.bg-blue-50]="state.isExtraSelected(extra.type)"
-              class="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:border-blue-300 transition select-none">
-              <div class="flex items-center gap-2">
+              [class.ring-primary-500]="state.isExtraSelected(extra.type)"
+              [class.bg-primary-50]="state.isExtraSelected(extra.type)"
+              class="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:border-primary-300 transition select-none">
+              <div class="flex flex-wrap items-center gap-2">
                 <!-- indicador checkbox visual -->
                 <span
-                  [class.bg-blue-600]="state.isExtraSelected(extra.type)"
-                  [class.border-blue-600]="state.isExtraSelected(extra.type)"
-                  [class.border-gray-300]="!state.isExtraSelected(extra.type)"
+                  [class.bg-primary-600]="state.isExtraSelected(extra.type)"
+                  [class.border-primary-600]="state.isExtraSelected(extra.type)"
+                  [class.border-slate-300]="!state.isExtraSelected(extra.type)"
                   class="w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center transition">
                   @if (state.isExtraSelected(extra.type)) {
                     <svg class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 10">
@@ -91,23 +91,23 @@ const TRASLADO_TYPES = ['TRASLADO_IDA', 'TRASLADO_VUELTA', 'TRASLADO_COMPLETO'] 
                   }
                 </span>
                 <div>
-                  <p class="font-medium text-sm text-gray-800">🛡️ {{ extra.name }}</p>
+                  <p class="font-medium text-sm text-slate-800">🛡️ {{ extra.name }}</p>
                   @if (extra.description) {
-                    <p class="text-xs text-gray-400 mt-0.5">{{ extra.description }}</p>
+                    <p class="text-xs text-slate-400 mt-0.5">{{ extra.description }}</p>
                   }
-                  <p class="text-xs text-gray-500 mt-0.5">
+                  <p class="text-xs text-slate-500 mt-0.5">
                     S/. {{ extra.price | number:'1.2-2' }} × {{ state.passengers() }} pasajero{{ state.passengers() !== 1 ? 's' : '' }}
                     = <span class="font-semibold">S/. {{ (extra.price * state.passengers()) | number:'1.2-2' }}</span>
                   </p>
                 </div>
               </div>
-              <p class="font-bold text-blue-900 text-sm whitespace-nowrap ml-3">
+              <p class="font-bold text-primary-900 text-sm whitespace-nowrap ml-3">
                 S/. {{ (extra.price * state.passengers()) | number:'1.2-2' }}
               </p>
             </div>
           }
           @if (seguros().length === 0) {
-            <p class="text-xs text-gray-400 italic">No hay seguro disponible.</p>
+            <p class="text-xs text-slate-400 italic">No hay seguro disponible.</p>
           }
         </div>
 
@@ -115,8 +115,8 @@ const TRASLADO_TYPES = ['TRASLADO_IDA', 'TRASLADO_VUELTA', 'TRASLADO_COMPLETO'] 
 
       <!-- Resumen del paso -->
       @if (state.extraIds().length > 0) {
-        <div class="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-          <p class="text-xs text-blue-700 font-medium">
+        <div class="mb-3 p-3 bg-primary-50 rounded-lg border border-primary-100">
+          <p class="text-xs text-primary-700 font-medium">
             Extras seleccionados: {{ state.extraIds().length }}
             — Total estimado: S/. {{ state.extrasTotal() | number:'1.2-2' }}
           </p>
@@ -124,20 +124,20 @@ const TRASLADO_TYPES = ['TRASLADO_IDA', 'TRASLADO_VUELTA', 'TRASLADO_COMPLETO'] 
       }
 
       <!-- Acciones -->
-      <div class="flex gap-3 mt-2">
+      <div class="flex flex-wrap gap-3 mt-2">
         <button
           (click)="state.goTo(6)"
-          class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition text-sm">
+          class="flex-1 bg-accent-600 text-white py-2.5 rounded-full font-semibold hover:bg-accent-700 transition text-sm min-w-[12rem]">
           Continuar
         </button>
         <button
           (click)="skipExtras()"
-          class="text-sm text-gray-400 px-3 hover:text-gray-600 transition">
+          class="text-sm text-slate-400 px-3 hover:text-slate-600 transition">
           Continuar sin extras
         </button>
         <button
           (click)="state.goTo(4)"
-          class="text-sm text-gray-400 px-3 hover:text-gray-600 transition">
+          class="text-sm text-slate-400 px-3 hover:text-slate-600 transition">
           ← Volver
         </button>
       </div>

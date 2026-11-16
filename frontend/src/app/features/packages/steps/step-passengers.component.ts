@@ -40,30 +40,30 @@ interface ClienteMe {
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="bg-white rounded-xl border shadow-sm p-5 space-y-5">
+    <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-5 space-y-5">
       <div>
-        <h3 class="font-semibold text-gray-800 text-lg">Datos de los pasajeros</h3>
-        <p class="text-sm text-gray-500 mt-1">
+        <h3 class="font-bold text-primary-700 text-lg">Datos de los pasajeros</h3>
+        <p class="text-sm text-slate-500 mt-1">
           Completa los datos de cada pasajero. El titular se pre-rellena con tu cuenta.
         </p>
       </div>
 
       @for (pasajero of borradores(); track pasajero; let i = $index) {
         <div class="border rounded-xl p-4 space-y-3"
-          [class.border-blue-300]="i === 0"
-          [class.bg-blue-50]="i === 0">
+          [class.border-primary-300]="i === 0"
+          [class.bg-primary-50]="i === 0">
 
           <!-- Encabezado del pasajero -->
           <div class="flex items-center justify-between flex-wrap gap-2">
-            <p class="font-semibold text-sm text-gray-700">
+            <p class="font-semibold text-sm text-slate-700">
               Pasajero {{ i + 1 }}
-              @if (i === 0) { <span class="ml-1 text-blue-600">(titular)</span> }
+              @if (i === 0) { <span class="ml-1 text-primary-600">(titular)</span> }
             </p>
 
             <!-- Selector de viajero frecuente (solo pasajeros no titulares) -->
             @if (i > 0 && viajerosFrecuentes().length > 0) {
               <select
-                class="text-xs border border-gray-200 rounded-lg px-2 py-1 text-gray-600 bg-white"
+                class="text-xs border border-slate-200 rounded-lg px-2 py-1 text-slate-600 bg-white"
                 (change)="copiarViajero(i, $event)">
                 <option value="">Copiar viajero frecuente…</option>
                 @for (v of viajerosFrecuentes(); track v.id) {
@@ -76,27 +76,27 @@ interface ClienteMe {
           <!-- Nombre -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">Nombre</label>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Nombre</label>
               <input
                 type="text"
                 [(ngModel)]="pasajero.firstName"
                 [disabled]="i === 0 && estaAutenticado()"
                 placeholder="Nombre"
                 [class.border-red-400]="mostrarErrores() && !pasajero.firstName.trim()"
-                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100 disabled:text-gray-500" />
+                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 disabled:bg-slate-100 disabled:text-slate-500" />
               @if (mostrarErrores() && !pasajero.firstName.trim()) {
                 <p class="text-xs text-red-500 mt-0.5">Requerido</p>
               }
             </div>
             <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">Apellido</label>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Apellido</label>
               <input
                 type="text"
                 [(ngModel)]="pasajero.lastName"
                 [disabled]="i === 0 && estaAutenticado()"
                 placeholder="Apellido"
                 [class.border-red-400]="mostrarErrores() && !pasajero.lastName.trim()"
-                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100 disabled:text-gray-500" />
+                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 disabled:bg-slate-100 disabled:text-slate-500" />
               @if (mostrarErrores() && !pasajero.lastName.trim()) {
                 <p class="text-xs text-red-500 mt-0.5">Requerido</p>
               }
@@ -106,16 +106,16 @@ interface ClienteMe {
           <!-- Tipo de documento, número y fecha de nacimiento -->
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">Tipo de documento</label>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Tipo de documento</label>
               <select
                 [(ngModel)]="pasajero.documentType"
-                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white">
+                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white">
                 <option value="DNI">DNI</option>
                 <option value="PASAPORTE">Pasaporte</option>
               </select>
             </div>
             <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">Número de documento</label>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Número de documento</label>
               <input
                 type="text"
                 [(ngModel)]="pasajero.documentNumber"
@@ -124,18 +124,18 @@ interface ClienteMe {
                 [placeholder]="pasajero.documentType === 'PASAPORTE' ? 'Ej. AB123456' : 'Ej. 12345678'"
                 (input)="pasajero.documentType === 'PASAPORTE' && mayusculasDoc(i, $event)"
                 [class.border-red-400]="mostrarErrores() && !pasajero.documentNumber.trim()"
-                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
               @if (mostrarErrores() && !pasajero.documentNumber.trim()) {
                 <p class="text-xs text-red-500 mt-0.5">Requerido</p>
               }
             </div>
             <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">Fecha de nacimiento</label>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Fecha de nacimiento</label>
               <input
                 type="date"
                 [(ngModel)]="pasajero.birthDate"
                 [class.border-red-400]="mostrarErrores() && !pasajero.birthDate"
-                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
               @if (mostrarErrores() && !pasajero.birthDate) {
                 <p class="text-xs text-red-500 mt-0.5">Requerida</p>
               }
@@ -148,24 +148,24 @@ interface ClienteMe {
               <input
                 type="checkbox"
                 [(ngModel)]="pasajero.saveAsTraveler"
-                class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-400" />
-              <span class="text-xs text-gray-600">Guardar como viajero frecuente</span>
+                class="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-400" />
+              <span class="text-xs text-slate-600">Guardar como viajero frecuente</span>
             </label>
           }
         </div>
       }
 
       <!-- Acciones -->
-      <div class="flex gap-3 pt-2">
+      <div class="flex flex-wrap gap-3 pt-2">
         <button
           (click)="continuar()"
           [disabled]="guardando()"
-          class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition text-sm disabled:opacity-50">
+          class="flex-1 bg-accent-600 text-white py-2.5 rounded-full font-semibold hover:bg-accent-700 transition text-sm disabled:opacity-50 min-w-[12rem]">
           @if (guardando()) { Guardando… } @else { Continuar }
         </button>
         <button
           (click)="state.goTo(5)"
-          class="text-sm text-gray-400 px-3 hover:text-gray-600 transition">
+          class="text-sm text-slate-400 px-3 hover:text-slate-600 transition">
           Volver
         </button>
       </div>

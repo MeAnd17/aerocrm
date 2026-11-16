@@ -22,7 +22,7 @@ const DESTINATION_TYPES = ['PLAYA', 'CIUDAD', 'AVENTURA', 'CULTURA'] as const;
       </div>
 
       <!-- Filtros -->
-      <div class="bg-white rounded-xl border shadow-sm p-4 space-y-3">
+      <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-4 space-y-3">
         <!-- Búsqueda -->
         <input
           type="text"
@@ -47,7 +47,7 @@ const DESTINATION_TYPES = ['PLAYA', 'CIUDAD', 'AVENTURA', 'CULTURA'] as const;
               [class]="typeFilter() === t ? activeTypeClass : inactiveTypeClass"
               [attr.aria-pressed]="typeFilter() === t"
             >
-              {{ t | etiqueta }}
+              {{ t | label }}
             </button>
           }
         </div>
@@ -71,7 +71,7 @@ const DESTINATION_TYPES = ['PLAYA', 'CIUDAD', 'AVENTURA', 'CULTURA'] as const;
             @for (dest of filtered(); track dest.id) {
               <a
                 [routerLink]="['/destinations', dest.id]"
-                class="block bg-white rounded-xl border shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+                class="block bg-white rounded-2xl border border-slate-900/[0.06] shadow-card overflow-hidden hover:shadow-md transition-shadow"
                 [attr.aria-label]="dest.name + ', ' + dest.city"
               >
                 <!-- Imagen -->
@@ -91,11 +91,11 @@ const DESTINATION_TYPES = ['PLAYA', 'CIUDAD', 'AVENTURA', 'CULTURA'] as const;
                 <div class="p-4 space-y-1">
                   <div class="flex items-start justify-between gap-2">
                     <div>
-                      <h2 class="font-semibold text-slate-800 text-base leading-tight">{{ dest.name }}</h2>
+                      <h2 class="text-lg font-bold tracking-tight text-primary-700 text-base leading-tight">{{ dest.name }}</h2>
                       <p class="text-xs text-slate-500">{{ dest.city }}, {{ dest.country }}</p>
                     </div>
                     <span class="text-xs bg-primary-100 text-primary-800 rounded-full px-2 py-0.5 whitespace-nowrap font-medium">
-                      {{ dest.type | etiqueta }}
+                      {{ dest.type | label }}
                     </span>
                   </div>
 

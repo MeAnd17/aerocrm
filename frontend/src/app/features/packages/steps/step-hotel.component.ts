@@ -13,8 +13,8 @@ import { apiErrorMessage } from '../../../core/services/api-error';
   standalone: true,
   imports: [CommonModule, FormsModule, HotelListComponent],
   template: `
-    <div class="bg-white rounded-xl border shadow-sm p-5 space-y-4">
-      <h3 class="font-semibold text-gray-800">🏨 Elige tu hotel <span class="text-gray-400 font-normal text-sm">(opcional)</span></h3>
+    <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-5 space-y-4">
+      <h3 class="font-bold text-primary-700">🏨 Elige tu hotel <span class="text-slate-400 font-normal text-sm">(opcional)</span></h3>
 
       <app-hotel-list
         [hotels]="state.context()?.hotels ?? []"
@@ -26,24 +26,24 @@ import { apiErrorMessage } from '../../../core/services/api-error';
 
       @if (state.hotel()) {
         <!-- Fechas del hotel -->
-        <div class="flex gap-3">
+        <div class="flex flex-wrap gap-3">
           <div class="flex-1">
-            <label class="block text-xs text-gray-500 mb-1">Fecha de entrada</label>
+            <label class="block text-xs text-slate-500 mb-1">Fecha de entrada</label>
             <input type="date"
               [ngModel]="state.hotelCheckIn()"
               (ngModelChange)="onCheckInChange($event)"
               [min]="minCheckIn()"
               [max]="maxCheckIn()"
-              class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
           </div>
           <div class="flex-1">
-            <label class="block text-xs text-gray-500 mb-1">Fecha de salida</label>
+            <label class="block text-xs text-slate-500 mb-1">Fecha de salida</label>
             <input type="date"
               [ngModel]="state.hotelCheckOut()"
               (ngModelChange)="onCheckOutChange($event)"
               [min]="minCheckOut()"
               [max]="maxCheckOut()"
-              class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
           </div>
         </div>
 
@@ -53,33 +53,33 @@ import { apiErrorMessage } from '../../../core/services/api-error';
 
         <!-- Resumen de noches y total (viene del servidor) -->
         @if (cargandoCotizacion()) {
-          <p class="text-sm text-gray-400 italic">Calculando precio…</p>
+          <p class="text-sm text-slate-400 italic">Calculando precio…</p>
         } @else if (cotizacion()) {
-          <div class="bg-blue-50 rounded-lg px-4 py-3 text-sm space-y-1">
-            <div class="flex justify-between text-gray-700">
+          <div class="bg-primary-50 rounded-lg px-4 py-3 text-sm space-y-1">
+            <div class="flex justify-between text-slate-700">
               <span>Noches</span>
               <span class="font-medium">{{ cotizacion()!.breakdown.hotel?.nights ?? 0 }}</span>
             </div>
-            <div class="flex justify-between text-gray-700">
+            <div class="flex justify-between text-slate-700">
               <span>Total estadía</span>
-              <span class="font-semibold text-blue-900">S/. {{ cotizacion()!.breakdown.hotel?.lineTotal | number:'1.2-2' }}</span>
+              <span class="font-semibold text-primary-900">S/. {{ cotizacion()!.breakdown.hotel?.lineTotal | number:'1.2-2' }}</span>
             </div>
           </div>
         }
       }
 
       <!-- Acciones -->
-      <div class="flex gap-3">
+      <div class="flex flex-wrap gap-3">
         <button (click)="continuar()"
-          class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition text-sm">
+          class="flex-1 bg-accent-600 text-white py-2.5 rounded-full font-semibold hover:bg-accent-700 transition text-sm min-w-[12rem]">
           Continuar
         </button>
         <button (click)="sinAlojamiento()"
-          class="text-sm text-gray-400 hover:text-gray-600 px-3 whitespace-nowrap">
+          class="text-sm text-slate-400 hover:text-slate-600 px-3 whitespace-nowrap">
           Ya tengo alojamiento
         </button>
         <button (click)="state.goTo(2)"
-          class="text-sm text-gray-400 hover:text-gray-600 px-3 whitespace-nowrap">
+          class="text-sm text-slate-400 hover:text-slate-600 px-3 whitespace-nowrap">
           ← Volver
         </button>
       </div>

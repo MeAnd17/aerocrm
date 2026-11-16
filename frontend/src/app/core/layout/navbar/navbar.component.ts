@@ -4,6 +4,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/ro
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { PackageBuilderState } from '../../../features/packages/package-builder.state';
+import { BrandMarkComponent, ButtonComponent } from '../../../shared/ui';
 
 interface NavLink {
   label: string;
@@ -35,70 +36,86 @@ const ADMIN_LINKS: NavLink[] = [
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, TitleCasePipe],
+  imports: [RouterLink, RouterLinkActive, TitleCasePipe, ButtonComponent, BrandMarkComponent],
   template: `
-    <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200">
-      <nav class="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4" aria-label="Principal">
-        <a [routerLink]="user() ? '/home' : '/explore'" class="flex items-center gap-2 font-bold text-primary-800 shrink-0">
-          <span class="text-xl" aria-hidden="true">✈️</span>
-          <span>AeroCRM</span>
+    <header class="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur-md">
+      <nav class="mx-auto flex h-16 lg:h-[72px] max-w-7xl items-center justify-between gap-4 px-4 lg:px-10" aria-label="Principal">
+        <a [routerLink]="user() ? '/home' : '/explore'" class="flex items-center gap-2.5 shrink-0" aria-label="AeroCRM, ir al inicio">
+          <app-brand-mark />
+          <span class="leading-none">
+            <span class="block text-[17px] font-extrabold tracking-tight text-primary-700">AeroCRM</span>
+            <span class="block mt-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-accent-700">Expertia Travel</span>
+          </span>
         </a>
 
         <!-- Escritorio -->
-        <div class="hidden lg:flex items-center gap-1">
+        <div class="hidden lg:flex items-center gap-1 self-stretch">
           @for (link of links(); track link.path) {
-            <a [routerLink]="link.path" routerLinkActive="bg-primary-50 text-primary-700"
-              class="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900">{{ link.label }}</a>
+            <a [routerLink]="link.path" routerLinkActive="!text-accent-700 !border-accent-500"
+              class="flex items-center border-b-2 border-transparent px-3 text-sm font-medium text-slate-600 transition hover:text-primary-700">{{ link.label }}</a>
           }
         </div>
 
         <div class="hidden lg:flex items-center gap-3">
           @if (draft.hasDraft()) {
             <a routerLink="/packages/new"
-              class="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-100">Continuar paquete</a>
+              class="inline-flex items-center gap-2 rounded-full border border-accent-200 bg-accent-50 px-3.5 py-1.5 text-sm font-semibold text-accent-700 hover:bg-accent-100">
+              <span class="h-2 w-2 rounded-full bg-accent-500 animate-pulse" aria-hidden="true"></span>
+              Continuar paquete
+            </a>
           }
           @if (user(); as u) {
-            <div class="text-right leading-tight">
-              <p class="text-sm font-semibold text-slate-800">{{ u.firstName }}</p>
-              @if (u.membershipLevel) {
-                <p class="text-xs text-primary-700">{{ u.membershipLevel | titlecase }}</p>
-              }
+            <div class="flex items-center gap-2.5 border-l border-slate-200 pl-4">
+              <span class="flex h-9 w-9 items-center justify-center rounded-full bg-primary-700 text-sm font-bold text-white" aria-hidden="true">{{ initials() }}</span>
+              <div class="leading-tight">
+                <p class="text-sm font-semibold text-primary-700">{{ u.firstName }}</p>
+                @if (u.membershipLevel) {
+                  <p class="text-[11px] font-bold uppercase tracking-wider text-success-700">{{ u.membershipLevel | titlecase }}</p>
+                }
+              </div>
             </div>
-            <button type="button" (click)="logout()" class="rounded-lg px-3 py-2 text-sm text-slate-500 hover:bg-slate-100 hover:text-slate-800">Cerrar sesión</button>
+            <button type="button" uiButton variant="ghost" size="sm" (click)="logout()">Cerrar sesión</button>
           } @else {
-            <a routerLink="/login" class="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">Iniciar sesión</a>
-            <a routerLink="/register" class="rounded-xl bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700">Crear cuenta</a>
+            <a routerLink="/login" uiButton variant="ghost" size="sm">Iniciar sesión</a>
+            <a routerLink="/register" uiButton size="sm">Crear cuenta</a>
           }
         </div>
 
         <!-- Teléfono -->
-        <button type="button" class="lg:hidden rounded-lg p-2 text-slate-700 hover:bg-slate-100"
+        <button type="button" class="lg:hidden rounded-full p-2 text-primary-700 hover:bg-slate-100"
           (click)="open.set(!open())" [attr.aria-expanded]="open()" aria-controls="menu-movil" aria-label="Abrir menú">
-          <span class="block text-xl leading-none">{{ open() ? '✕' : '☰' }}</span>
+          <span class="block h-6 w-6 text-xl leading-6 text-center">{{ open() ? '✕' : '☰' }}</span>
         </button>
       </nav>
 
       @if (open()) {
-        <div id="menu-movil" class="lg:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-1">
+        <div id="menu-movil" class="lg:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-1 shadow-float">
           @if (user(); as u) {
-            <p class="px-3 pb-2 text-sm text-slate-500">
-              {{ u.firstName }} {{ u.lastName }}
-              @if (u.membershipLevel) { · <span class="text-primary-700">{{ u.membershipLevel | titlecase }}</span> }
-            </p>
+            <div class="flex items-center gap-3 px-3 pb-3">
+              <span class="flex h-9 w-9 items-center justify-center rounded-full bg-primary-700 text-sm font-bold text-white" aria-hidden="true">{{ initials() }}</span>
+              <p class="text-sm leading-tight">
+                <span class="block font-semibold text-primary-700">{{ u.firstName }} {{ u.lastName }}</span>
+                @if (u.membershipLevel) { <span class="block text-[11px] font-bold uppercase tracking-wider text-success-700">{{ u.membershipLevel | titlecase }}</span> }
+              </p>
+            </div>
           }
           @if (draft.hasDraft()) {
-            <a routerLink="/packages/new" class="block rounded-lg bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">Continuar paquete</a>
+            <a routerLink="/packages/new" class="block rounded-xl bg-accent-50 px-3 py-2.5 text-sm font-semibold text-accent-700">Continuar paquete</a>
           }
           @for (link of links(); track link.path) {
-            <a [routerLink]="link.path" routerLinkActive="bg-primary-50 text-primary-700"
-              class="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">{{ link.label }}</a>
+            <a [routerLink]="link.path" routerLinkActive="bg-primary-50 !text-primary-700 font-semibold"
+              class="block rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50">{{ link.label }}</a>
           }
-          @if (user()) {
-            <button type="button" (click)="logout()" class="block w-full text-left rounded-lg px-3 py-2 text-sm text-slate-500 hover:bg-slate-100">Cerrar sesión</button>
-          } @else {
-            <a routerLink="/login" class="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">Iniciar sesión</a>
-            <a routerLink="/register" class="block rounded-lg bg-primary-600 px-3 py-2 text-sm font-semibold text-white text-center">Crear cuenta</a>
-          }
+          <div class="pt-2">
+            @if (user()) {
+              <button type="button" uiButton variant="secondary" [block]="true" (click)="logout()">Cerrar sesión</button>
+            } @else {
+              <div class="grid grid-cols-2 gap-2">
+                <a routerLink="/login" uiButton variant="secondary">Iniciar sesión</a>
+                <a routerLink="/register" uiButton>Crear cuenta</a>
+              </div>
+            }
+          </div>
         </div>
       }
     </header>
@@ -116,6 +133,12 @@ export class NavbarComponent {
     return u.role === 'ADMIN' ? ADMIN_LINKS : CLIENT_LINKS;
   });
   readonly open = signal(false);
+  /** Iniciales del cliente para el círculo de la cuenta. */
+  readonly initials = computed(() => {
+    const u = this.user();
+    if (!u) return '';
+    return `${u.firstName?.[0] ?? ''}${u.lastName?.[0] ?? ''}`.toUpperCase();
+  });
 
   constructor() {
     // El menú del teléfono se cierra al navegar.

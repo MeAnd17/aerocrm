@@ -197,3 +197,21 @@ Archivos:
 - `docs/pruebas/DEFECTOS.md`: 2 defectos menores, 20 resultados del barrido de API y backlog de incidencias.
 
 PR: pendiente
+
+### TS-008 (cierre): Colores, tipografía y pantallas del cliente según la maqueta
+
+git commit -m "feat: aplica los colores, la tipografía y las piezas de la maqueta a las pantallas del cliente (TS-008)"
+
+Pasé a la plataforma el sistema visual de la maqueta de referencia (Google Stitch): azul marino como color de marca, naranja solo para la acción principal y el paso activo, verde para puntos y estados confirmados, tipografía Plus Jakarta Sans, tarjetas con bordes redondeados y sombras suaves, y botones en píldora. Con esto queda cerrado lo que TS-008 tenía pendiente (`[AJUSTAR]`). Las pantallas del cliente usaban colores sueltos (`blue-*`, `gray-*`) en vez de los tokens, así que se pasaron a `primary-*` y `slate-*`; las de explorar, mis viajes y mis puntos se rehicieron con el diseño de la maqueta, y el armador ahora tiene la barra de pasos fija y el panel «Tu paquete» con lo elegido. Solo cambia la presentación: los datos, los cálculos y las llamadas a la API son los mismos, y no se copió nada que la maqueta inventa y la API no tiene (marca «Kallpa», tarifas, RUC, medios de pago). El panel del armador no suma precios: el total oficial sigue saliendo del servidor en el paso Resumen (B6). El naranja de los botones es un tono más oscuro que el de la maqueta para cumplir el contraste AA de WCAG 2.1 del Plan de Calidad. De paso se corrigió `/destinations`, que no cargaba porque usaba un pipe `etiqueta` que no existe (el pipe se llama `label`). Quedan fuera las pantallas del panel de administración, que no están en la maqueta.
+
+Archivos:
+- `frontend/tailwind.config.js`, `src/styles.scss`, `src/index.html`: tokens `primary`, `accent`, `success`, sombras y tipografía.
+- `frontend/src/app/shared/ui/`: botón, tarjeta, campo, estados vacío y de carga con el estilo de la maqueta; piezas nuevas `ui-badge`, `ui-page-header` y `app-brand-mark`.
+- `frontend/src/app/core/layout/navbar/navbar.component.ts` y `core/layout/footer/footer.component.ts`: barra de navegación nueva y pie de página.
+- `frontend/src/app/app.component.ts`: contenedor de 1280 px y pie de página.
+- `frontend/src/app/features/search/search.component.ts`, `my-trips/my-trips.component.ts`, `loyalty/loyalty.component.ts`: pantallas rehechas según la maqueta.
+- `frontend/src/app/features/packages/package-builder.component.ts`: barra de pasos fija y panel «Tu paquete».
+- `frontend/src/app/features/packages/steps/`, `home/`, `destinations/`, `my-trips/trip-detail.component.ts`, `profile/`, `contact/`, `auth/login`, `auth/register`, `auth/change-password`: colores pasados a los tokens, tarjetas y botón principal con el estilo nuevo.
+- `docs/interfaz.md`: tokens, piezas nuevas, pie de página y panel del armador.
+
+PR: pendiente

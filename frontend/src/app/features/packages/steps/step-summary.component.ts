@@ -33,12 +33,12 @@ import { apiErrorMessage } from '../../../core/services/api-error';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="bg-white rounded-xl border shadow-sm p-5 space-y-4">
-      <h3 class="font-semibold text-gray-800 text-lg">📋 Resumen del paquete</h3>
+    <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-5 space-y-4">
+      <h3 class="font-bold text-primary-700 text-lg">📋 Resumen del paquete</h3>
 
       <!-- Estado de carga de la cotización -->
       @if (loadingQuote()) {
-        <p class="text-sm text-gray-500 text-center py-4">Calculando precios…</p>
+        <p class="text-sm text-slate-500 text-center py-4">Calculando precios…</p>
       }
 
       @if (quoteError()) {
@@ -63,7 +63,7 @@ import { apiErrorMessage } from '../../../core/services/api-error';
           <div class="flex justify-between">
             <span>
               ✈️ Vuelo de ida
-              <span class="text-gray-500">({{ q.breakdown.outboundFlight.flightNumber }})</span>
+              <span class="text-slate-500">({{ q.breakdown.outboundFlight.flightNumber }})</span>
               × {{ state.passengers() }} pax
             </span>
             <span class="font-semibold">S/. {{ q.breakdown.outboundFlight.lineTotal | number:'1.2-2' }}</span>
@@ -74,7 +74,7 @@ import { apiErrorMessage } from '../../../core/services/api-error';
             <div class="flex justify-between">
               <span>
                 🔁 Vuelo de regreso
-                <span class="text-gray-500">({{ q.breakdown.returnFlight.flightNumber }})</span>
+                <span class="text-slate-500">({{ q.breakdown.returnFlight.flightNumber }})</span>
                 × {{ state.passengers() }} pax
               </span>
               <span class="font-semibold">S/. {{ q.breakdown.returnFlight.lineTotal | number:'1.2-2' }}</span>
@@ -106,7 +106,7 @@ import { apiErrorMessage } from '../../../core/services/api-error';
           }
 
           <!-- Separador y subtotal -->
-          <div class="border-t pt-2 flex justify-between text-gray-600">
+          <div class="border-t pt-2 flex justify-between text-slate-600">
             <span>Subtotal</span>
             <span>S/. {{ q.breakdown.subtotal | number:'1.2-2' }}</span>
           </div>
@@ -130,12 +130,12 @@ import { apiErrorMessage } from '../../../core/services/api-error';
           <!-- Total -->
           <div class="border-t pt-2 flex justify-between font-bold text-base">
             <span>Total</span>
-            <span class="text-blue-900">S/. {{ q.breakdown.total | number:'1.2-2' }}</span>
+            <span class="text-primary-900">S/. {{ q.breakdown.total | number:'1.2-2' }}</span>
           </div>
 
           <!-- Puntos que se ganarán -->
           @if (q.pointsToEarn > 0) {
-            <div class="text-right text-xs text-blue-600">
+            <div class="text-right text-xs text-primary-600">
               Ganarás <strong>{{ q.pointsToEarn }} puntos</strong> con esta compra
             </div>
           }
@@ -143,34 +143,34 @@ import { apiErrorMessage } from '../../../core/services/api-error';
 
         <!-- Canje de puntos (US-020): solo cuando está autenticado y tiene al menos 500 pts -->
         @if (isLoggedIn() && state.loyalty()?.canRedeem) {
-          <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+          <div class="bg-primary-50 border border-primary-200 rounded-xl p-4 space-y-3">
             <div class="flex items-center justify-between">
-              <p class="text-sm font-semibold text-blue-800">💎 Canjear puntos</p>
+              <p class="text-sm font-semibold text-primary-800">💎 Canjear puntos</p>
               <label class="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   [ngModel]="canjeActivo()"
                   (ngModelChange)="toggleCanje($event)"
-                  class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-400"
+                  class="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-400"
                 />
-                <span class="text-xs text-blue-700 font-medium">Usar puntos</span>
+                <span class="text-xs text-primary-700 font-medium">Usar puntos</span>
               </label>
             </div>
 
-            <p class="text-xs text-blue-600">
+            <p class="text-xs text-primary-600">
               Tienes <strong>{{ state.loyalty().availablePoints }}</strong> puntos
               · En esta compra puedes usar hasta <strong>{{ maxPuntosCanjeables() }}</strong>
             </p>
 
             @if (state.loyalty().currentDiscount > 0) {
-              <p class="text-xs text-blue-600">
+              <p class="text-xs text-primary-600">
                 Tu nivel <strong>{{ state.loyalty().levelLabel }}</strong>
                 añade un {{ state.loyalty().currentDiscount }}% de descuento adicional al canjear.
               </p>
             }
 
             @if (canjeActivo()) {
-              <div class="flex items-center gap-2">
+              <div class="flex flex-wrap items-center gap-2">
                 <input
                   type="number"
                   [(ngModel)]="puntosIngresados"
@@ -178,13 +178,13 @@ import { apiErrorMessage } from '../../../core/services/api-error';
                   [max]="maxPuntosCanjeables()"
                   step="100"
                   [placeholder]="'Puntos a canjear (min. ' + state.loyalty()?.minRedeemPoints + ')'"
-                  class="flex-1 px-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="flex-1 px-3 py-2 border border-primary-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
                 <button
                   type="button"
                   (click)="aplicarCanje()"
                   [disabled]="loadingQuote()"
-                  class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+                  class="px-4 py-2 bg-accent-600 text-white text-sm font-medium rounded-full hover:bg-accent-700 disabled:opacity-50 transition"
                 >
                   Aplicar
                 </button>
@@ -193,7 +193,7 @@ import { apiErrorMessage } from '../../../core/services/api-error';
 
             @if (state.pointsToRedeem() > 0) {
               <div class="flex items-center justify-between text-xs">
-                <span class="text-gray-500">
+                <span class="text-slate-500">
                   Quedarán {{ state.loyalty().availablePoints - q.pointsToRedeem }} puntos tras el canje
                 </span>
                 <button
@@ -207,29 +207,29 @@ import { apiErrorMessage } from '../../../core/services/api-error';
             }
           </div>
         } @else if (isLoggedIn() && state.loyalty() && !state.loyalty().canRedeem) {
-          <p class="text-xs text-gray-500 bg-gray-50 rounded-lg p-3">
+          <p class="text-xs text-slate-500 bg-slate-50 rounded-lg p-3">
             Necesitas al menos 500 puntos para canjear (tienes {{ state.loyalty().availablePoints }})
           </p>
         }
 
         <!-- Pasajeros -->
-        <div class="bg-gray-50 rounded-lg p-3 space-y-1">
-          <p class="text-sm font-semibold text-gray-700">👥 Pasajeros</p>
+        <div class="bg-slate-50 rounded-lg p-3 space-y-1">
+          <p class="text-sm font-semibold text-slate-700">👥 Pasajeros</p>
           @if (state.passengerDrafts().length > 0) {
             @for (p of state.passengerDrafts(); track p.documentNumber; let pi = $index) {
-              <p class="text-sm text-gray-600">
+              <p class="text-sm text-slate-600">
                 {{ pi + 1 }}. {{ p.firstName }} {{ p.lastName }}
-                <span class="text-gray-400 text-xs">· {{ p.documentType === 'PASAPORTE' ? 'Pasaporte' : 'DNI' }} {{ p.documentNumber }}</span>
-                @if (pi === 0) { <span class="text-blue-600 text-xs">(titular)</span> }
+                <span class="text-slate-400 text-xs">· {{ p.documentType === 'PASAPORTE' ? 'Pasaporte' : 'DNI' }} {{ p.documentNumber }}</span>
+                @if (pi === 0) { <span class="text-primary-600 text-xs">(titular)</span> }
               </p>
             }
           } @else if (state.passengers() > 0) {
-            <p class="text-sm text-gray-600">
+            <p class="text-sm text-slate-600">
               {{ state.passengers() }} pasajero{{ state.passengers() !== 1 ? 's' : '' }}
               seleccionado{{ state.passengers() !== 1 ? 's' : '' }}
             </p>
           } @else {
-            <p class="text-sm text-gray-500 italic">
+            <p class="text-sm text-slate-500 italic">
               Los datos de cada pasajero se agregarán en el siguiente paso.
             </p>
           }
@@ -237,17 +237,17 @@ import { apiErrorMessage } from '../../../core/services/api-error';
 
         <!-- Bloque de sesión o botón continuar -->
         @if (!isLoggedIn()) {
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
-            <p class="text-sm font-semibold text-blue-800">
+          <div class="bg-primary-50 border border-primary-200 rounded-lg p-4 space-y-3">
+            <p class="text-sm font-semibold text-primary-800">
               Crea tu cuenta o inicia sesión para confirmar tu viaje
             </p>
             <div class="flex gap-3 flex-wrap">
               <button (click)="goToRegister()"
-                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-semibold text-sm transition">
+                class="flex-1 bg-accent-600 hover:bg-accent-700 text-white py-2 px-4 rounded-full font-semibold text-sm transition min-w-[12rem]">
                 Registrarme
               </button>
               <button (click)="goToLogin()"
-                class="flex-1 bg-white hover:bg-gray-50 text-blue-700 border border-blue-300 py-2 px-4 rounded-lg font-semibold text-sm transition">
+                class="flex-1 bg-white hover:bg-slate-50 text-primary-700 border border-primary-300 py-2 px-4 rounded-lg font-semibold text-sm transition">
                 Iniciar sesión
               </button>
             </div>
@@ -255,11 +255,11 @@ import { apiErrorMessage } from '../../../core/services/api-error';
         } @else {
           <div class="space-y-2">
             <button (click)="irAlPago()"
-              class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold text-lg transition">
+              class="w-full bg-accent-600 hover:bg-accent-700 text-white py-3 rounded-full font-bold text-lg transition">
               Continuar al pago →
             </button>
             <button (click)="state.goTo(6)"
-              class="w-full text-sm text-gray-400 hover:text-gray-600 py-1 transition">
+              class="w-full text-sm text-slate-400 hover:text-slate-600 py-1 transition">
               ← Volver a pasajeros
             </button>
           </div>

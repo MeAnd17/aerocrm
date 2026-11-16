@@ -16,37 +16,37 @@ import { apiErrorMessage } from '../../../core/services/api-error';
   imports: [CommonModule, FormsModule, LabelPipe],
   template: `
     <!-- Vuelo de ida -->
-    <div class="bg-white rounded-xl border shadow-sm p-4 space-y-2">
+    <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-4 space-y-2">
       <div class="flex items-center justify-between">
-        <span class="text-blue-600 font-semibold text-sm">✈️ Vuelo de ida</span>
+        <span class="text-primary-600 font-semibold text-sm">✈️ Vuelo de ida</span>
         <button
           (click)="cambiarVuelo()"
-          class="text-xs text-blue-600 underline hover:text-blue-800">
+          class="text-xs text-primary-600 underline hover:text-primary-800">
           Cambiar
         </button>
       </div>
       <p class="font-bold">{{ state.flight()?.airline }} {{ state.flight()?.flightNumber }}</p>
-      <p class="text-sm text-gray-500">
+      <p class="text-sm text-slate-500">
         {{ state.flight()?.origin?.city }} → {{ state.flight()?.destination?.city }}
       </p>
-      <p class="text-sm text-gray-500">
+      <p class="text-sm text-slate-500">
         Salida: {{ state.flight()?.departureDate | date:'dd/MM/yyyy HH:mm':'':'es-PE' }}
         &nbsp;·&nbsp;
         Llegada: {{ state.flight()?.arrivalDate | date:'dd/MM/yyyy HH:mm':'':'es-PE' }}
       </p>
-      <p class="text-sm text-gray-500">
+      <p class="text-sm text-slate-500">
         Clase: {{ state.flight()?.classType | label }}
         &nbsp;·&nbsp;
         {{ state.flight()?.stops === 0 ? 'Directo' : (state.flight()?.stops + ' escala(s)') }}
       </p>
-      <p class="text-sm font-bold text-blue-900">
+      <p class="text-sm font-bold text-primary-900">
         S/. {{ state.flightTotal() | number:'1.2-2' }}
-        <span class="font-normal text-gray-400">({{ state.passengers() }} pasajero(s))</span>
+        <span class="font-normal text-slate-400">({{ state.passengers() }} pasajero(s))</span>
       </p>
     </div>
 
     <!-- Vuelo de regreso -->
-    <div class="bg-white rounded-xl border shadow-sm p-4 space-y-3">
+    <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-4 space-y-3">
       <div class="flex items-center justify-between">
         <span class="text-green-700 font-semibold text-sm">🔁 Vuelo de regreso</span>
         @if (state.returnFlight()) {
@@ -63,43 +63,43 @@ import { apiErrorMessage } from '../../../core/services/api-error';
         <p class="font-bold">
           {{ state.returnFlight()?.airline }} {{ state.returnFlight()?.flightNumber }}
         </p>
-        <p class="text-sm text-gray-500">
+        <p class="text-sm text-slate-500">
           {{ state.returnFlight()?.origin?.city }} → {{ state.returnFlight()?.destination?.city }}
         </p>
-        <p class="text-sm text-gray-500">
+        <p class="text-sm text-slate-500">
           Salida: {{ state.returnFlight()?.departureDate | date:'dd/MM/yyyy HH:mm':'':'es-PE' }}
           &nbsp;·&nbsp;
           Llegada: {{ state.returnFlight()?.arrivalDate | date:'dd/MM/yyyy HH:mm':'':'es-PE' }}
         </p>
-        <p class="text-sm text-gray-500">
+        <p class="text-sm text-slate-500">
           Clase: {{ state.returnFlight()?.classType | label }}
           &nbsp;·&nbsp;
           {{ state.returnFlight()?.stops === 0 ? 'Directo' : (state.returnFlight()?.stops + ' escala(s)') }}
         </p>
         <p class="text-sm font-bold text-green-800">
           S/. {{ returnFlightTotal() | number:'1.2-2' }}
-          <span class="font-normal text-gray-400">({{ state.passengers() }} pasajero(s))</span>
+          <span class="font-normal text-slate-400">({{ state.passengers() }} pasajero(s))</span>
         </p>
       } @else {
         <!-- Buscador de regreso -->
-        <div class="flex items-center gap-2">
-          <label class="text-sm text-gray-600 whitespace-nowrap">Fecha de regreso:</label>
+        <div class="flex flex-wrap items-center gap-2">
+          <label class="text-sm text-slate-600 whitespace-nowrap">Fecha de regreso:</label>
           <input
             type="date"
             [(ngModel)]="fechaRegreso"
             [min]="fechaMinRegreso()"
-            class="border rounded-lg px-2 py-1 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            class="border rounded-lg px-2 py-1 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-primary-400"
           />
           <button
             (click)="buscarRegreso()"
             [disabled]="buscando()"
-            class="bg-blue-600 text-white text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
+            class="bg-accent-600 text-white text-sm font-semibold px-3 py-1.5 rounded-full hover:bg-accent-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
             @if (buscando()) { Buscando... } @else { Buscar }
           </button>
         </div>
 
         @if (vuelos().length > 0) {
-          <p class="text-xs text-gray-500">
+          <p class="text-xs text-slate-500">
             {{ vuelos().length }} vuelo(s) encontrado(s). Selecciona uno:
           </p>
           <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
@@ -111,10 +111,10 @@ import { apiErrorMessage } from '../../../core/services/api-error';
                   <span class="font-semibold text-sm">{{ v.airline }} {{ v.flightNumber }}</span>
                   <span class="text-sm font-bold text-green-800">S/. {{ v.totalPrice | number:'1.2-2' }}</span>
                 </div>
-                <p class="text-xs text-gray-500">
+                <p class="text-xs text-slate-500">
                   {{ v.origin?.city }} → {{ v.destination?.city }}
                 </p>
-                <p class="text-xs text-gray-500">
+                <p class="text-xs text-slate-500">
                   {{ v.departureDate | date:'dd/MM/yyyy HH:mm':'':'es-PE' }}
                   &nbsp;·&nbsp;
                   {{ v.classType | label }}
@@ -130,7 +130,7 @@ import { apiErrorMessage } from '../../../core/services/api-error';
             }
           </div>
         } @else if (buscado() && !buscando()) {
-          <p class="text-sm text-gray-500 italic">
+          <p class="text-sm text-slate-500 italic">
             No encontramos vuelos de regreso cerca de esa fecha. Prueba con otra fecha.
           </p>
         }
@@ -141,7 +141,7 @@ import { apiErrorMessage } from '../../../core/services/api-error';
     <button
       (click)="continuar()"
       [disabled]="!state.flight() || !state.returnFlight()"
-      class="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
+      class="w-full bg-accent-600 text-white py-3 rounded-full font-semibold hover:bg-accent-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
       Continuar → Ver contexto del destino
     </button>
   `,

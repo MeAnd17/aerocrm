@@ -26,8 +26,8 @@ type MetodoPago = 'TARJETA' | 'TRANSFERENCIA' | 'BILLETERA_DIGITAL';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="bg-white rounded-xl border shadow-sm p-5 space-y-5">
-      <h3 class="font-semibold text-gray-800 text-lg">💳 Pago</h3>
+    <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-5 space-y-5">
+      <h3 class="font-bold text-primary-700 text-lg">💳 Pago</h3>
 
       <!-- Aviso de demostración -->
       <div class="bg-amber-50 border border-amber-300 rounded-lg p-3 flex items-start gap-2">
@@ -39,57 +39,57 @@ type MetodoPago = 'TARJETA' | 'TRANSFERENCIA' | 'BILLETERA_DIGITAL';
 
       <!-- Selector de método de pago -->
       <div class="space-y-2">
-        <p class="text-sm font-medium text-gray-700">Método de pago</p>
+        <p class="text-sm font-medium text-slate-700">Método de pago</p>
 
         @for (opcion of opcionesPago; track opcion.valor) {
           <label class="flex items-center gap-3 border rounded-lg p-3 cursor-pointer transition"
-            [class.border-blue-500]="metodoPago() === opcion.valor"
-            [class.bg-blue-50]="metodoPago() === opcion.valor"
-            [class.border-gray-200]="metodoPago() !== opcion.valor">
+            [class.border-primary-500]="metodoPago() === opcion.valor"
+            [class.bg-primary-50]="metodoPago() === opcion.valor"
+            [class.border-slate-200]="metodoPago() !== opcion.valor">
             <input type="radio" name="metodoPago"
               [value]="opcion.valor"
               [checked]="metodoPago() === opcion.valor"
               (change)="metodoPago.set(opcion.valor)"
-              class="accent-blue-600">
-            <span class="text-sm font-medium text-gray-700">{{ opcion.etiqueta }}</span>
+              class="accent-primary-600">
+            <span class="text-sm font-medium text-slate-700">{{ opcion.etiqueta }}</span>
           </label>
         }
       </div>
 
       <!-- Formulario de tarjeta (solo decorativo, nunca enviado al backend) -->
       @if (metodoPago() === 'TARJETA') {
-        <div class="space-y-3 border border-gray-200 rounded-lg p-4">
-          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Datos de tarjeta</p>
+        <div class="space-y-3 border border-slate-200 rounded-lg p-4">
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Datos de tarjeta</p>
 
           <div class="space-y-1">
-            <label class="text-sm text-gray-600" for="nro-tarjeta">Número de tarjeta</label>
+            <label class="text-sm text-slate-600" for="nro-tarjeta">Número de tarjeta</label>
             <input id="nro-tarjeta" type="text"
               [(ngModel)]="nroTarjeta"
               placeholder="XXXX XXXX XXXX XXXX"
               maxlength="19"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+              class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400">
           </div>
 
-          <div class="flex gap-3">
+          <div class="flex flex-wrap gap-3">
             <div class="flex-1 space-y-1">
-              <label class="text-sm text-gray-600" for="vencimiento">Vencimiento (MM/AA)</label>
+              <label class="text-sm text-slate-600" for="vencimiento">Vencimiento (MM/AA)</label>
               <input id="vencimiento" type="text"
                 [(ngModel)]="vencimiento"
                 placeholder="MM/AA"
                 maxlength="5"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400">
             </div>
             <div class="w-24 space-y-1">
-              <label class="text-sm text-gray-600" for="cvv">CVV</label>
+              <label class="text-sm text-slate-600" for="cvv">CVV</label>
               <input id="cvv" type="text"
                 [(ngModel)]="cvv"
                 placeholder="123"
                 maxlength="3"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400">
             </div>
           </div>
 
-          <p class="text-xs text-gray-400">
+          <p class="text-xs text-slate-400">
             Estos datos son solo de demostración y no se transmiten a ningún servidor.
           </p>
         </div>
@@ -110,9 +110,9 @@ type MetodoPago = 'TARJETA' | 'TRANSFERENCIA' | 'BILLETERA_DIGITAL';
       }
 
       <!-- Botones -->
-      <div class="flex gap-3">
+      <div class="flex flex-wrap gap-3">
         <button (click)="volver()"
-          class="flex-1 border border-gray-300 text-gray-700 py-3 rounded-xl font-semibold text-sm hover:bg-gray-50 transition">
+          class="flex-1 border border-slate-300 text-slate-700 py-3 rounded-xl font-semibold text-sm hover:bg-slate-50 transition">
           ← Volver al resumen
         </button>
         <button (click)="confirmarPago()" [disabled]="cargando()"

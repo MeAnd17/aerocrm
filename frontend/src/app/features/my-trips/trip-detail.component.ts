@@ -75,30 +75,30 @@ interface Resena {
   template: `
     <div class="space-y-5">
       <div class="flex items-center gap-3">
-        <a routerLink="/my-trips" class="text-gray-400 hover:text-gray-600">← Mis viajes</a>
+        <a routerLink="/my-trips" class="text-slate-400 hover:text-slate-600">← Mis viajes</a>
       </div>
 
       @if (cargando()) {
-        <div class="text-center py-10 text-gray-400">Cargando detalle...</div>
+        <div class="text-center py-10 text-slate-400">Cargando detalle...</div>
       } @else if (noEncontrada()) {
         <div class="text-center py-16">
-          <p class="text-gray-500 text-lg mb-4">Reserva no encontrada</p>
-          <a routerLink="/my-trips" class="text-blue-600 hover:underline text-sm">Volver a mis viajes</a>
+          <p class="text-slate-500 text-lg mb-4">Reserva no encontrada</p>
+          <a routerLink="/my-trips" class="text-primary-600 hover:underline text-sm">Volver a mis viajes</a>
         </div>
       } @else if (reserva()) {
         <!-- Encabezado -->
-        <div class="bg-white rounded-xl border shadow-sm p-5">
+        <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-5">
           <div class="flex items-start justify-between">
             <div>
-              <p class="text-2xl font-bold text-gray-800">{{ reserva()!.confirmationCode }}</p>
-              <p class="text-sm text-gray-500 mt-0.5">{{ reserva()!.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
+              <p class="text-2xl font-bold text-slate-800">{{ reserva()!.confirmationCode }}</p>
+              <p class="text-sm text-slate-500 mt-0.5">{{ reserva()!.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
             </div>
             <span class="px-3 py-1 rounded-full text-sm font-semibold"
               [ngClass]="{
                 'bg-yellow-100 text-yellow-700': reserva()!.status === 'PENDIENTE',
                 'bg-green-100 text-green-700':  reserva()!.status === 'CONFIRMADO',
-                'bg-blue-100 text-blue-700':    reserva()!.status === 'EN_CURSO',
-                'bg-gray-100 text-gray-700':    reserva()!.status === 'COMPLETADO',
+                'bg-primary-100 text-primary-700':    reserva()!.status === 'EN_CURSO',
+                'bg-slate-100 text-slate-700':    reserva()!.status === 'COMPLETADO',
                 'bg-red-100 text-red-600':      reserva()!.status === 'CANCELADO'
               }">
               {{ reserva()!.status | label }}
@@ -108,17 +108,17 @@ interface Resena {
 
         <!-- Pasajeros -->
         @if (reserva()!.bookingPassengers?.length) {
-          <div class="bg-white rounded-xl border shadow-sm p-4">
-            <h3 class="font-semibold text-gray-800 mb-3">Pasajeros</h3>
+          <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-4">
+            <h3 class="font-bold text-primary-700 mb-3">Pasajeros</h3>
             @for (p of reserva()!.bookingPassengers; track p.id) {
               <div class="flex items-center justify-between py-2 border-b last:border-0 text-sm">
                 <div>
-                  <span class="font-medium text-gray-800">{{ p.firstName }} {{ p.lastName }}</span>
+                  <span class="font-medium text-slate-800">{{ p.firstName }} {{ p.lastName }}</span>
                   @if (p.isHolder) {
-                    <span class="ml-2 text-xs text-blue-600 font-semibold">Titular</span>
+                    <span class="ml-2 text-xs text-primary-600 font-semibold">Titular</span>
                   }
                 </div>
-                <span class="text-gray-500">Doc: {{ p.documentNumber }}</span>
+                <span class="text-slate-500">Doc: {{ p.documentNumber }}</span>
               </div>
             }
           </div>
@@ -126,33 +126,33 @@ interface Resena {
 
         <!-- Vuelos -->
         @for (bf of reserva()!.bookingFlights; track bf.id) {
-          <div class="bg-white rounded-xl border shadow-sm p-4">
-            <h3 class="font-semibold text-gray-800 mb-2">Vuelo</h3>
+          <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-4">
+            <h3 class="font-bold text-primary-700 mb-2">Vuelo</h3>
             <p class="font-bold">{{ bf.flight.airline }} {{ bf.flight.flightNumber }}</p>
-            <p class="text-sm text-gray-600">{{ bf.flight.origin?.city }} → {{ bf.flight.destination?.city }}</p>
-            <p class="text-sm text-gray-500">{{ bf.flight.departureDate | date:'dd MMM yyyy, HH:mm' }}</p>
-            <p class="text-sm font-semibold text-blue-900 mt-1">S/. {{ bf.priceSnapshot | number:'1.2-2' }}</p>
+            <p class="text-sm text-slate-600">{{ bf.flight.origin?.city }} → {{ bf.flight.destination?.city }}</p>
+            <p class="text-sm text-slate-500">{{ bf.flight.departureDate | date:'dd MMM yyyy, HH:mm' }}</p>
+            <p class="text-sm font-semibold text-primary-900 mt-1">S/. {{ bf.priceSnapshot | number:'1.2-2' }}</p>
           </div>
         }
 
         <!-- Hotel -->
         @for (bh of reserva()!.bookingHotels; track bh.id) {
-          <div class="bg-white rounded-xl border shadow-sm p-4">
-            <h3 class="font-semibold text-gray-800 mb-2">Hotel</h3>
+          <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-4">
+            <h3 class="font-bold text-primary-700 mb-2">Hotel</h3>
             <p class="font-bold">{{ bh.hotel.name }}</p>
-            <p class="text-sm text-gray-500">
+            <p class="text-sm text-slate-500">
               Entrada: {{ bh.checkIn | date:'dd/MM/yyyy':'UTC' }} ·
               Salida: {{ bh.checkOut | date:'dd/MM/yyyy':'UTC' }} ·
               {{ bh.nights }} noches
             </p>
-            <p class="text-sm font-semibold text-blue-900 mt-1">S/. {{ bh.priceSnapshot | number:'1.2-2' }}</p>
+            <p class="text-sm font-semibold text-primary-900 mt-1">S/. {{ bh.priceSnapshot | number:'1.2-2' }}</p>
           </div>
         }
 
         <!-- Actividades -->
         @if (reserva()!.bookingActivities?.length) {
-          <div class="bg-white rounded-xl border shadow-sm p-4">
-            <h3 class="font-semibold text-gray-800 mb-2">Actividades</h3>
+          <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-4">
+            <h3 class="font-bold text-primary-700 mb-2">Actividades</h3>
             @for (ba of reserva()!.bookingActivities; track ba.id) {
               <div class="flex justify-between py-1.5 border-b last:border-0 text-sm">
                 <span>{{ ba.activity.name }} @if (ba.quantity > 1) { (× {{ ba.quantity }}) }</span>
@@ -164,8 +164,8 @@ interface Resena {
 
         <!-- Extras -->
         @if (reserva()!.bookingExtras?.length) {
-          <div class="bg-white rounded-xl border shadow-sm p-4">
-            <h3 class="font-semibold text-gray-800 mb-2">Extras</h3>
+          <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-4">
+            <h3 class="font-bold text-primary-700 mb-2">Extras</h3>
             @for (be of reserva()!.bookingExtras; track be.id) {
               <div class="flex justify-between py-1.5 border-b last:border-0 text-sm">
                 <span>{{ be.type | label }}</span>
@@ -176,12 +176,12 @@ interface Resena {
         }
 
         <!-- Total -->
-        <div class="bg-blue-50 rounded-xl border border-blue-100 p-4">
+        <div class="bg-primary-50 rounded-xl border border-primary-100 p-4">
           <div class="flex justify-between items-center">
             <div>
-              <p class="font-bold text-blue-900 text-lg">Total pagado</p>
+              <p class="font-bold text-primary-900 text-lg">Total pagado</p>
               @if (reserva()!.pointsUsed > 0) {
-                <p class="text-sm text-blue-600">
+                <p class="text-sm text-primary-600">
                   Se canjearon {{ reserva()!.pointsUsed }} puntos · descuento S/. {{ reserva()!.discountAmount | number:'1.2-2' }}
                 </p>
               }
@@ -189,28 +189,28 @@ interface Resena {
                 <p class="text-sm text-green-600">+{{ reserva()!.pointsEarned }} puntos ganados</p>
               }
             </div>
-            <p class="text-2xl font-bold text-blue-900">S/. {{ reserva()!.totalPrice | number:'1.2-2' }}</p>
+            <p class="text-2xl font-bold text-primary-900">S/. {{ reserva()!.totalPrice | number:'1.2-2' }}</p>
           </div>
         </div>
 
         <!-- Calificación (US-025) — solo para viajes COMPLETADO -->
         @if (reserva()!.status === 'COMPLETADO') {
-          <div class="bg-white rounded-xl border shadow-sm p-5">
-            <h3 class="font-semibold text-gray-800 mb-3">⭐ Calificación</h3>
+          <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-5">
+            <h3 class="font-bold text-primary-700 mb-3">⭐ Calificación</h3>
 
             @if (cargandoResena()) {
-              <p class="text-sm text-gray-400">Cargando calificación...</p>
+              <p class="text-sm text-slate-400">Cargando calificación...</p>
             } @else if (resena() && !editandoResena()) {
               <!-- Reseña existente -->
               <div class="space-y-2">
                 <ui-stars [rating]="resena()!.rating" />
                 @if (resena()!.comment) {
-                  <p class="text-sm text-gray-700">{{ resena()!.comment }}</p>
+                  <p class="text-sm text-slate-700">{{ resena()!.comment }}</p>
                 }
-                <p class="text-xs text-gray-400">{{ resena()!.updatedAt | date:'dd/MM/yyyy':'':'es-PE' }}</p>
+                <p class="text-xs text-slate-400">{{ resena()!.updatedAt | date:'dd/MM/yyyy':'':'es-PE' }}</p>
                 <div class="flex gap-2 mt-2">
                   <button (click)="iniciarEdicion()"
-                    class="text-sm text-blue-600 hover:underline">Editar</button>
+                    class="text-sm text-primary-600 hover:underline">Editar</button>
                   <button (click)="solicitarEliminacion()"
                     class="text-sm text-red-500 hover:underline">Eliminar</button>
                 </div>
@@ -226,7 +226,7 @@ interface Resena {
                       {{ guardandoResena() ? 'Eliminando...' : 'Sí, eliminar' }}
                     </button>
                     <button (click)="cancelarEliminar()" [disabled]="guardandoResena()"
-                      class="flex-1 border border-gray-300 text-gray-600 text-sm py-1.5 rounded-lg hover:bg-gray-50 transition disabled:opacity-50">
+                      class="flex-1 border border-slate-300 text-slate-600 text-sm py-1.5 rounded-lg hover:bg-slate-50 transition disabled:opacity-50">
                       Cancelar
                     </button>
                   </div>
@@ -236,23 +236,23 @@ interface Resena {
               <!-- Formulario de calificación (nueva o edición) -->
               <div class="space-y-3">
                 <div>
-                  <p class="text-sm text-gray-600 mb-1">Calificación</p>
+                  <p class="text-sm text-slate-600 mb-1">Calificación</p>
                   <ui-stars [rating]="nuevaCalif()" [editable]="true" (ratingChange)="nuevaCalif.set($event)" />
                 </div>
                 <div>
-                  <label class="text-sm text-gray-600 block mb-1">Comentario (opcional)</label>
+                  <label class="text-sm text-slate-600 block mb-1">Comentario (opcional)</label>
                   <textarea [(ngModel)]="nuevoComentario" rows="3" maxlength="500"
                     placeholder="Cuéntanos cómo fue tu experiencia..."
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"></textarea>
                 </div>
                 <div class="flex gap-2">
                   <button (click)="guardarResena()" [disabled]="guardandoResena() || nuevaCalif() === 0"
-                    class="flex-1 bg-blue-600 text-white text-sm py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50">
+                    class="flex-1 bg-accent-600 text-white text-sm py-2 rounded-full hover:bg-accent-700 transition disabled:opacity-50">
                     {{ guardandoResena() ? 'Guardando...' : (editandoResena() ? 'Actualizar' : 'Enviar calificación') }}
                   </button>
                   @if (editandoResena()) {
                     <button (click)="cancelarEdicion()"
-                      class="flex-1 border border-gray-300 text-gray-600 text-sm py-2 rounded-lg hover:bg-gray-50 transition">
+                      class="flex-1 border border-slate-300 text-slate-600 text-sm py-2 rounded-lg hover:bg-slate-50 transition">
                       Cancelar
                     </button>
                   }
@@ -265,7 +265,7 @@ interface Resena {
         <!-- Imprimir / Guardar PDF -->
         @if (reserva()!.status === 'CONFIRMADO' || reserva()!.status === 'EN_CURSO' || reserva()!.status === 'COMPLETADO') {
           <button (click)="irAImprimir()"
-            class="w-full border border-blue-300 text-blue-700 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-50 transition">
+            class="w-full border border-primary-300 text-primary-700 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-50 transition">
             Imprimir / Guardar PDF
           </button>
         }
@@ -288,7 +288,7 @@ interface Resena {
                   {{ cancelando() ? 'Cancelando...' : 'Sí, cancelar' }}
                 </button>
                 <button (click)="descartarCancelacion()" [disabled]="cancelando()"
-                  class="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition disabled:opacity-50">
+                  class="flex-1 border border-slate-300 text-slate-700 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition disabled:opacity-50">
                   No, volver
                 </button>
               </div>

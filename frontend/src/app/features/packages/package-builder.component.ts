@@ -12,6 +12,7 @@ import { StepExtrasComponent } from './steps/step-extras.component';
 import { StepPassengersComponent } from './steps/step-passengers.component';
 import { StepSummaryComponent } from './steps/step-summary.component';
 import { StepPaymentComponent } from './steps/step-payment.component';
+import { BadgeComponent, ButtonComponent } from '../../shared/ui';
 
 /**
  * Contenedor del armador (TS-009, TS-010): indicador de pasos, navegación y carga de datos.
@@ -34,73 +35,153 @@ import { StepPaymentComponent } from './steps/step-payment.component';
     StepPassengersComponent,
     StepSummaryComponent,
     StepPaymentComponent,
+    BadgeComponent,
+    ButtonComponent,
   ],
   template: `
-    <div class="space-y-5">
-      <div class="flex items-center gap-3">
-        <button (click)="back()" class="text-gray-400 hover:text-gray-600">← Volver</button>
-        <h1 class="text-2xl font-bold text-gray-800">Arma tu paquete</h1>
+    <div class="space-y-6">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <button type="button" uiButton variant="ghost" size="sm" class="-ml-3" (click)="back()">← Volver al buscador</button>
+          <h1 class="mt-1 text-[28px] leading-9 sm:text-4xl sm:leading-[44px] font-bold tracking-tight text-primary-700">Arma tu paquete</h1>
+        </div>
+        @if (state.hasDraft()) {
+          <ui-badge tone="accent" [caps]="true" class="self-start sm:self-auto">Paso {{ state.step() }} de {{ steps.length }}</ui-badge>
+        }
       </div>
 
       <!-- Indicador de pasos -->
-      <div class="flex items-center gap-2">
-        @for (s of steps; track s.n; let i = $index) {
-          <div class="flex items-center gap-2">
-            <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
-              [class.bg-blue-600]="state.step() >= s.n"
-              [class.text-white]="state.step() >= s.n"
-              [class.bg-gray-100]="state.step() < s.n"
-              [class.text-gray-400]="state.step() < s.n">
-              {{ s.n }}
+      <nav aria-label="Pasos del armador" class="sticky top-16 lg:top-[72px] z-20 -mx-4 border-y border-slate-200/80 bg-white/95 px-4 py-3 backdrop-blur-md lg:mx-0 lg:rounded-2xl lg:border lg:shadow-card">
+        <ol class="flex gap-2 overflow-x-auto">
+          @for (s of steps; track s.n) {
+            <li class="flex shrink-0 items-center gap-2 rounded-full border px-2.5 py-1.5 pr-3.5 transition"
+              [attr.aria-current]="state.step() === s.n ? 'step' : null"
+              [ngClass]="state.step() === s.n
+                ? 'border-accent-500 bg-accent-50'
+                : state.step() > s.n ? 'border-transparent bg-primary-50' : 'border-transparent opacity-50'">
+              <span class="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold"
+                [ngClass]="state.step() === s.n
+                  ? 'bg-accent-600 text-white'
+                  : state.step() > s.n ? 'bg-primary-700 text-success-200' : 'bg-slate-200 text-slate-500'">
+                {{ state.step() > s.n ? '✓' : s.n }}
+              </span>
+              <span class="text-xs font-semibold"
+                [ngClass]="state.step() === s.n ? 'text-accent-700' : state.step() > s.n ? 'text-primary-700' : 'text-slate-500'">{{ s.label }}</span>
+            </li>
+          }
+        </ol>
+      </nav>
+
+      <div class="grid gap-6 lg:grid-cols-12 lg:items-start">
+        <div class="space-y-5" [ngClass]="showRail() ? 'lg:col-span-8' : 'lg:col-span-12'">
+          @if (!state.hasDraft()) {
+            <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-6 text-center space-y-3">
+              <p class="text-slate-700 font-medium">Todavía no elegiste un vuelo.</p>
+              <p class="text-sm text-slate-500">El paquete se arma a partir del vuelo: búscalo y pulsa «Seleccionar».</p>
+              <button (click)="goToSearch()" class="inline-block bg-accent-600 text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-accent-700">Buscar vuelos</button>
             </div>
-            <span class="text-xs hidden sm:block" [class.text-blue-600]="state.step() >= s.n" [class.text-gray-400]="state.step() < s.n">{{ s.label }}</span>
-            @if (i < steps.length - 1) { <div class="w-4 h-0.5 bg-gray-200"></div> }
-          </div>
+          }
+
+          @if (state.hasDraft() && state.flight()) {
+            @if (state.step() === 1) {
+              <app-step-flight />
+            } @else {
+              <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-4 text-sm text-slate-600 space-y-1 lg:hidden">
+                <p class="font-semibold text-slate-800 text-xs uppercase tracking-wide">Vuelos elegidos</p>
+                <p>
+                  ✈️ <span class="font-medium">Ida:</span>
+                  {{ state.flight()?.origin?.city }} → {{ state.flight()?.destination?.city }}
+                  · {{ state.flight()?.departureDate | date:'dd/MM/yyyy':'':'es-PE' }}
+                </p>
+                @if (state.returnFlight()) {
+                  <p>
+                    🔁 <span class="font-medium">Regreso:</span>
+                    {{ state.returnFlight()?.origin?.city }} → {{ state.returnFlight()?.destination?.city }}
+                    · {{ state.returnFlight()?.departureDate | date:'dd/MM/yyyy':'':'es-PE' }}
+                  </p>
+                }
+              </div>
+            }
+          }
+
+          @switch (state.step()) {
+            @case (2) {
+              @if (state.context()) { <app-step-context /> }
+              @else { <p class="text-sm text-slate-400 text-center py-4">Cargando información del destino…</p> }
+            }
+            @case (3) { <app-step-hotel /> }
+            @case (4) { <app-step-activities /> }
+            @case (5) { <app-step-extras /> }
+            @case (6) { <app-step-passengers /> }
+            @case (7) { <app-step-summary /> }
+            @case (8) { <app-step-payment /> }
+          }
+        </div>
+
+        <!-- Resumen fijo del paquete: lo elegido hasta ahora (el total oficial se calcula en el paso Resumen). -->
+        @if (showRail()) {
+          <aside class="lg:col-span-4 lg:sticky lg:top-[152px]" aria-label="Tu paquete">
+            <details class="group rounded-2xl border border-slate-200/80 bg-white/95 shadow-float backdrop-blur-md" [open]="railOpen">
+              <summary class="flex cursor-pointer list-none items-center justify-between gap-3 p-5 lg:cursor-default">
+                <span>
+                  <span class="block text-lg font-bold text-primary-700">Tu paquete</span>
+                  <span class="block text-xs text-slate-500">{{ state.passengers() }} {{ state.passengers() === 1 ? 'pasajero' : 'pasajeros' }}</span>
+                </span>
+                <span class="text-slate-400 transition group-open:rotate-180 lg:hidden" aria-hidden="true">⌄</span>
+              </summary>
+              <ul class="space-y-4 border-t border-slate-100 px-5 py-4 text-sm">
+                <li class="flex gap-3">
+                  <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50" aria-hidden="true">✈️</span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block font-semibold text-primary-700">Vuelo de ida</span>
+                    <span class="block text-xs text-slate-500">{{ state.flight()?.origin?.city }} → {{ state.flight()?.destination?.city }} · {{ state.flight()?.departureDate | date:'dd MMM':'':'es-PE' }}</span>
+                  </span>
+                </li>
+                <li class="flex gap-3">
+                  <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50" aria-hidden="true">🔁</span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block font-semibold text-primary-700">Vuelo de regreso</span>
+                    <span class="block text-xs text-slate-500">
+                      @if (state.returnFlight(); as r) { {{ r.origin?.city }} → {{ r.destination?.city }} · {{ r.departureDate | date:'dd MMM':'':'es-PE' }} }
+                      @else { Sin elegir }
+                    </span>
+                  </span>
+                </li>
+                <li class="flex gap-3">
+                  <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50" aria-hidden="true">🏨</span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block font-semibold text-primary-700">Hotel</span>
+                    <span class="block text-xs text-slate-500">
+                      @if (state.hotel(); as h) { {{ h.name }} · {{ state.hotelNights() }} {{ state.hotelNights() === 1 ? 'noche' : 'noches' }} }
+                      @else { Sin elegir }
+                    </span>
+                  </span>
+                </li>
+                <li class="flex gap-3">
+                  <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50" aria-hidden="true">🧭</span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block font-semibold text-primary-700">Actividades</span>
+                    <span class="block text-xs text-slate-500">{{ state.activitySelections().length ? state.activitySelections().length + ' elegida(s)' : 'Ninguna todavía' }}</span>
+                  </span>
+                </li>
+                <li class="flex gap-3">
+                  <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50" aria-hidden="true">🛡️</span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block font-semibold text-primary-700">Extras</span>
+                    <span class="block text-xs text-slate-500">{{ state.extraIds().length ? state.extraIds().length + ' elegido(s)' : 'Ninguno todavía' }}</span>
+                  </span>
+                </li>
+              </ul>
+              <div class="rounded-b-2xl border-t border-slate-100 bg-success-50/60 px-5 py-4">
+                <p class="text-xs text-success-800">
+                  <span class="font-semibold">✓ Sin cargos ocultos.</span>
+                  El total oficial, con impuestos y canje de puntos, lo calculamos en el paso Resumen.
+                </p>
+              </div>
+            </details>
+          </aside>
         }
       </div>
-
-      @if (!state.hasDraft()) {
-        <div class="bg-white rounded-xl border shadow-sm p-6 text-center space-y-3">
-          <p class="text-gray-700 font-medium">Todavía no elegiste un vuelo.</p>
-          <p class="text-sm text-gray-500">El paquete se arma a partir del vuelo: búscalo y pulsa «Seleccionar».</p>
-          <button (click)="goToSearch()" class="inline-block bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-blue-700">Buscar vuelos</button>
-        </div>
-      }
-
-      @if (state.hasDraft() && state.flight()) {
-        @if (state.step() === 1) {
-          <app-step-flight />
-        } @else {
-          <div class="bg-white rounded-xl border shadow-sm p-3 text-sm text-gray-600 space-y-1">
-            <p class="font-semibold text-gray-800 text-xs uppercase tracking-wide">Vuelos elegidos</p>
-            <p>
-              ✈️ <span class="font-medium">Ida:</span>
-              {{ state.flight()?.origin?.city }} → {{ state.flight()?.destination?.city }}
-              · {{ state.flight()?.departureDate | date:'dd/MM/yyyy':'':'es-PE' }}
-            </p>
-            @if (state.returnFlight()) {
-              <p>
-                🔁 <span class="font-medium">Regreso:</span>
-                {{ state.returnFlight()?.origin?.city }} → {{ state.returnFlight()?.destination?.city }}
-                · {{ state.returnFlight()?.departureDate | date:'dd/MM/yyyy':'':'es-PE' }}
-              </p>
-            }
-          </div>
-        }
-      }
-
-      @switch (state.step()) {
-        @case (2) {
-          @if (state.context()) { <app-step-context /> }
-          @else { <p class="text-sm text-gray-400 text-center py-4">Cargando información del destino…</p> }
-        }
-        @case (3) { <app-step-hotel /> }
-        @case (4) { <app-step-activities /> }
-        @case (5) { <app-step-extras /> }
-        @case (6) { <app-step-passengers /> }
-        @case (7) { <app-step-summary /> }
-        @case (8) { <app-step-payment /> }
-      }
     </div>
   `,
 })
@@ -116,6 +197,14 @@ export class PackageBuilderComponent implements OnInit {
     { n: 4, label: 'Actividades' }, { n: 5, label: 'Extras' },
     { n: 6, label: 'Pasajeros' }, { n: 7, label: 'Resumen' }, { n: 8, label: 'Pago' },
   ];
+
+  /** El resumen lateral acompaña los pasos de elección; en Resumen y Pago ya está el desglose oficial. */
+  showRail(): boolean {
+    return this.state.hasDraft() && !!this.state.flight() && this.state.step() < 7;
+  }
+
+  /** En pantallas anchas el resumen se muestra abierto; en el teléfono empieza plegado. */
+  readonly railOpen = typeof window === 'undefined' || window.matchMedia('(min-width: 1024px)').matches;
 
   ngOnInit() {
     if (this.auth.isAuthenticated()) {

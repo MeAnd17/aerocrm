@@ -12,7 +12,7 @@ import { Component, Directive, Input } from '@angular/core';
   template: `
     <label class="block">
       @if (label) {
-        <span class="block text-sm font-medium text-slate-700 mb-1">{{ label }}</span>
+        <span class="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5">{{ label }}</span>
       }
       <ng-content />
     </label>
@@ -35,7 +35,7 @@ export class FormFieldComponent {
   selector: 'input[uiInput], select[uiInput], textarea[uiInput]',
   standalone: true,
   host: {
-    class: 'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-slate-100',
+    class: 'w-full min-h-[48px] rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-[15px] text-slate-900 placeholder:text-slate-400 transition focus:outline-none focus:border-primary-700 focus:ring-[3px] focus:ring-primary-700/10 disabled:bg-slate-100',
   },
 })
 export class InputDirective {}
