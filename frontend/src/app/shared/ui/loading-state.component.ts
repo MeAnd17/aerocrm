@@ -6,7 +6,7 @@ import { Component, Input } from '@angular/core';
   standalone: true,
   template: `
     <div class="flex flex-col items-center justify-center gap-3 py-10 text-slate-500" role="status" aria-live="polite">
-      <span class="h-8 w-8 rounded-full border-4 border-primary-200 border-t-primary-600 animate-spin"></span>
+      <span class="h-8 w-8 rounded-full border-4 border-primary-100 border-t-accent-500 animate-spin"></span>
       <span class="text-sm">{{ text }}</span>
     </div>
   `,

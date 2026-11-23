@@ -85,21 +85,21 @@ interface ReservaDetalle {
 
       <!-- Botonera solo en pantalla -->
       <div class="no-print flex items-center justify-between mb-6">
-        <a routerLink="/my-trips/{{ reservaId() }}" class="text-gray-400 hover:text-gray-600 text-sm">
+        <a routerLink="/my-trips/{{ reservaId() }}" class="text-slate-400 hover:text-slate-600 text-sm">
           ← Volver al detalle
         </a>
         <button (click)="imprimir()"
-          class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition">
+          class="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition">
           Imprimir / Guardar PDF
         </button>
       </div>
 
       @if (cargando()) {
-        <div class="text-center py-10 text-gray-400">Cargando...</div>
+        <div class="text-center py-10 text-slate-400">Cargando...</div>
       } @else if (noEncontrada()) {
         <div class="text-center py-16">
-          <p class="text-gray-500 text-lg mb-4">Reserva no encontrada</p>
-          <a routerLink="/my-trips" class="text-blue-600 hover:underline text-sm">Volver a mis viajes</a>
+          <p class="text-slate-500 text-lg mb-4">Reserva no encontrada</p>
+          <a routerLink="/my-trips" class="text-primary-600 hover:underline text-sm">Volver a mis viajes</a>
         </div>
       } @else if (reserva()) {
 
@@ -109,45 +109,45 @@ interface ReservaDetalle {
             @if (agencia()?.logoUrl) {
               <img [src]="agencia()!.logoUrl!" alt="Logo" class="h-10 mb-1">
             }
-            <p class="text-xl font-bold text-gray-900">{{ agencia()?.tradeName ?? 'Expertia Travel S.A.C.' }}</p>
-            <p class="text-xs text-gray-500">RUC {{ agencia()?.ruc }}</p>
-            <p class="text-xs text-gray-500">{{ agencia()?.address }}</p>
-            <p class="text-xs text-gray-500">{{ agencia()?.phone }} · {{ agencia()?.email }}</p>
+            <p class="text-xl font-bold text-slate-900">{{ agencia()?.tradeName ?? 'Expertia Travel S.A.C.' }}</p>
+            <p class="text-xs text-slate-500">RUC {{ agencia()?.ruc }}</p>
+            <p class="text-xs text-slate-500">{{ agencia()?.address }}</p>
+            <p class="text-xs text-slate-500">{{ agencia()?.phone }} · {{ agencia()?.email }}</p>
           </div>
           <div class="text-right">
-            <p class="text-xs text-gray-400 uppercase tracking-wide">Comprobante de reserva</p>
-            <p class="text-lg font-bold text-blue-900">{{ reserva()!.confirmationCode }}</p>
+            <p class="text-xs text-slate-400 uppercase tracking-wide">Comprobante de reserva</p>
+            <p class="text-lg font-bold text-primary-900">{{ reserva()!.confirmationCode }}</p>
             <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold mt-1"
               [ngClass]="{
                 'bg-yellow-100 text-yellow-700': reserva()!.status === 'PENDIENTE',
                 'bg-green-100 text-green-700':  reserva()!.status === 'CONFIRMADO',
-                'bg-blue-100 text-blue-700':    reserva()!.status === 'EN_CURSO',
-                'bg-gray-100 text-gray-700':    reserva()!.status === 'COMPLETADO'
+                'bg-primary-100 text-primary-700':    reserva()!.status === 'EN_CURSO',
+                'bg-slate-100 text-slate-700':    reserva()!.status === 'COMPLETADO'
               }">
               {{ reserva()!.status | label }}
             </span>
-            <p class="text-xs text-gray-400 mt-1">Emitido: {{ hoy | date:'dd/MM/yyyy' }}</p>
+            <p class="text-xs text-slate-400 mt-1">Emitido: {{ hoy | date:'dd/MM/yyyy' }}</p>
           </div>
         </div>
 
         <!-- Pasajeros -->
         @if (reserva()!.bookingPassengers?.length) {
           <div class="mb-5">
-            <h3 class="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-2">Pasajeros</h3>
+            <h3 class="font-semibold text-slate-700 text-sm uppercase tracking-wide mb-2">Pasajeros</h3>
             <table class="w-full text-sm border-collapse">
               <thead>
-                <tr class="bg-gray-50">
-                  <th class="text-left py-1.5 px-2 font-medium text-gray-600 border border-gray-200">Nombre</th>
-                  <th class="text-left py-1.5 px-2 font-medium text-gray-600 border border-gray-200">Documento</th>
-                  <th class="text-left py-1.5 px-2 font-medium text-gray-600 border border-gray-200">Rol</th>
+                <tr class="bg-slate-50">
+                  <th class="text-left py-1.5 px-2 font-medium text-slate-600 border border-slate-200">Nombre</th>
+                  <th class="text-left py-1.5 px-2 font-medium text-slate-600 border border-slate-200">Documento</th>
+                  <th class="text-left py-1.5 px-2 font-medium text-slate-600 border border-slate-200">Rol</th>
                 </tr>
               </thead>
               <tbody>
                 @for (p of reserva()!.bookingPassengers; track p.id) {
                   <tr>
-                    <td class="py-1.5 px-2 border border-gray-200">{{ p.firstName }} {{ p.lastName }}</td>
-                    <td class="py-1.5 px-2 border border-gray-200">{{ p.documentNumber }}</td>
-                    <td class="py-1.5 px-2 border border-gray-200">{{ p.isHolder ? 'Titular' : 'Acompañante' }}</td>
+                    <td class="py-1.5 px-2 border border-slate-200">{{ p.firstName }} {{ p.lastName }}</td>
+                    <td class="py-1.5 px-2 border border-slate-200">{{ p.documentNumber }}</td>
+                    <td class="py-1.5 px-2 border border-slate-200">{{ p.isHolder ? 'Titular' : 'Acompañante' }}</td>
                   </tr>
                 }
               </tbody>
@@ -158,20 +158,20 @@ interface ReservaDetalle {
         <!-- Vuelos -->
         @if (reserva()!.bookingFlights?.length) {
           <div class="mb-5">
-            <h3 class="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-2">Vuelos</h3>
+            <h3 class="font-semibold text-slate-700 text-sm uppercase tracking-wide mb-2">Vuelos</h3>
             @for (bf of reserva()!.bookingFlights; track bf.id; let i = $index) {
-              <div class="border border-gray-200 rounded p-3 mb-2">
-                <p class="font-semibold text-gray-800 text-sm">
+              <div class="border border-slate-200 rounded p-3 mb-2">
+                <p class="font-semibold text-slate-800 text-sm">
                   {{ i === 0 ? 'Vuelo de ida' : 'Vuelo de regreso' }}
                   — {{ bf.flight.airline }} {{ bf.flight.flightNumber }}
                 </p>
-                <p class="text-sm text-gray-600">
+                <p class="text-sm text-slate-600">
                   {{ bf.flight.origin?.city }} → {{ bf.flight.destination?.city }}
                 </p>
-                <p class="text-sm text-gray-500">
+                <p class="text-sm text-slate-500">
                   {{ bf.flight.departureDate | date:'dd MMM yyyy, HH:mm' }}
                 </p>
-                <p class="text-sm font-semibold text-blue-900 mt-1">
+                <p class="text-sm font-semibold text-primary-900 mt-1">
                   S/. {{ bf.priceSnapshot | number:'1.2-2' }}
                 </p>
               </div>
@@ -182,16 +182,16 @@ interface ReservaDetalle {
         <!-- Hotel -->
         @if (reserva()!.bookingHotels?.length) {
           <div class="mb-5">
-            <h3 class="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-2">Hotel</h3>
+            <h3 class="font-semibold text-slate-700 text-sm uppercase tracking-wide mb-2">Hotel</h3>
             @for (bh of reserva()!.bookingHotels; track bh.id) {
-              <div class="border border-gray-200 rounded p-3 mb-2">
-                <p class="font-semibold text-gray-800 text-sm">{{ bh.hotel.name }}</p>
-                <p class="text-sm text-gray-500">
+              <div class="border border-slate-200 rounded p-3 mb-2">
+                <p class="font-semibold text-slate-800 text-sm">{{ bh.hotel.name }}</p>
+                <p class="text-sm text-slate-500">
                   Entrada: {{ bh.checkIn | date:'dd/MM/yyyy':'UTC' }} ·
                   Salida: {{ bh.checkOut | date:'dd/MM/yyyy':'UTC' }} ·
                   {{ bh.nights }} {{ bh.nights === 1 ? 'noche' : 'noches' }}
                 </p>
-                <p class="text-sm font-semibold text-blue-900 mt-1">S/. {{ bh.priceSnapshot | number:'1.2-2' }}</p>
+                <p class="text-sm font-semibold text-primary-900 mt-1">S/. {{ bh.priceSnapshot | number:'1.2-2' }}</p>
               </div>
             }
           </div>
@@ -200,24 +200,24 @@ interface ReservaDetalle {
         <!-- Actividades y extras -->
         @if (reserva()!.bookingActivities?.length || reserva()!.bookingExtras?.length) {
           <div class="mb-5">
-            <h3 class="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-2">Actividades y extras</h3>
+            <h3 class="font-semibold text-slate-700 text-sm uppercase tracking-wide mb-2">Actividades y extras</h3>
             <table class="w-full text-sm border-collapse">
               <tbody>
                 @for (ba of reserva()!.bookingActivities; track ba.id) {
                   <tr>
-                    <td class="py-1.5 px-2 border border-gray-200">
+                    <td class="py-1.5 px-2 border border-slate-200">
                       {{ ba.activity.name }}
                       @if (ba.quantity > 1) { (× {{ ba.quantity }}) }
                     </td>
-                    <td class="py-1.5 px-2 border border-gray-200 text-right font-semibold">
+                    <td class="py-1.5 px-2 border border-slate-200 text-right font-semibold">
                       S/. {{ ba.priceSnapshot | number:'1.2-2' }}
                     </td>
                   </tr>
                 }
                 @for (be of reserva()!.bookingExtras; track be.id) {
                   <tr>
-                    <td class="py-1.5 px-2 border border-gray-200">{{ be.type | label }}</td>
-                    <td class="py-1.5 px-2 border border-gray-200 text-right font-semibold">
+                    <td class="py-1.5 px-2 border border-slate-200">{{ be.type | label }}</td>
+                    <td class="py-1.5 px-2 border border-slate-200 text-right font-semibold">
                       S/. {{ be.price | number:'1.2-2' }}
                     </td>
                   </tr>
@@ -229,46 +229,46 @@ interface ReservaDetalle {
 
         <!-- Resumen de costos -->
         <div class="border-t pt-4">
-          <h3 class="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-3">Resumen de costos</h3>
+          <h3 class="font-semibold text-slate-700 text-sm uppercase tracking-wide mb-3">Resumen de costos</h3>
 
           @for (bf of reserva()!.bookingFlights; track bf.id; let i = $index) {
             <div class="flex justify-between text-sm py-1">
-              <span class="text-gray-600">{{ i === 0 ? 'Vuelo de ida' : 'Vuelo de regreso' }} ({{ bf.flight.airline }} {{ bf.flight.flightNumber }})</span>
+              <span class="text-slate-600">{{ i === 0 ? 'Vuelo de ida' : 'Vuelo de regreso' }} ({{ bf.flight.airline }} {{ bf.flight.flightNumber }})</span>
               <span>S/. {{ bf.priceSnapshot | number:'1.2-2' }}</span>
             </div>
           }
 
           @for (bh of reserva()!.bookingHotels; track bh.id) {
             <div class="flex justify-between text-sm py-1">
-              <span class="text-gray-600">Hotel: {{ bh.hotel.name }}</span>
+              <span class="text-slate-600">Hotel: {{ bh.hotel.name }}</span>
               <span>S/. {{ bh.priceSnapshot | number:'1.2-2' }}</span>
             </div>
           }
 
           @for (ba of reserva()!.bookingActivities; track ba.id) {
             <div class="flex justify-between text-sm py-1">
-              <span class="text-gray-600">{{ ba.activity.name }}</span>
+              <span class="text-slate-600">{{ ba.activity.name }}</span>
               <span>S/. {{ ba.priceSnapshot | number:'1.2-2' }}</span>
             </div>
           }
 
           @for (be of reserva()!.bookingExtras; track be.id) {
             <div class="flex justify-between text-sm py-1">
-              <span class="text-gray-600">{{ be.type | label }}</span>
+              <span class="text-slate-600">{{ be.type | label }}</span>
               <span>S/. {{ be.price | number:'1.2-2' }}</span>
             </div>
           }
 
           @if (reserva()!.pointsUsed > 0) {
-            <div class="flex justify-between text-sm py-1 text-blue-700">
+            <div class="flex justify-between text-sm py-1 text-primary-700">
               <span>Descuento por canje de puntos ({{ reserva()!.pointsUsed }} pts)</span>
               <span>− S/. {{ reserva()!.discountAmount | number:'1.2-2' }}</span>
             </div>
           }
 
           <div class="flex justify-between font-bold text-base pt-3 border-t mt-2">
-            <span class="text-gray-900">Total pagado</span>
-            <span class="text-blue-900">S/. {{ reserva()!.totalPrice | number:'1.2-2' }}</span>
+            <span class="text-slate-900">Total pagado</span>
+            <span class="text-primary-900">S/. {{ reserva()!.totalPrice | number:'1.2-2' }}</span>
           </div>
         </div>
 

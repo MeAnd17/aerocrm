@@ -11,73 +11,73 @@ import { AuthService } from '../../../core/services/auth.service';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
-    <div class="min-h-screen bg-gradient-to-br from-blue-900 to-blue-700 flex items-center justify-center p-4">
+    <div class="min-h-screen bg-gradient-to-br from-primary-900 to-primary-700 flex items-center justify-center p-4">
       <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
         <div class="text-center mb-6">
-          <h1 class="text-3xl font-bold text-blue-900">✈️ AeroCRM</h1>
-          <p class="text-gray-500 mt-2">Crea tu cuenta</p>
+          <h1 class="text-3xl font-bold text-primary-900">✈️ AeroCRM</h1>
+          <p class="text-slate-500 mt-2">Crea tu cuenta</p>
         </div>
 
         @if (step() === 1) {
           <form (ngSubmit)="nextStep()" class="space-y-4">
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
                 <input type="text" [(ngModel)]="form.firstName" name="firstName" required
-                  class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  class="w-full border border-slate-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500" />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Apellido</label>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Apellido</label>
                 <input type="text" [(ngModel)]="form.lastName" name="lastName" required
-                  class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  class="w-full border border-slate-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500" />
               </div>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Correo electrónico</label>
               <input type="email" [(ngModel)]="form.email" name="email" required
-                class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
               <input type="password" [(ngModel)]="form.password" name="password" required
-                class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="Mín. 8 caracteres, 1 mayúscula, 1 número" />
               @if (form.password && passwordIsWeak()) {
                 <p class="text-red-600 text-xs mt-1">La contraseña debe tener al menos 8 caracteres, una mayúscula y un número</p>
               }
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Confirmar contraseña</label>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Confirmar contraseña</label>
               <input type="password" [(ngModel)]="form.confirmPassword" name="confirmPassword"
-                class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="Repite tu contraseña" />
               @if (form.confirmPassword && form.password !== form.confirmPassword) {
                 <p class="text-red-600 text-xs mt-1">Las contraseñas no coinciden</p>
               }
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono <span class="text-gray-400 font-normal">(Opcional)</span></label>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Teléfono <span class="text-slate-400 font-normal">(Opcional)</span></label>
               <input type="tel" [(ngModel)]="form.phone" name="phone"
-                class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="+51 999 999 999" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Nacionalidad <span class="text-gray-400 font-normal">(Opcional)</span></label>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Nacionalidad <span class="text-slate-400 font-normal">(Opcional)</span></label>
               <input type="text" [(ngModel)]="form.nationality" name="nationality"
-                class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="Ej. Peruana" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de nacimiento <span class="text-gray-400 font-normal">(Opcional)</span></label>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Fecha de nacimiento <span class="text-slate-400 font-normal">(Opcional)</span></label>
               <input type="date" [(ngModel)]="form.dateOfBirth" name="dateOfBirth"
-                class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500" />
             </div>
             <button type="submit"
               [disabled]="!!(
                 (form.confirmPassword && form.password !== form.confirmPassword) ||
                 passwordIsWeak()
               )"
-              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
+              class="w-full bg-accent-600 hover:bg-accent-700 text-white font-semibold py-3 rounded-full transition disabled:opacity-50 disabled:cursor-not-allowed">
               Continuar →
             </button>
           </form>
@@ -85,41 +85,41 @@ import { AuthService } from '../../../core/services/auth.service';
 
         @if (step() === 2) {
           <div class="space-y-4">
-            <p class="text-sm text-gray-500 text-center">Opcional — puedes omitir estas preguntas</p>
+            <p class="text-sm text-slate-500 text-center">Opcional — puedes omitir estas preguntas</p>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">¿Cómo sueles viajar?</label>
+              <label class="block text-sm font-medium text-slate-700 mb-2">¿Cómo sueles viajar?</label>
               <div class="grid grid-cols-2 gap-2">
                 @for (option of travelOptions; track option.value) {
                   <button type="button" (click)="form.travelStyle = option.value"
                     [class.ring-2]="form.travelStyle === option.value"
-                    [class.ring-blue-500]="form.travelStyle === option.value"
-                    class="border border-gray-200 rounded-lg py-2.5 text-sm hover:border-blue-400 transition text-center">
+                    [class.ring-primary-500]="form.travelStyle === option.value"
+                    class="border border-slate-200 rounded-lg py-2.5 text-sm hover:border-primary-400 transition text-center">
                     {{ option.label }}
                   </button>
                 }
               </div>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">¿Qué tipo de destino prefieres?</label>
+              <label class="block text-sm font-medium text-slate-700 mb-2">¿Qué tipo de destino prefieres?</label>
               <div class="grid grid-cols-2 gap-2">
                 @for (option of destinationOptions; track option.value) {
                   <button type="button" (click)="form.destinationType = option.value"
                     [class.ring-2]="form.destinationType === option.value"
-                    [class.ring-blue-500]="form.destinationType === option.value"
-                    class="border border-gray-200 rounded-lg py-2.5 text-sm hover:border-blue-400 transition text-center">
+                    [class.ring-primary-500]="form.destinationType === option.value"
+                    class="border border-slate-200 rounded-lg py-2.5 text-sm hover:border-primary-400 transition text-center">
                     {{ option.label }}
                   </button>
                 }
               </div>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">¿Cuánto sueles gastar por viaje?</label>
+              <label class="block text-sm font-medium text-slate-700 mb-2">¿Cuánto sueles gastar por viaje?</label>
               <div class="grid grid-cols-2 gap-2">
                 @for (option of spendingOptions; track option.value) {
                   <button type="button" (click)="form.spendingRange = option.value"
                     [class.ring-2]="form.spendingRange === option.value"
-                    [class.ring-blue-500]="form.spendingRange === option.value"
-                    class="border border-gray-200 rounded-lg py-2.5 text-sm hover:border-blue-400 transition text-center">
+                    [class.ring-primary-500]="form.spendingRange === option.value"
+                    class="border border-slate-200 rounded-lg py-2.5 text-sm hover:border-primary-400 transition text-center">
                     {{ option.label }}
                   </button>
                 }
@@ -132,16 +132,16 @@ import { AuthService } from '../../../core/services/auth.service';
 
             <div class="flex gap-3">
               <button (click)="submit()" [disabled]="loading()"
-                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50">
+                class="flex-1 bg-accent-600 hover:bg-accent-700 text-white font-semibold py-3 rounded-full transition disabled:opacity-50">
                 {{ loading() ? 'Creando cuenta...' : 'Crear cuenta' }}
               </button>
-              <button (click)="submit()" class="text-sm text-gray-400 hover:text-gray-600 px-3">Omitir</button>
+              <button (click)="submit()" class="text-sm text-slate-400 hover:text-slate-600 px-3">Omitir</button>
             </div>
           </div>
         }
 
-        <p class="text-center text-sm text-gray-500 mt-4">
-          ¿Ya tienes cuenta? <a routerLink="/login" queryParamsHandling="preserve" class="text-blue-600 font-medium hover:underline">Inicia sesión</a>
+        <p class="text-center text-sm text-slate-500 mt-4">
+          ¿Ya tienes cuenta? <a routerLink="/login" queryParamsHandling="preserve" class="text-primary-600 font-medium hover:underline">Inicia sesión</a>
         </p>
       </div>
     </div>

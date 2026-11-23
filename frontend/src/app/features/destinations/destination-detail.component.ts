@@ -26,26 +26,26 @@ interface DestinationReviews {
   template: `
     <div class="space-y-5">
       @if (destination()) {
-        <div class="bg-gradient-to-r from-blue-900 to-blue-700 rounded-2xl p-6 text-white">
+        <div class="bg-gradient-to-r from-primary-900 to-primary-700 rounded-2xl p-6 text-white">
           <h1 class="text-3xl font-bold">{{ destination().city }}</h1>
-          <p class="text-blue-200">{{ destination().country }}</p>
+          <p class="text-primary-200">{{ destination().country }}</p>
           <p class="mt-2 text-sm">{{ destination().description }}</p>
         </div>
 
         <!-- Festividades -->
         @if (destination().festivities?.length) {
-          <div class="bg-white rounded-xl border shadow-sm p-5">
-            <h2 class="font-semibold text-gray-800 mb-3">🎉 Festividades</h2>
+          <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-5">
+            <h2 class="text-lg font-bold tracking-tight text-primary-700 mb-3">🎉 Festividades</h2>
             <div class="space-y-2">
               @for (fest of destination().festivities; track fest.id) {
                 <div class="flex items-start gap-3 p-3 bg-orange-50 rounded-lg">
                   <span class="text-2xl">🎭</span>
                   <div>
-                    <p class="font-medium text-gray-800">{{ fest.name }}</p>
-                    <p class="text-xs text-gray-500">
+                    <p class="font-medium text-slate-800">{{ fest.name }}</p>
+                    <p class="text-xs text-slate-500">
                       {{ fest.startDay }}/{{ fest.startMonth }} — {{ fest.endDay }}/{{ fest.endMonth }}
                     </p>
-                    <p class="text-sm text-gray-600 mt-1">{{ fest.description }}</p>
+                    <p class="text-sm text-slate-600 mt-1">{{ fest.description }}</p>
                   </div>
                 </div>
               }
@@ -55,34 +55,34 @@ interface DestinationReviews {
 
         <!-- Hoteles -->
         @if (destination().hotels?.length) {
-          <div class="bg-white rounded-xl border shadow-sm p-5">
-            <h2 class="font-semibold text-gray-800 mb-3">🏨 Hoteles disponibles</h2>
+          <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-5">
+            <h2 class="text-lg font-bold tracking-tight text-primary-700 mb-3">🏨 Hoteles disponibles</h2>
             <app-hotel-list [hotels]="destination().hotels ?? []" />
           </div>
         }
 
         <!-- Actividades -->
         @if (destination().activities?.length) {
-          <div class="bg-white rounded-xl border shadow-sm p-5">
-            <h2 class="font-semibold text-gray-800 mb-3">🎯 Actividades</h2>
+          <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-5">
+            <h2 class="text-lg font-bold tracking-tight text-primary-700 mb-3">🎯 Actividades</h2>
             <app-activity-list [activities]="destination().activities ?? []" />
           </div>
         }
 
         <!-- Calificaciones (US-026) -->
-        <div class="bg-white rounded-xl border shadow-sm p-5">
-          <h2 class="font-semibold text-gray-800 mb-3">⭐ Calificaciones</h2>
+        <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-5">
+          <h2 class="text-lg font-bold tracking-tight text-primary-700 mb-3">⭐ Calificaciones</h2>
 
           @if (cargandoResenas()) {
-            <p class="text-sm text-gray-400">Cargando calificaciones...</p>
+            <p class="text-sm text-slate-400">Cargando calificaciones...</p>
           } @else if (resenas()?.reviewCount === 0 || !resenas()) {
-            <p class="text-sm text-gray-500">Todavía no hay calificaciones de este destino.</p>
+            <p class="text-sm text-slate-500">Todavía no hay calificaciones de este destino.</p>
           } @else {
             <!-- Promedio -->
             <div class="flex items-center gap-3 mb-4 pb-4 border-b">
               <ui-stars [rating]="promedioRedondeado()" />
-              <span class="text-lg font-bold text-gray-800">{{ resenas()!.averageRating | number:'1.1-1' }}</span>
-              <span class="text-sm text-gray-500">({{ resenas()!.reviewCount }} calificación{{ resenas()!.reviewCount !== 1 ? 'es' : '' }})</span>
+              <span class="text-lg font-bold text-slate-800">{{ resenas()!.averageRating | number:'1.1-1' }}</span>
+              <span class="text-sm text-slate-500">({{ resenas()!.reviewCount }} calificación{{ resenas()!.reviewCount !== 1 ? 'es' : '' }})</span>
             </div>
 
             <!-- Lista de reseñas -->
@@ -90,12 +90,12 @@ interface DestinationReviews {
               @for (r of resenas()!.reviews; track r.id) {
                 <div class="pb-4 border-b last:border-0">
                   <div class="flex items-center justify-between mb-1">
-                    <p class="font-medium text-sm text-gray-800">{{ r.travelerName }}</p>
-                    <p class="text-xs text-gray-400">{{ r.updatedAt | date:'dd MMM yyyy':'':'es-PE' }}</p>
+                    <p class="font-medium text-sm text-slate-800">{{ r.travelerName }}</p>
+                    <p class="text-xs text-slate-400">{{ r.updatedAt | date:'dd MMM yyyy':'':'es-PE' }}</p>
                   </div>
                   <ui-stars [rating]="r.rating" />
                   @if (r.comment) {
-                    <p class="text-sm text-gray-600 mt-1">{{ r.comment }}</p>
+                    <p class="text-sm text-slate-600 mt-1">{{ r.comment }}</p>
                   }
                 </div>
               }
@@ -105,7 +105,7 @@ interface DestinationReviews {
 
         <button
           (click)="goToBuilder()"
-          class="block w-full text-center bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition"
+          class="block w-full text-center bg-accent-600 text-white py-3 rounded-full font-semibold hover:bg-accent-700 transition"
         >
           Armar mi viaje a {{ destination().city }} →
         </button>

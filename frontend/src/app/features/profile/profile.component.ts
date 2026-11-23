@@ -13,78 +13,78 @@ import { apiErrorMessage } from '../../core/services/api-error';
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="space-y-5">
-      <h1 class="text-2xl font-bold text-gray-800">Mi perfil</h1>
+      <h1 class="text-[28px] leading-9 sm:text-4xl sm:leading-[44px] font-bold tracking-tight text-primary-700">Mi perfil</h1>
 
       @if (profile()) {
         <!-- Datos personales -->
-        <div class="bg-white rounded-xl border shadow-sm p-5">
-          <h2 class="font-semibold text-gray-800 mb-4">Datos personales</h2>
+        <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-5">
+          <h2 class="text-lg font-bold tracking-tight text-primary-700 mb-4">Datos personales</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-xs text-gray-500 mb-1">Nombre</label>
+              <label class="block text-xs text-slate-500 mb-1">Nombre</label>
               <input type="text" [(ngModel)]="editForm.firstName"
-                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
             </div>
             <div>
-              <label class="block text-xs text-gray-500 mb-1">Apellido</label>
+              <label class="block text-xs text-slate-500 mb-1">Apellido</label>
               <input type="text" [(ngModel)]="editForm.lastName"
-                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
             </div>
             <div>
-              <label class="block text-xs text-gray-500 mb-1">Teléfono</label>
+              <label class="block text-xs text-slate-500 mb-1">Teléfono</label>
               <input type="text" [(ngModel)]="editForm.phone"
-                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
             </div>
             <div>
-              <label class="block text-xs text-gray-500 mb-1">Nacionalidad</label>
+              <label class="block text-xs text-slate-500 mb-1">Nacionalidad</label>
               <input type="text" [(ngModel)]="editForm.nationality"
-                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
             </div>
           </div>
           <button (click)="saveProfile()" [disabled]="saving()"
-            class="mt-4 bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50">
+            class="mt-4 bg-accent-600 text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-accent-700 transition disabled:opacity-50">
             {{ saving() ? 'Guardando...' : 'Guardar cambios' }}
           </button>
         </div>
 
         <!-- Documento de viaje -->
-        <div class="bg-white rounded-xl border shadow-sm p-5">
-          <h2 class="font-semibold text-gray-800 mb-1">Documento de viaje</h2>
-          <p class="text-sm text-gray-500 mb-4">Se usará para pre-rellenar el titular en tu próxima reserva.</p>
+        <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-5">
+          <h2 class="text-lg font-bold tracking-tight text-primary-700 mb-1">Documento de viaje</h2>
+          <p class="text-sm text-slate-500 mb-4">Se usará para pre-rellenar el titular en tu próxima reserva.</p>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label class="block text-xs text-gray-500 mb-1">Tipo</label>
+              <label class="block text-xs text-slate-500 mb-1">Tipo</label>
               <select [(ngModel)]="docForm.documentType"
-                class="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                class="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                 <option value="DNI">DNI</option>
                 <option value="PASAPORTE">Pasaporte</option>
               </select>
             </div>
             <div>
-              <label class="block text-xs text-gray-500 mb-1">Número</label>
+              <label class="block text-xs text-slate-500 mb-1">Número</label>
               <input type="text" [(ngModel)]="docForm.documentNumber"
                 [attr.maxlength]="docForm.documentType === 'PASAPORTE' ? 12 : 8"
                 [placeholder]="docForm.documentType === 'PASAPORTE' ? 'Ej. AB123456' : 'Ej. 12345678'"
-                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
             </div>
             <div>
-              <label class="block text-xs text-gray-500 mb-1">Fecha de nacimiento</label>
+              <label class="block text-xs text-slate-500 mb-1">Fecha de nacimiento</label>
               <input type="date" [(ngModel)]="docForm.dateOfBirth"
-                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
             </div>
           </div>
           <button (click)="saveDoc()" [disabled]="savingDoc()"
-            class="mt-4 bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50">
+            class="mt-4 bg-accent-600 text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-accent-700 transition disabled:opacity-50">
             {{ savingDoc() ? 'Guardando...' : 'Guardar documento' }}
           </button>
         </div>
 
         <!-- Preferencias -->
-        <div class="bg-white rounded-xl border shadow-sm p-5">
-          <h2 class="font-semibold text-gray-800 mb-4">Preferencias de viaje</h2>
+        <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-5">
+          <h2 class="text-lg font-bold tracking-tight text-primary-700 mb-4">Preferencias de viaje</h2>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs text-gray-500 mb-2">¿Cómo viajas?</label>
+              <label class="block text-xs text-slate-500 mb-2">¿Cómo viajas?</label>
               <div class="space-y-1">
                 @for (opt of travelOptions; track opt.value) {
                   <label class="flex items-center gap-2 text-sm cursor-pointer">
@@ -95,7 +95,7 @@ import { apiErrorMessage } from '../../core/services/api-error';
               </div>
             </div>
             <div>
-              <label class="block text-xs text-gray-500 mb-2">¿Qué destino prefieres?</label>
+              <label class="block text-xs text-slate-500 mb-2">¿Qué destino prefieres?</label>
               <div class="space-y-1">
                 @for (opt of destinationOptions; track opt.value) {
                   <label class="flex items-center gap-2 text-sm cursor-pointer">
@@ -109,13 +109,13 @@ import { apiErrorMessage } from '../../core/services/api-error';
         </div>
 
         <!-- Viajeros frecuentes -->
-        <div class="bg-white rounded-xl border shadow-sm p-5">
+        <div class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-5">
           <div class="flex items-center justify-between mb-3">
-            <h2 class="font-semibold text-gray-800">Viajeros frecuentes</h2>
-            <button (click)="openAddTraveler()" class="text-sm text-blue-600 hover:underline">+ Agregar</button>
+            <h2 class="text-lg font-bold tracking-tight text-primary-700">Viajeros frecuentes</h2>
+            <button (click)="openAddTraveler()" class="text-sm text-primary-600 hover:underline">+ Agregar</button>
           </div>
           @if (travelers().length === 0) {
-            <p class="text-sm text-gray-400">No tienes viajeros guardados aún.</p>
+            <p class="text-sm text-slate-400">No tienes viajeros guardados aún.</p>
           }
           @for (t of travelers(); track t.id) {
             <div class="border-b last:border-0">
@@ -124,10 +124,10 @@ import { apiErrorMessage } from '../../core/services/api-error';
                 <div class="flex items-center justify-between py-2">
                   <div>
                     <p class="text-sm font-medium">{{ t.firstName }} {{ t.lastName }}</p>
-                    <p class="text-xs text-gray-500">{{ t.relation }} · Doc: {{ t.documentNumber }}</p>
+                    <p class="text-xs text-slate-500">{{ t.relation }} · Doc: {{ t.documentNumber }}</p>
                   </div>
                   <div class="flex gap-3">
-                    <button (click)="startEditTraveler(t)" class="text-blue-500 hover:text-blue-700 text-xs">Editar</button>
+                    <button (click)="startEditTraveler(t)" class="text-primary-500 hover:text-primary-700 text-xs">Editar</button>
                     <button (click)="startDeleteTraveler(t.id)" class="text-red-400 hover:text-red-600 text-xs">Eliminar</button>
                   </div>
                 </div>
@@ -135,14 +135,14 @@ import { apiErrorMessage } from '../../core/services/api-error';
               <!-- Inline delete confirmation -->
               @if (deletingTravelerId() === t.id) {
                 <div class="flex items-center justify-between py-2 bg-red-50 rounded-lg px-3 my-1">
-                  <p class="text-sm text-gray-700">¿Eliminar a {{ t.firstName }} {{ t.lastName }} de tus viajeros?</p>
+                  <p class="text-sm text-slate-700">¿Eliminar a {{ t.firstName }} {{ t.lastName }} de tus viajeros?</p>
                   <div class="flex gap-2 ml-3 shrink-0">
                     <button (click)="confirmDeleteTraveler(t.id)"
                       class="bg-red-600 text-white px-3 py-1 rounded text-xs font-medium hover:bg-red-700 transition">
                       Eliminar
                     </button>
                     <button (click)="cancelDeleteTraveler()"
-                      class="border border-gray-300 text-gray-600 px-3 py-1 rounded text-xs hover:bg-gray-100 transition">
+                      class="border border-slate-300 text-slate-600 px-3 py-1 rounded text-xs hover:bg-slate-100 transition">
                       Cancelar
                     </button>
                   </div>
@@ -153,23 +153,23 @@ import { apiErrorMessage } from '../../core/services/api-error';
                 <div class="py-3 space-y-2">
                   <div class="grid grid-cols-2 gap-2">
                     <input type="text" [(ngModel)]="editTravelerForm.firstName" placeholder="Nombre"
-                      class="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                      class="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-400" />
                     <input type="text" [(ngModel)]="editTravelerForm.lastName" placeholder="Apellido"
-                      class="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                      class="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-400" />
                     <input type="text" [(ngModel)]="editTravelerForm.documentNumber" placeholder="Documento"
-                      class="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                      class="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-400" />
                     <input type="date" [(ngModel)]="editTravelerForm.dateOfBirth"
-                      class="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                      class="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-400" />
                     <input type="text" [(ngModel)]="editTravelerForm.relation" placeholder="Relación (pareja, hijo...)"
-                      class="border rounded px-3 py-2 text-sm col-span-2 focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                      class="border rounded px-3 py-2 text-sm col-span-2 focus:outline-none focus:ring-1 focus:ring-primary-400" />
                   </div>
                   <div class="flex gap-2">
                     <button (click)="saveEditTraveler(t.id)"
-                      class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition">
+                      class="bg-accent-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-accent-700 transition">
                       Guardar
                     </button>
                     <button (click)="cancelEditTraveler()"
-                      class="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-100 transition">
+                      class="border border-slate-300 text-slate-600 px-4 py-2 rounded-lg text-sm hover:bg-slate-100 transition">
                       Cancelar
                     </button>
                   </div>
@@ -182,23 +182,23 @@ import { apiErrorMessage } from '../../core/services/api-error';
             <div class="mt-3 space-y-2 border-t pt-3">
               <div class="grid grid-cols-2 gap-2">
                 <input type="text" [(ngModel)]="newTraveler.firstName" placeholder="Nombre"
-                  class="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                  class="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-400" />
                 <input type="text" [(ngModel)]="newTraveler.lastName" placeholder="Apellido"
-                  class="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                  class="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-400" />
                 <input type="text" [(ngModel)]="newTraveler.documentNumber" placeholder="Documento"
-                  class="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                  class="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-400" />
                 <input type="date" [(ngModel)]="newTraveler.dateOfBirth"
-                  class="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                  class="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-400" />
                 <input type="text" [(ngModel)]="newTraveler.relation" placeholder="Relación (pareja, hijo...)"
-                  class="border rounded px-3 py-2 text-sm col-span-2 focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                  class="border rounded px-3 py-2 text-sm col-span-2 focus:outline-none focus:ring-1 focus:ring-primary-400" />
               </div>
               <div class="flex gap-2">
                 <button (click)="addTraveler()"
-                  class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition">
+                  class="bg-accent-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-accent-700 transition">
                   Guardar viajero
                 </button>
                 <button (click)="showAddTraveler.set(false)"
-                  class="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-100 transition">
+                  class="border border-slate-300 text-slate-600 px-4 py-2 rounded-lg text-sm hover:bg-slate-100 transition">
                   Cancelar
                 </button>
               </div>
@@ -208,13 +208,13 @@ import { apiErrorMessage } from '../../core/services/api-error';
 
         <!-- Cambiar contraseña -->
         <a routerLink="/profile/change-password"
-          class="block w-full border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm hover:bg-gray-50 transition text-center">
+          class="block w-full border border-slate-200 text-slate-600 py-2.5 rounded-xl text-sm hover:bg-slate-50 transition text-center">
           Cambiar contraseña
         </a>
 
         <!-- Cerrar sesión -->
         <button (click)="auth.logout()"
-          class="w-full border border-gray-200 text-gray-500 py-2.5 rounded-xl text-sm hover:bg-gray-50 transition">
+          class="w-full border border-slate-200 text-slate-500 py-2.5 rounded-xl text-sm hover:bg-slate-50 transition">
           Cerrar sesión
         </button>
       }

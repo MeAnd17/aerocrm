@@ -29,23 +29,23 @@ interface ContactForm {
   template: `
     <div class="max-w-2xl mx-auto space-y-8">
       <div>
-        <h1 class="text-2xl font-bold text-gray-800">Contáctanos</h1>
-        <p class="text-gray-500 mt-1">Escríbenos y te responderemos a la brevedad.</p>
+        <h1 class="text-[28px] leading-9 sm:text-4xl sm:leading-[44px] font-bold tracking-tight text-primary-700">Contáctanos</h1>
+        <p class="text-slate-500 mt-1">Escríbenos y te responderemos a la brevedad.</p>
       </div>
 
       <!-- Formulario de contacto -->
-      <form (ngSubmit)="onSubmit()" class="bg-white rounded-xl border shadow-sm p-6 space-y-4">
+      <form (ngSubmit)="onSubmit()" class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-6 space-y-4">
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
             <input type="text" [(ngModel)]="form.name" name="name" required
-              class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Correo</label>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Correo</label>
             <input type="email" [(ngModel)]="form.email" name="email" required
               #emailInput="ngModel"
-              class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
               [class.border-red-400]="emailInput.invalid && emailInput.touched" />
             @if (emailInput.invalid && emailInput.touched) {
               <p class="text-red-600 text-xs mt-1">Ingresa un correo válido</p>
@@ -53,15 +53,15 @@ interface ContactForm {
           </div>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Asunto</label>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Asunto</label>
           <input type="text" [(ngModel)]="form.subject" name="subject" required
-            class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Mensaje</label>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Mensaje</label>
           <textarea [(ngModel)]="form.message" name="message" required minlength="10" rows="5"
             #mensajeInput="ngModel"
-            class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
             [class.border-red-400]="mensajeInput.invalid && mensajeInput.touched"
             placeholder="Escribe tu consulta aquí..."></textarea>
           @if (mensajeInput.invalid && mensajeInput.touched) {
@@ -72,29 +72,29 @@ interface ContactForm {
           <p class="text-red-600 text-sm">{{ error() }}</p>
         }
         <button type="submit" [disabled]="loading()"
-          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50">
+          class="w-full bg-accent-600 hover:bg-accent-700 text-white font-semibold py-3 rounded-full transition disabled:opacity-50">
           {{ loading() ? 'Enviando...' : 'Enviar mensaje' }}
         </button>
       </form>
 
       <!-- Mis consultas (solo usuarios autenticados) -->
       @if (usuarioActual()) {
-        <section class="bg-white rounded-xl border shadow-sm p-6 space-y-4">
-          <h2 class="text-lg font-semibold text-gray-800">Mis consultas anteriores</h2>
+        <section class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-6 space-y-4">
+          <h2 class="text-lg font-semibold text-slate-800">Mis consultas anteriores</h2>
           @if (cargandoConsultas()) {
-            <p class="text-gray-400 text-sm">Cargando consultas...</p>
+            <p class="text-slate-400 text-sm">Cargando consultas...</p>
           } @else if (consultas().length === 0) {
-            <p class="text-gray-400 text-sm">No tienes consultas enviadas aún.</p>
+            <p class="text-slate-400 text-sm">No tienes consultas enviadas aún.</p>
           } @else {
-            <ul class="divide-y divide-gray-100">
+            <ul class="divide-y divide-slate-100">
               @for (consulta of consultas(); track consulta.id) {
                 <li class="py-3">
                   <div class="flex items-start justify-between gap-4">
                     <div class="min-w-0">
-                      <p class="font-medium text-gray-800 truncate">{{ consulta.subject }}</p>
-                      <p class="text-sm text-gray-500 mt-0.5 line-clamp-2">{{ consulta.message }}</p>
+                      <p class="font-medium text-slate-800 truncate">{{ consulta.subject }}</p>
+                      <p class="text-sm text-slate-500 mt-0.5 line-clamp-2">{{ consulta.message }}</p>
                     </div>
-                    <time class="text-xs text-gray-400 whitespace-nowrap shrink-0">
+                    <time class="text-xs text-slate-400 whitespace-nowrap shrink-0">
                       {{ consulta.createdAt | date:'dd/MM/yyyy' }}
                     </time>
                   </div>
@@ -106,24 +106,24 @@ interface ContactForm {
       }
 
       <!-- Preguntas frecuentes -->
-      <section class="bg-white rounded-xl border shadow-sm p-6 space-y-4">
-        <h2 class="text-lg font-semibold text-gray-800">Preguntas frecuentes</h2>
+      <section class="bg-white rounded-2xl border border-slate-900/[0.06] shadow-card p-6 space-y-4">
+        <h2 class="text-lg font-semibold text-slate-800">Preguntas frecuentes</h2>
         <dl class="space-y-4">
           <div>
-            <dt class="font-medium text-gray-700">¿Cuánto tarda en responderse una consulta?</dt>
-            <dd class="text-gray-500 text-sm mt-1">Respondemos todas las consultas en un plazo máximo de 24 horas hábiles.</dd>
+            <dt class="font-medium text-slate-700">¿Cuánto tarda en responderse una consulta?</dt>
+            <dd class="text-slate-500 text-sm mt-1">Respondemos todas las consultas en un plazo máximo de 24 horas hábiles.</dd>
           </div>
           <div>
-            <dt class="font-medium text-gray-700">¿Puedo modificar una reserva ya confirmada?</dt>
-            <dd class="text-gray-500 text-sm mt-1">Sí, siempre que la reserva esté en estado Confirmado o En curso. Escríbenos indicando tu código de reserva.</dd>
+            <dt class="font-medium text-slate-700">¿Puedo modificar una reserva ya confirmada?</dt>
+            <dd class="text-slate-500 text-sm mt-1">Sí, siempre que la reserva esté en estado Confirmado o En curso. Escríbenos indicando tu código de reserva.</dd>
           </div>
           <div>
-            <dt class="font-medium text-gray-700">¿Cómo puedo canjear mis puntos de fidelización?</dt>
-            <dd class="text-gray-500 text-sm mt-1">Los puntos se aplican automáticamente durante el proceso de compra de tu paquete, en el paso de pago.</dd>
+            <dt class="font-medium text-slate-700">¿Cómo puedo canjear mis puntos de fidelización?</dt>
+            <dd class="text-slate-500 text-sm mt-1">Los puntos se aplican automáticamente durante el proceso de compra de tu paquete, en el paso de pago.</dd>
           </div>
           <div>
-            <dt class="font-medium text-gray-700">¿Qué documentos necesito para viajar?</dt>
-            <dd class="text-gray-500 text-sm mt-1">Depende del destino. Para vuelos nacionales basta el DNI; para internacionales necesitarás pasaporte vigente. Escríbenos si tienes dudas sobre tu destino específico.</dd>
+            <dt class="font-medium text-slate-700">¿Qué documentos necesito para viajar?</dt>
+            <dd class="text-slate-500 text-sm mt-1">Depende del destino. Para vuelos nacionales basta el DNI; para internacionales necesitarás pasaporte vigente. Escríbenos si tienes dudas sobre tu destino específico.</dd>
           </div>
         </dl>
       </section>

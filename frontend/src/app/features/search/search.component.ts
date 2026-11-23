@@ -9,6 +9,14 @@ import { PackageDraftService } from '../packages/package-draft.service';
 import { ToastService } from '../../core/services/toast.service';
 import { AuthService } from '../../core/services/auth.service';
 import { apiErrorMessage } from '../../core/services/api-error';
+import {
+  BadgeComponent,
+  ButtonComponent,
+  CardComponent,
+  EmptyStateComponent,
+  FormFieldComponent,
+  InputDirective,
+} from '../../shared/ui';
 
 /** Opciones de filtro de escala. */
 type StopsFilter = 'todos' | 'directo' | '1' | '2+';
@@ -16,239 +24,232 @@ type StopsFilter = 'todos' | 'directo' | '1' | '2+';
 @Component({
   selector: 'app-search',
   standalone: true,
-  imports: [CommonModule, FormsModule, LabelPipe, DurationPipe],
+  imports: [CommonModule, FormsModule, LabelPipe, DurationPipe, BadgeComponent, ButtonComponent, CardComponent, EmptyStateComponent, FormFieldComponent, InputDirective],
   template: `
-    <div class="space-y-6">
-      <div class="bg-gradient-to-r from-blue-900 to-blue-700 rounded-2xl p-6 text-white">
-        <h1 class="text-2xl font-bold mb-1">Busca tu destino</h1>
-        <p class="text-blue-200 text-sm">Encuentra vuelos, hoteles y actividades en un solo lugar</p>
-      </div>
+    <div class="space-y-8 lg:space-y-10">
+      <!-- Portada -->
+      <section>
+        <ui-badge tone="accent">✈️ Vuelo + hotel + actividades en un solo flujo</ui-badge>
+        <h1 class="mt-4 max-w-3xl text-[36px] leading-[44px] sm:text-[56px] sm:leading-[64px] font-extrabold tracking-tight text-primary-700">
+          Arma tu viaje a tu propio ritmo
+        </h1>
+        <p class="mt-3 max-w-2xl text-base sm:text-lg leading-relaxed text-slate-500">
+          Busca vuelos, combina hospedaje y actividades, y ingresa tus datos recién al momento de reservar.
+        </p>
+      </section>
 
       <!-- Formulario de búsqueda -->
-      <div class="bg-white rounded-xl shadow-sm border p-5 space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Origen</label>
-            <input type="text" [(ngModel)]="searchForm.origin" placeholder="Lima (LIM)"
-              class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Destino</label>
-            <select [(ngModel)]="searchForm.destinationId"
-              class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <section class="rounded-2xl border border-slate-900/[0.06] bg-white p-4 shadow-raised sm:p-6" aria-label="Buscar vuelos">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <ui-field label="Origen">
+            <input uiInput type="text" [(ngModel)]="searchForm.origin" placeholder="Lima (LIM)" />
+          </ui-field>
+          <ui-field label="Destino">
+            <select uiInput [(ngModel)]="searchForm.destinationId">
               <option value="">Selecciona un destino</option>
               @for (dest of destinations(); track dest.id) {
                 <option [value]="dest.id">{{ dest.city }}, {{ dest.country }}</option>
               }
             </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de salida</label>
-            <input type="date" [(ngModel)]="searchForm.departureDate" [min]="today"
-              class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Pasajeros</label>
-            <input type="number" [(ngModel)]="searchForm.passengers" min="1" max="9"
-              class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
+          </ui-field>
+          <ui-field label="Fecha de salida" [error]="dateError()">
+            <input uiInput type="date" [(ngModel)]="searchForm.departureDate" [min]="today" />
+          </ui-field>
+          <ui-field label="Pasajeros">
+            <input uiInput type="number" [(ngModel)]="searchForm.passengers" min="1" max="9" />
+          </ui-field>
         </div>
-        @if (dateError()) {
-          <p class="text-sm text-red-600">{{ dateError() }}</p>
-        }
-        <button (click)="search()" [disabled]="loading()"
-          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50">
-          {{ loading() ? 'Buscando...' : '🔍 Buscar vuelos' }}
-        </button>
-      </div>
+        <div class="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-xs text-slate-500">
+            <span class="font-semibold text-success-700">✓</span>
+            Mostramos salidas hasta 3 días antes y después de tu fecha.
+          </p>
+          <button type="button" uiButton size="lg" (click)="search()" [disabled]="loading()">
+            {{ loading() ? 'Buscando...' : 'Buscar vuelos →' }}
+          </button>
+        </div>
+      </section>
 
       <!-- Filtros y resultados -->
       @if (allFlights().length > 0) {
-        <div class="flex flex-col lg:flex-row gap-4">
+        <div class="flex flex-col gap-5 lg:flex-row">
 
           <!-- Panel de filtros -->
-          <aside class="w-full lg:w-64 shrink-0 bg-white rounded-xl border shadow-sm p-4 space-y-5 self-start">
-            <h3 class="font-semibold text-gray-800">Filtros</h3>
+          <aside class="w-full shrink-0 space-y-5 self-start rounded-2xl border border-slate-900/[0.06] bg-white p-5 shadow-card lg:sticky lg:top-24 lg:w-72">
+            <h3 class="text-lg font-bold text-primary-700">Filtros</h3>
 
             <!-- Ordenar por -->
-            <div>
-              <label class="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Ordenar por</label>
-              <select [(ngModel)]="filters.sortBy"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <ui-field label="Ordenar por">
+              <select uiInput [(ngModel)]="filters.sortBy">
                 <option value="cercania">Cercanía a la fecha</option>
                 <option value="precio">Precio</option>
                 <option value="duracion">Duración</option>
               </select>
-            </div>
+            </ui-field>
 
             <!-- Precio por persona -->
             <div>
-              <label class="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Precio por persona</label>
+              <p class="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">Precio por persona</p>
               <div class="flex gap-2">
-                <input type="number" [(ngModel)]="filters.minPrice" placeholder="Mín" min="0"
-                  class="w-1/2 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                <input type="number" [(ngModel)]="filters.maxPrice" placeholder="Máx" min="0"
-                  class="w-1/2 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <input uiInput type="number" [(ngModel)]="filters.minPrice" placeholder="Mín" min="0" aria-label="Precio mínimo" />
+                <input uiInput type="number" [(ngModel)]="filters.maxPrice" placeholder="Máx" min="0" aria-label="Precio máximo" />
               </div>
             </div>
 
             <!-- Duración máxima -->
             <div>
-              <label class="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
-                Duración máxima: {{ filters.maxDuration ? (filters.maxDuration | duracion) : 'Cualquiera' }}
+              <label for="duracion-max" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Duración máxima: <span class="normal-case text-primary-700">{{ filters.maxDuration ? (filters.maxDuration | duracion) : 'Cualquiera' }}</span>
               </label>
-              <input type="range" [(ngModel)]="filters.maxDuration"
+              <input id="duracion-max" type="range" [(ngModel)]="filters.maxDuration"
                 min="0" [max]="maxDurationAvailable()" step="30"
-                class="w-full accent-blue-600" />
+                class="w-full accent-accent-600" />
             </div>
 
             <!-- Escalas -->
-            <div>
-              <label class="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">Escalas</label>
-              <div class="space-y-1">
+            <fieldset>
+              <legend class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Escalas</legend>
+              <div class="flex flex-wrap gap-2">
                 @for (opt of stopsOptions; track opt.value) {
-                  <label class="flex items-center gap-2 text-sm cursor-pointer">
-                    <input type="radio" name="stops" [value]="opt.value" [(ngModel)]="filters.stops"
-                      class="accent-blue-600" />
-                    {{ opt.label }}
+                  <label class="cursor-pointer">
+                    <input type="radio" name="stops" [value]="opt.value" [(ngModel)]="filters.stops" class="peer sr-only" />
+                    <span class="inline-block rounded-full border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 transition peer-checked:border-primary-700 peer-checked:bg-primary-700 peer-checked:text-white peer-focus-visible:ring-4 peer-focus-visible:ring-primary-500/20">{{ opt.label }}</span>
                   </label>
                 }
               </div>
-            </div>
+            </fieldset>
 
             <!-- Aerolínea -->
             @if (airlines().length > 1) {
-              <div>
-                <label class="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">Aerolínea</label>
-                <div class="space-y-1">
+              <fieldset>
+                <legend class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Aerolínea</legend>
+                <div class="space-y-2">
                   @for (airline of airlines(); track airline) {
-                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                    <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
                       <input type="checkbox" [checked]="filters.airlines.includes(airline)"
                         (change)="toggleAirline(airline)"
-                        class="accent-blue-600 rounded" />
+                        class="h-4 w-4 rounded accent-accent-600" />
                       {{ airline }}
                     </label>
                   }
                 </div>
-              </div>
+              </fieldset>
             }
 
-            <button (click)="resetFilters()"
-              class="w-full text-sm text-blue-600 hover:underline text-left">
-              Limpiar filtros
-            </button>
+            <button type="button" uiButton variant="ghost" size="sm" (click)="resetFilters()">Limpiar filtros</button>
           </aside>
 
           <!-- Lista de resultados -->
-          <div class="flex-1 space-y-3">
+          <div class="flex-1 space-y-4">
             <div>
-              <h2 class="font-semibold text-gray-800">{{ filteredFlights().length }} vuelo{{ filteredFlights().length !== 1 ? 's' : '' }} disponible{{ filteredFlights().length !== 1 ? 's' : '' }}</h2>
-              <p class="text-xs text-gray-500">Mostramos salidas hasta 3 días antes y después de la fecha que elegiste.</p>
+              <ui-badge tone="brand" [caps]="true">Paso 1 · Vuelos disponibles</ui-badge>
+              <h2 class="mt-2 text-2xl font-bold tracking-tight text-primary-700">{{ filteredFlights().length }} vuelo{{ filteredFlights().length !== 1 ? 's' : '' }} disponible{{ filteredFlights().length !== 1 ? 's' : '' }}</h2>
             </div>
 
             @if (filteredFlights().length === 0) {
-              <div class="text-center py-10 text-gray-400">
-                <p class="text-4xl mb-3">✈️</p>
-                <p>No encontramos vuelos cerca de esa fecha. Prueba con otra fecha o quita filtros.</p>
-              </div>
+              <ui-card>
+                <ui-empty-state icon="✈️" title="Sin vuelos con esos filtros"
+                  message="No encontramos vuelos cerca de esa fecha. Prueba con otra fecha o quita filtros." />
+              </ui-card>
             }
 
             @for (flight of filteredFlights(); track flight.id) {
-              <div class="bg-white rounded-xl border shadow-sm p-4 hover:shadow-md transition">
-                <div class="flex items-start justify-between gap-3">
-                  <div class="flex-1 min-w-0">
-                    <p class="font-bold text-gray-800">{{ flight.airline }} · {{ flight.flightNumber }}</p>
-                    <span class="inline-block mt-0.5 rounded-full px-2 py-0.5 text-xs font-medium"
-                      [class.bg-green-100]="flight.daysFromRequested === 0"
-                      [class.text-green-700]="flight.daysFromRequested === 0"
-                      [class.bg-amber-50]="flight.daysFromRequested !== 0"
-                      [class.text-amber-700]="flight.daysFromRequested !== 0">
-                      {{ dayLabel(flight.daysFromRequested) }}
-                    </span>
-                    <p class="text-sm text-gray-500 mt-1">
-                      {{ flight.origin?.city }} → {{ flight.destination?.city }} ·
-                      {{ flight.stops === 0 ? 'Directo' : flight.stops === 1 ? '1 escala' : flight.stops + ' escalas' }}
-                    </p>
-                    <p class="text-xs text-gray-400 mt-1">
-                      Salida: {{ flight.departureDate | date:'dd MMM yyyy, HH:mm':'UTC':'es-PE' }}
-                    </p>
-                    <p class="text-xs text-gray-400">
-                      Llegada: {{ flight.arrivalDate | date:'dd MMM yyyy, HH:mm':'UTC':'es-PE' }}
-                      · {{ flight.durationMinutes | duracion }}
-                    </p>
+              <article class="rounded-2xl border border-slate-900/[0.06] bg-white p-5 shadow-card transition hover:border-accent-500 hover:shadow-raised">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div class="flex min-w-0 flex-1 gap-4">
+                    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-xl" aria-hidden="true">✈️</span>
+                    <div class="min-w-0">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <p class="font-bold text-primary-700">{{ flight.airline }} · {{ flight.flightNumber }}</p>
+                        <ui-badge [tone]="flight.daysFromRequested === 0 ? 'success' : 'warning'">{{ dayLabel(flight.daysFromRequested) }}</ui-badge>
+                      </div>
+                      <p class="mt-1 text-sm font-medium text-slate-700">
+                        {{ flight.origin?.city }} → {{ flight.destination?.city }} ·
+                        {{ flight.stops === 0 ? 'Directo' : flight.stops === 1 ? '1 escala' : flight.stops + ' escalas' }}
+                      </p>
+                      <p class="mt-1 text-xs text-slate-500 tabular-nums">
+                        Salida {{ flight.departureDate | date:'dd MMM yyyy, HH:mm':'UTC':'es-PE' }}
+                        · Llegada {{ flight.arrivalDate | date:'dd MMM yyyy, HH:mm':'UTC':'es-PE' }}
+                        · {{ flight.durationMinutes | duracion }}
+                      </p>
+                    </div>
                   </div>
-                  <div class="text-right shrink-0">
-                    <p class="text-xl font-bold text-blue-900">S/. {{ flight.totalPrice | number:'1.2-2' }}</p>
-                    <p class="text-xs text-gray-400">{{ searchForm.passengers }} pax · {{ flight.classType | label }}</p>
-                    <button (click)="selectFlight(flight)"
-                      class="mt-2 bg-blue-600 text-white text-sm px-4 py-1.5 rounded-lg hover:bg-blue-700 transition">
-                      Seleccionar
-                    </button>
+                  <div class="flex items-center justify-between gap-4 border-t border-slate-100 pt-4 sm:flex-col sm:items-end sm:border-0 sm:pt-0">
+                    <div class="sm:text-right">
+                      <p class="text-2xl font-extrabold tracking-tight text-primary-700 tabular-nums">S/. {{ flight.totalPrice | number:'1.2-2' }}</p>
+                      <p class="text-xs text-slate-500">{{ searchForm.passengers }} pax · {{ flight.classType | label }}</p>
+                    </div>
+                    <button type="button" uiButton size="sm" (click)="selectFlight(flight)">Seleccionar</button>
                   </div>
                 </div>
-              </div>
+              </article>
             }
           </div>
         </div>
       }
 
       @if (searched() && allFlights().length === 0 && !loading()) {
-        <div class="text-center py-10 text-gray-400">
-          <p class="text-4xl mb-3">✈️</p>
-          <p>No encontramos vuelos cerca de esa fecha. Prueba con otra fecha o quita filtros.</p>
-        </div>
+        <ui-card>
+          <ui-empty-state icon="✈️" title="No encontramos vuelos"
+            message="No hay salidas cerca de esa fecha. Prueba con otra fecha o quita filtros." />
+        </ui-card>
       }
 
       <!-- Recomendaciones (basadas en búsquedas anteriores) -->
       @if (!searched() && recommendations().length > 0) {
-        <div class="bg-white rounded-xl shadow-sm border p-5">
-          <h2 class="font-semibold text-gray-800 mb-3">
-            Porque buscaste {{ busquedaTipos() }}
-          </h2>
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <section>
+          <p class="text-[11px] font-bold uppercase tracking-wider text-accent-700">Recomendados</p>
+          <h2 class="mt-1 text-2xl font-bold tracking-tight text-primary-700">Porque buscaste {{ busquedaTipos() }}</h2>
+          <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             @for (rec of recommendations(); track rec.destination.id) {
-              <div class="border rounded-xl p-3 space-y-2">
-                <div>
-                  <p class="font-medium text-sm text-gray-800">{{ rec.destination.city }}</p>
-                  <p class="text-xs text-gray-500">{{ rec.destination.country }}</p>
-                  <p class="text-xs text-gray-400 italic mt-0.5">{{ rec.reason }}</p>
-                </div>
-                <button (click)="armarViaje(rec.destination.id)"
-                  [disabled]="armando() === rec.destination.id"
-                  class="w-full bg-blue-600 text-white text-xs py-1.5 rounded-lg hover:bg-blue-700 transition disabled:opacity-50">
+              <div class="flex flex-col rounded-2xl border border-slate-900/[0.06] bg-white p-5 shadow-card">
+                <p class="text-lg font-bold text-primary-700">{{ rec.destination.city }}</p>
+                <p class="text-sm text-slate-500">{{ rec.destination.country }}</p>
+                <p class="mt-2 flex-1 text-sm italic text-slate-500">{{ rec.reason }}</p>
+                <button type="button" uiButton size="sm" class="mt-4" (click)="armarViaje(rec.destination.id)"
+                  [disabled]="armando() === rec.destination.id">
                   {{ armando() === rec.destination.id ? 'Preparando...' : 'Armar mi viaje' }}
                 </button>
               </div>
             }
           </div>
-        </div>
+        </section>
       }
 
       <!-- Destinos populares (solo antes de buscar) -->
       @if (!searched()) {
-        <div>
-          <h2 class="font-semibold text-gray-800 mb-3">Destinos populares</h2>
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <section>
+          <p class="text-[11px] font-bold uppercase tracking-wider text-accent-700">Inspírate</p>
+          <h2 class="mt-1 text-2xl font-bold tracking-tight text-primary-700">Destinos populares</h2>
+          <p class="mt-1 text-sm text-slate-500">Elige uno y completa la fecha para ver sus vuelos.</p>
+          <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
             @for (dest of destinations(); track dest.id) {
-              <button (click)="selectDestination(dest)"
-                [class.ring-2]="searchForm.destinationId == dest.id"
-                [class.ring-blue-500]="searchForm.destinationId == dest.id"
-                class="bg-white border rounded-xl p-3 text-left hover:border-blue-300 transition">
-                <p class="font-medium text-sm text-gray-800">{{ dest.city }}</p>
-                <p class="text-xs text-gray-500">{{ dest.country }}</p>
-                <span class="text-xs mt-1 inline-block px-2 py-0.5 rounded-full"
+              <button type="button" (click)="selectDestination(dest)"
+                [attr.aria-pressed]="searchForm.destinationId == dest.id"
+                class="group rounded-2xl border bg-white p-4 text-left shadow-card transition hover:shadow-raised"
+                [ngClass]="searchForm.destinationId == dest.id ? 'border-accent-500 ring-2 ring-accent-500/30' : 'border-slate-900/[0.06]'">
+                <span class="flex items-start justify-between gap-2">
+                  <span>
+                    <span class="block font-bold text-primary-700">{{ dest.city }}</span>
+                    <span class="block text-xs text-slate-500">{{ dest.country }}</span>
+                  </span>
+                  @if (searchForm.destinationId == dest.id) {
+                    <span class="flex h-5 w-5 items-center justify-center rounded-full bg-accent-600 text-[11px] text-white" aria-hidden="true">✓</span>
+                  }
+                </span>
+                <span class="mt-3 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold"
                   [ngClass]="{
-                    'bg-blue-100 text-blue-700': dest.type === 'PLAYA',
-                    'bg-gray-100 text-gray-700': dest.type === 'CIUDAD',
-                    'bg-green-100 text-green-700': dest.type === 'AVENTURA',
-                    'bg-yellow-100 text-yellow-700': dest.type === 'CULTURA'
+                    'bg-primary-50 text-primary-700': dest.type === 'PLAYA',
+                    'bg-slate-100 text-slate-700': dest.type === 'CIUDAD',
+                    'bg-success-50 text-success-700': dest.type === 'AVENTURA',
+                    'bg-accent-50 text-accent-700': dest.type === 'CULTURA'
                   }">
                   {{ dest.type | label }}
                 </span>
               </button>
             }
           </div>
-        </div>
+        </section>
       }
     </div>
   `,

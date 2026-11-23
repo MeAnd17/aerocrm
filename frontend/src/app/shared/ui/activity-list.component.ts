@@ -27,13 +27,13 @@ import { EmptyStateComponent } from './empty-state.component';
     <div class="mb-4 space-y-3">
       <!-- Tipos (selección múltiple) -->
       <div class="flex flex-wrap gap-2 items-center">
-        <span class="text-xs text-gray-500 font-medium">Tipo:</span>
+        <span class="text-xs text-slate-500 font-medium">Tipo:</span>
         @for (tipo of activityTypes; track tipo) {
           <button type="button"
             (click)="toggleType(tipo)"
-            [class.bg-blue-600]="typeFilters().includes(tipo)"
+            [class.bg-primary-600]="typeFilters().includes(tipo)"
             [class.text-white]="typeFilters().includes(tipo)"
-            [class.border-blue-600]="typeFilters().includes(tipo)"
+            [class.border-primary-600]="typeFilters().includes(tipo)"
             class="px-2 py-0.5 border rounded-full text-xs font-medium transition">
             {{ tipo | label }}
           </button>
@@ -42,11 +42,11 @@ import { EmptyStateComponent } from './empty-state.component';
 
       <!-- Precio -->
       <div class="flex items-center gap-1">
-        <label class="text-xs text-gray-500">Precio:</label>
+        <label class="text-xs text-slate-500">Precio:</label>
         <input type="number" min="0" placeholder="Mín"
           [ngModel]="minPrice()" (ngModelChange)="minPrice.set($event ?? null)"
           class="w-20 text-xs border rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-500" />
-        <span class="text-xs text-gray-400">–</span>
+        <span class="text-xs text-slate-400">–</span>
         <input type="number" min="0" placeholder="Máx"
           [ngModel]="maxPrice()" (ngModelChange)="maxPrice.set($event ?? null)"
           class="w-20 text-xs border rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-500" />
@@ -61,37 +61,37 @@ import { EmptyStateComponent } from './empty-state.component';
         @for (act of filteredActivities(); track act.id) {
           <div
             [class.ring-2]="selectedIds.includes(act.id)"
-            [class.ring-blue-500]="selectedIds.includes(act.id)"
-            class="p-3 border rounded-xl hover:border-blue-300 transition">
+            [class.ring-primary-500]="selectedIds.includes(act.id)"
+            class="p-3 border rounded-xl hover:border-primary-300 transition">
 
             <!-- Cabecera: click para toggle -->
             <div (click)="activityToggle.emit(act)" class="cursor-pointer">
-              <p class="font-medium text-sm text-gray-800">{{ act.name }}</p>
-              <p class="text-xs text-gray-500 mt-0.5">{{ act.type | label }} · {{ act.durationHours }}h</p>
-              <p class="text-sm font-bold text-blue-900 mt-1">
+              <p class="font-medium text-sm text-slate-800">{{ act.name }}</p>
+              <p class="text-xs text-slate-500 mt-0.5">{{ act.type | label }} · {{ act.durationHours }}h</p>
+              <p class="text-sm font-bold text-primary-900 mt-1">
                 S/. {{ act.price }}
-                <span class="text-xs text-gray-400 font-normal">por persona</span>
+                <span class="text-xs text-slate-400 font-normal">por persona</span>
               </p>
             </div>
 
             <!-- Selector de cantidad (solo cuando está seleccionada y hay más de 1 pasajero) -->
             @if (selectedIds.includes(act.id) && maxQuantity > 1) {
               <div class="mt-2 flex items-center gap-2" (click)="$event.stopPropagation()">
-                <span class="text-xs text-gray-500">Personas:</span>
+                <span class="text-xs text-slate-500">Personas:</span>
                 <div class="flex items-center gap-1">
                   <button type="button"
                     (click)="adjustQuantity(act.id, -1)"
                     [disabled]="getQuantity(act.id) <= 1"
-                    class="w-6 h-6 rounded-full border text-gray-600 flex items-center justify-center text-sm font-bold
-                           disabled:opacity-30 hover:enabled:bg-gray-100 transition">−</button>
-                  <span class="w-6 text-center text-sm font-semibold text-gray-800">{{ getQuantity(act.id) }}</span>
+                    class="w-6 h-6 rounded-full border text-slate-600 flex items-center justify-center text-sm font-bold
+                           disabled:opacity-30 hover:enabled:bg-slate-100 transition">−</button>
+                  <span class="w-6 text-center text-sm font-semibold text-slate-800">{{ getQuantity(act.id) }}</span>
                   <button type="button"
                     (click)="adjustQuantity(act.id, +1)"
                     [disabled]="getQuantity(act.id) >= maxQuantity"
-                    class="w-6 h-6 rounded-full border text-gray-600 flex items-center justify-center text-sm font-bold
-                           disabled:opacity-30 hover:enabled:bg-gray-100 transition">+</button>
+                    class="w-6 h-6 rounded-full border text-slate-600 flex items-center justify-center text-sm font-bold
+                           disabled:opacity-30 hover:enabled:bg-slate-100 transition">+</button>
                 </div>
-                <span class="text-xs text-gray-400">/ {{ maxQuantity }}</span>
+                <span class="text-xs text-slate-400">/ {{ maxQuantity }}</span>
               </div>
             }
 

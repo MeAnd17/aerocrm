@@ -11,11 +11,11 @@ import { AuthService } from '../../../core/services/auth.service';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
-    <div class="min-h-screen bg-gradient-to-br from-blue-900 to-blue-700 flex items-center justify-center p-4">
+    <div class="min-h-screen bg-gradient-to-br from-primary-900 to-primary-700 flex items-center justify-center p-4">
       <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
         <div class="text-center mb-8">
-          <h1 class="text-3xl font-bold text-blue-900">✈️ AeroCRM</h1>
-          <p class="text-gray-500 mt-2">Inicia sesión en tu cuenta</p>
+          <h1 class="text-3xl font-bold text-primary-900">✈️ AeroCRM</h1>
+          <p class="text-slate-500 mt-2">Inicia sesión en tu cuenta</p>
         </div>
 
         @if (sessionExpiredMsg()) {
@@ -26,15 +26,15 @@ import { AuthService } from '../../../core/services/auth.service';
 
         <form (ngSubmit)="onSubmit()" #form="ngForm" class="space-y-5">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Correo electrónico</label>
             <input type="email" name="email" [(ngModel)]="email" required
-              class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-slate-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="correo@ejemplo.com" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
             <input type="password" name="password" [(ngModel)]="password" required
-              class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-slate-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="••••••••" />
           </div>
 
@@ -45,16 +45,16 @@ import { AuthService } from '../../../core/services/auth.service';
           }
 
           <button type="submit" [disabled]="loading()"
-            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50">
+            class="w-full bg-accent-600 hover:bg-accent-700 text-white font-semibold py-3 rounded-full transition disabled:opacity-50">
             {{ loading() ? 'Iniciando sesión...' : 'Iniciar sesión' }}
           </button>
         </form>
 
-        <p class="text-center text-sm text-gray-500 mt-6">
+        <p class="text-center text-sm text-slate-500 mt-6">
           ¿No tienes cuenta?
-          <a routerLink="/register" queryParamsHandling="preserve" class="text-blue-600 font-medium hover:underline">Regístrate gratis</a>
+          <a routerLink="/register" queryParamsHandling="preserve" class="text-primary-600 font-medium hover:underline">Regístrate gratis</a>
         </p>
-        <p class="text-center text-sm text-gray-400 mt-2">
+        <p class="text-center text-sm text-slate-400 mt-2">
           <a routerLink="/explore" class="hover:underline">Explorar sin cuenta →</a>
         </p>
       </div>

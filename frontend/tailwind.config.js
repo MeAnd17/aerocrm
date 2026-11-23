@@ -24,19 +24,46 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Tokens de AeroCRM (TS-008). [AJUSTAR] con los colores de la maqueta de referencia.
-        // Las pantallas usan primary-*; cambiar aquí cambia toda la plataforma.
+        // Tokens de AeroCRM (TS-008), tomados de la maqueta de referencia (Google Stitch,
+        // sistema "Andean Horizon"). Las pantallas usan primary-*, accent-* y success-*;
+        // cambiar aquí cambia toda la plataforma.
+        // primary: azul marino. Encabezados, textos fuertes, enlaces y superficies de marca (700 = #0A2540).
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          50: '#f0f5fd',
+          100: '#e1ebfa',
+          200: '#c3d5ee',
+          300: '#97b2d6',
+          400: '#6585b3',
+          500: '#3d5c82',
+          600: '#1b3a5c',
+          700: '#0a2540',
+          800: '#071b31',
+          900: '#000f22',
+        },
+        // accent: naranja atardecer. Solo para la acción principal, el paso activo y lo seleccionado.
+        // 500 (#FF5A1F) es el de la maqueta; los botones usan 600 para que el texto blanco
+        // cumpla el contraste AA de WCAG 2.1 que pide el Plan de Calidad.
+        accent: {
+          50: '#fff6f1',
+          100: '#ffe9dd',
+          200: '#ffcfb8',
+          300: '#ffb59e',
+          400: '#ff8a5c',
+          500: '#ff5a1f',
+          600: '#c93d0a',
+          700: '#ae3200',
+          800: '#852400',
+          900: '#521300',
+        },
+        // success: verde valle. Ahorros, descuentos, estados confirmados y puntos ganados.
+        success: {
+          50: '#ecfdf5',
+          100: '#d1fae5',
+          200: '#a7f3d0',
+          500: '#10b981',
+          600: '#059669',
+          700: '#047857',
+          800: '#065f46',
         },
         // Paletas heredadas del sistema anterior (docs/HEREDADO.md). No usar en pantallas nuevas.
         navy: {
@@ -61,8 +88,14 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+      },
+      boxShadow: {
+        // Niveles de elevación de la maqueta: tarjeta en reposo, tarjeta elegida y paneles fijos.
+        card: '0 4px 12px -2px rgba(10, 37, 64, 0.04), 0 2px 4px -1px rgba(10, 37, 64, 0.02)',
+        raised: '0 12px 24px -4px rgba(10, 37, 64, 0.08), 0 4px 8px -2px rgba(10, 37, 64, 0.03)',
+        float: '0 20px 32px -8px rgba(10, 37, 64, 0.12)',
       },
       animation: {
         'slide-in-right': 'slideInRight 0.3s ease-out',

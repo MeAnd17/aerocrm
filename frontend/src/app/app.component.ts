@@ -3,19 +3,21 @@ import { ActivatedRoute, NavigationEnd, Router, RouterOutlet } from '@angular/ro
 import { filter } from 'rxjs/operators';
 import { ToastComponent } from './shared/components/toast/toast.component';
 import { NavbarComponent } from './core/layout/navbar/navbar.component';
+import { FooterComponent } from './core/layout/footer/footer.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, ToastComponent, NavbarComponent],
+  imports: [RouterOutlet, ToastComponent, NavbarComponent, FooterComponent],
   template: `
     <app-navbar />
     @if (fullBleed()) {
       <router-outlet></router-outlet>
     } @else {
-      <main class="mx-auto w-full max-w-6xl px-4 py-6">
+      <main class="mx-auto w-full max-w-7xl px-4 py-6 lg:px-10 lg:py-10">
         <router-outlet></router-outlet>
       </main>
+      <app-footer />
     }
     <app-toast></app-toast>
   `,
