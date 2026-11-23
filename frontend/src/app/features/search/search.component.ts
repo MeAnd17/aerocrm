@@ -41,11 +41,16 @@ type StopsFilter = 'todos' | 'directo' | '1' | '2+';
       <!-- Formulario de búsqueda -->
       <section class="rounded-2xl border border-slate-900/[0.06] bg-white p-4 shadow-raised sm:p-6" aria-label="Buscar vuelos">
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <ui-field label="Origen">
-            <input uiInput type="text" [(ngModel)]="searchForm.origin" placeholder="Lima (LIM)" />
+          <ui-field label="Origen" [error]="originDestinationError()">
+            <select uiInput [(ngModel)]="searchForm.origin" (ngModelChange)="onRouteChange()">
+              <option value="">Selecciona un origen</option>
+              @for (orig of origins(); track orig.iataCode) {
+                <option [value]="orig.iataCode">{{ orig.city }} ({{ orig.iataCode }})</option>
+              }
+            </select>
           </ui-field>
-          <ui-field label="Destino">
-            <select uiInput [(ngModel)]="searchForm.destinationId">
+          <ui-field label="Destino" [error]="originDestinationError()">
+            <select uiInput [(ngModel)]="searchForm.destinationId" (ngModelChange)="onRouteChange()">
               <option value="">Selecciona un destino</option>
               @for (dest of destinations(); track dest.id) {
                 <option [value]="dest.id">{{ dest.city }}, {{ dest.country }}</option>
@@ -53,10 +58,10 @@ type StopsFilter = 'todos' | 'directo' | '1' | '2+';
             </select>
           </ui-field>
           <ui-field label="Fecha de salida" [error]="dateError()">
-            <input uiInput type="date" [(ngModel)]="searchForm.departureDate" [min]="today" />
+            <input uiInput type="date" [(ngModel)]="searchForm.departureDate" [min]="today" (ngModelChange)="onDateChange()" />
           </ui-field>
-          <ui-field label="Pasajeros">
-            <input uiInput type="number" [(ngModel)]="searchForm.passengers" min="1" max="9" />
+          <ui-field label="Pasajeros" [error]="passengersError()">
+            <input uiInput type="number" [(ngModel)]="searchForm.passengers" min="1" max="9" (ngModelChange)="onPassengersChange()" />
           </ui-field>
         </div>
         <div class="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
@@ -64,7 +69,7 @@ type StopsFilter = 'todos' | 'directo' | '1' | '2+';
             <span class="font-semibold text-success-700">✓</span>
             Mostramos salidas hasta 3 días antes y después de tu fecha.
           </p>
-          <button type="button" uiButton size="lg" (click)="search()" [disabled]="loading()">
+          <button type="button" uiButton size="lg" (click)="search()" [disabled]="loading() || !!originDestinationError()">
             {{ loading() ? 'Buscando...' : 'Buscar vuelos →' }}
           </button>
         </div>
@@ -255,19 +260,23 @@ type StopsFilter = 'todos' | 'directo' | '1' | '2+';
   `,
 })
 export class SearchComponent implements OnInit {
-  /** Todos los destinos disponibles (sin el origen Lima). */
+  /** Ciudades de origen disponibles (desde donde salen vuelos activos). */
+  origins = signal<{ iataCode: string; city: string; country: string }[]>([]);
+  /** Todos los destinos disponibles. */
   destinations = signal<any[]>([]);
   /** Vuelos que devolvió la última búsqueda (sin filtrar). */
   allFlights = signal<any[]>([]);
   loading = signal(false);
   searched = signal(false);
   dateError = signal('');
+  originDestinationError = signal('');
+  passengersError = signal('');
   /** Recomendaciones basadas en señales de búsqueda. */
   recommendations = signal<any[]>([]);
   /** ID del destino cuyo quick-package se está preparando. */
   armando = signal<number | null>(null);
 
-  searchForm = { origin: 'LIM', destinationId: '', departureDate: '', passengers: 1 };
+  searchForm = { origin: '', destinationId: '', departureDate: '', passengers: 1 };
 
   /** No se puede buscar hacia atrás en el tiempo. */
   readonly today = new Date().toISOString().slice(0, 10);
@@ -357,8 +366,12 @@ export class SearchComponent implements OnInit {
   ) {}
 
   ngOnInit() {
+    this.api.get<{ iataCode: string; city: string; country: string }[]>('destinations/origins').subscribe((data) => {
+      this.origins.set(data);
+    });
+
     this.api.get<any[]>('destinations').subscribe((data) => {
-      // Criterio 1: excluir Lima (origen) de la lista de destinos disponibles
+      // Excluir el destino que sea igual al origen seleccionado; aquí se cargan todos y se filtra en la vista.
       this.destinations.set(data.filter((d) => d.city !== 'Lima'));
       // Pre-seleccionar el destino si viene desde la página de detalle (US-006)
       const destId = this.route.snapshot.queryParamMap.get('destinationId');
@@ -375,6 +388,24 @@ export class SearchComponent implements OnInit {
   }
 
   search() {
+    // Validar: origen igual a destino
+    const selectedDest = this.destinations().find((d) => String(d.id) === String(this.searchForm.destinationId));
+    const selectedOrigin = this.origins().find((o) => o.iataCode === this.searchForm.origin);
+    if (this.searchForm.origin && this.searchForm.destinationId && selectedOrigin && selectedDest
+        && selectedOrigin.city === selectedDest.city) {
+      this.originDestinationError.set('El origen y el destino no pueden ser iguales');
+      return;
+    }
+    this.originDestinationError.set('');
+
+    // Validar pasajeros: mínimo 1, máximo 9
+    const pax = Number(this.searchForm.passengers);
+    if (!pax || pax < 1) {
+      this.passengersError.set('La cantidad de pasajeros debe ser al menos 1');
+      return;
+    }
+    this.passengersError.set('');
+
     // Validar fecha: debe ser hoy o futura
     if (this.searchForm.departureDate && this.searchForm.departureDate < this.today) {
       this.dateError.set('Elige una fecha a partir de hoy.');
@@ -389,7 +420,6 @@ export class SearchComponent implements OnInit {
     this.allFlights.set([]);
 
     // Registrar el tipo del destino seleccionado como señal de búsqueda
-    const selectedDest = this.destinations().find((d) => String(d.id) === String(this.searchForm.destinationId));
     if (selectedDest?.type) {
       this.draftService.recordViewedDestinationType(selectedDest.type);
     }
@@ -420,6 +450,37 @@ export class SearchComponent implements OnInit {
           this.searched.set(true);
         },
       });
+  }
+
+  /** Recalcula el error de misma ruta cuando cambia origen o destino. */
+  onRouteChange() {
+    const selectedDest = this.destinations().find((d) => String(d.id) === String(this.searchForm.destinationId));
+    const selectedOrigin = this.origins().find((o) => o.iataCode === this.searchForm.origin);
+    if (this.searchForm.origin && this.searchForm.destinationId && selectedOrigin && selectedDest
+        && selectedOrigin.city === selectedDest.city) {
+      this.originDestinationError.set('El origen y el destino no pueden ser iguales');
+    } else {
+      this.originDestinationError.set('');
+    }
+  }
+
+  /** Limpia el error de fecha cuando el usuario cambia la fecha. */
+  onDateChange() {
+    if (this.searchForm.departureDate && this.searchForm.departureDate < this.today) {
+      this.dateError.set('Elige una fecha a partir de hoy.');
+    } else {
+      this.dateError.set('');
+    }
+  }
+
+  /** Limpia el error de pasajeros cuando el usuario cambia el valor. */
+  onPassengersChange() {
+    const pax = Number(this.searchForm.passengers);
+    if (!pax || pax < 1) {
+      this.passengersError.set('La cantidad de pasajeros debe ser al menos 1');
+    } else {
+      this.passengersError.set('');
+    }
   }
 
   /** Carga recomendaciones del backend con las señales actuales. */

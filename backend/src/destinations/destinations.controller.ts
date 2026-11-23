@@ -48,6 +48,12 @@ export class DestinationsController {
     return this.destinationsService.findAll(query);
   }
 
+  @Get('origins')
+  @ApiOperation({ summary: 'Lista ciudades de origen únicas con vuelos activos (no requiere sesión)' })
+  findOrigins() {
+    return this.destinationsService.findOrigins();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Detalle del destino con hoteles, actividades y festividades' })
   @ApiNotFoundResponse({ description: 'Destino no encontrado' })

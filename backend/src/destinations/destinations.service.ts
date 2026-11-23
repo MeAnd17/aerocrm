@@ -63,6 +63,18 @@ const TTL_WEATHER_MS  =  3 * 60 * 60 * 1000;       //  3 horas
 export class DestinationsService {
   constructor(private prisma: PrismaService, private config: ConfigService) {}
 
+  /** Devuelve las ciudades de origen únicas de los vuelos activos, ordenadas alfabéticamente. */
+  async findOrigins(): Promise<{ iataCode: string; city: string; country: string }[]> {
+    const rows = await this.prisma.destination.findMany({
+      where: {
+        departingFlights: { some: { isActive: true } },
+      },
+      select: { iataCode: true, city: true, country: true },
+      orderBy: { city: 'asc' },
+    });
+    return rows;
+  }
+
   async findAll(query: DestinationQuery) {
     const { type, search } = query;
     const where: Prisma.DestinationWhereInput = {
